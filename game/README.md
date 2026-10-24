@@ -17,7 +17,16 @@ The question: does building a maze while creeps reroute live feel smooth and rea
 - **Left click** places, **right click** sells for 75%. Hover shows a green or red preview and the tower's range.
 - You can't fully block the path, and you can't build on a creep.
 - **N** starts the next wave. You can keep building during a wave, and creeps reroute immediately. The faint line shows the current route.
-- 10 waves. Leaks cost 1 health out of 20. Kills give 2g, and clearing a wave gives a bonus.
+- 10 waves, then **N** keeps going in endless mode. Leaks cost 1 health out of 20. Kills give 2g, and clearing a wave gives a bonus.
+- **Esc twice** returns to the menu.
+
+### Test tools (playtesting only)
+
+- **F1** speed 1x / 2x / 4x / 8x
+- **F2** auto-send the next wave 2 seconds after one ends
+- **F3** +100 gold
+- **F4** skip ahead a wave of difficulty
+- The HUD shows how many creeps the next wave has and their HP.
 
 Towers fire on simple timers for now. M3 puts them on the beat.
 

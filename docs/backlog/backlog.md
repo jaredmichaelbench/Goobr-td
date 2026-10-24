@@ -24,6 +24,7 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 
 | Item | Status | Source | Notes |
 |---|---|---|---|
+| Difficulty curve and tower balance | needs-proto | M2 playtest | M2 never got hard by wave 9. Tracked as T-019 after M3. |
 | Second currency (Aether Shards) from lotteries, quests, perfect parries | parked | Prompt 3 | Keep one currency until drafts prove they need it. |
 | Inter-wave Black Market: reroll modifiers, socket runes into towers, buy panic buttons | parked | Prompt 3 | Comes with second currency. |
 | Restore charges purchasable in shop | parked | Prompt 4 | |

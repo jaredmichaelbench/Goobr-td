@@ -4,7 +4,11 @@ extends Node2D
 ##
 ## B = build mode. In build mode: 1 = wall, Q/W/E = kick/hat/bass tower,
 ## left click = place, right click = sell (75% refund).
-## N = start next wave. R = restart after a win or loss. Esc = menu.
+## N = start next wave. R = restart after a win or loss. Esc twice = menu.
+##
+## Test tools (playtesting only, not part of the game):
+## F1 = cycle speed 1x/2x/4x/8x   F2 = auto-send waves   F3 = +100 gold
+## F4 = skip ahead one wave of difficulty. After wave 10, N keeps going (endless).
 ##
 ## Towers fire on simple cooldowns here. M3 moves them onto the beat.
 
@@ -16,6 +20,9 @@ const LAST_WAVE := 10
 const START_GOLD := 150
 const START_HEALTH := 20
 const SELL_REFUND := 0.75
+const SPEEDS: Array[int] = [1, 2, 4, 8]
+const AUTO_SEND_DELAY := 2.0
+const ESC_CONFIRM_TIME := 1.5
 
 const BUILDS := {
 	"wall": {"cost": 4, "color": Color(0.55, 0.55, 0.6)},
@@ -42,6 +49,13 @@ var _spawn_timer := 0.0
 var _message := ""
 var _message_time := 0.0
 var _origin := Vector2.ZERO
+var endless := false
+
+# Test tools.
+var speed_index := 0
+var auto_send := false
+var _auto_timer := 0.0
+var _esc_time := 0.0
 
 
 func _ready() -> void:
@@ -59,6 +73,7 @@ func reset() -> void:
 	creeps.clear()
 	shots.clear()
 	_to_spawn = 0
+	endless = false
 
 
 # --- Input -------------------------------------------------------------------
@@ -66,9 +81,22 @@ func reset() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
-			get_tree().change_scene_to_file("res://menu.tscn")
+			if _esc_time > 0.0:
+				get_tree().change_scene_to_file("res://menu.tscn")
+			else:
+				_esc_time = ESC_CONFIRM_TIME
+				_say("Press Esc again to quit to the menu")
 		elif event.keycode == KEY_R and state != "playing":
 			reset()
+		elif event.keycode == KEY_F1:
+			speed_index = (speed_index + 1) % SPEEDS.size()
+		elif event.keycode == KEY_F2:
+			auto_send = not auto_send
+			_auto_timer = AUTO_SEND_DELAY
+		elif event.keycode == KEY_F3:
+			gold += 100
+		elif event.keycode == KEY_F4 and not wave_active:
+			wave += 1
 		elif event.keycode == KEY_B:
 			build_mode = not build_mode
 		elif event.keycode == KEY_N:
@@ -123,7 +151,10 @@ func _creep_cells() -> Array[Vector2i]:
 # --- Waves -------------------------------------------------------------------
 
 func start_wave() -> void:
-	if wave_active or state != "playing" or wave >= LAST_WAVE:
+	if state == "won":
+		endless = true
+		state = "playing"
+	if wave_active or state != "playing":
 		return
 	wave += 1
 	wave_active = true
@@ -145,7 +176,15 @@ func _spawn_creep() -> void:
 # --- Simulation ----------------------------------------------------------------
 
 func _process(delta: float) -> void:
-	step(delta)
+	_esc_time = maxf(0.0, _esc_time - delta)
+	# Speed-up runs extra simulation steps so collisions and pathing stay accurate.
+	for i in SPEEDS[speed_index]:
+		step(delta)
+	if auto_send and state == "playing" and not wave_active:
+		_auto_timer -= delta
+		if _auto_timer <= 0.0:
+			_auto_timer = AUTO_SEND_DELAY
+			start_wave()
 	queue_redraw()
 
 
@@ -187,7 +226,7 @@ func step(delta: float) -> void:
 	elif wave_active and _to_spawn == 0 and creeps.is_empty():
 		wave_active = false
 		gold += 10 + wave * 2
-		if wave >= LAST_WAVE:
+		if wave == LAST_WAVE and not endless:
 			state = "won"
 
 
@@ -310,7 +349,8 @@ func _draw() -> void:
 		draw_arc(_to_screen(Vector2(hover)), BUILDS[structures[hover]["type"]]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.4), 1.5)
 
 	# HUD.
-	var status := "Wave %d/%d in progress" % [wave, LAST_WAVE] if wave_active else ("Press N to start wave %d" % (wave + 1) if wave < LAST_WAVE else "")
+	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > LAST_WAVE else ("Wave %d/%d" % [wave, LAST_WAVE])
+	var status := (wave_label + " in progress") if wave_active else ("Press N to start wave %d" % (wave + 1))
 	var lines := [
 		"M2 Maze",
 		"Gold %d    Health %d" % [gold, health],
@@ -326,7 +366,11 @@ func _draw() -> void:
 		"",
 		"Left click  place",
 		"Right click  sell (75%)",
-		"Esc  menu",
+		"Esc twice  menu",
+		"",
+		"TEST  F1 speed %dx   F2 auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
+		"TEST  F3 +100g   F4 skip a wave",
+		"Next wave: %d creeps, %.0f HP each" % [8 + 2 * (wave + 1), 18.0 * pow(1.2, wave)],
 	]
 	for i in lines.size():
 		draw_string(font, Vector2(24, 40 + i * 24), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 20 if i == 0 else 16,
@@ -334,5 +378,5 @@ func _draw() -> void:
 	if _message_time > 0.0:
 		draw_string(font, Vector2(24, view.y - 40), _message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.5, 0.4))
 	if state != "playing":
-		var text := "Victory!  R to play again" if state == "won" else "The goal fell.  R to try again"
+		var text := "Wave 10 cleared!  N for endless, R to restart" if state == "won" else "The goal fell.  R to try again"
 		draw_string(font, Vector2(_origin.x, _origin.y - 16), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1, 0.85, 0.3))
