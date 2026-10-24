@@ -4,7 +4,31 @@ Greybox build of the game, made in milestones. The plan is in `../docs/prototype
 
 Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are needed, because all audio is generated in code.
 
-## Current milestone: M1, beat and input feel
+Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze. **Esc** returns to the menu.
+
+## M2: the maze
+
+The question: does building a maze while creeps reroute live feel smooth and readable?
+
+### How to play
+
+- **B** toggles build mode (on by default).
+- In build mode, pick what to place: **1** wall (4g), **Q** kick tower (slow, heavy), **W** hat tower (fast, light), **E** bass tower (splash). These match the instrument keys from the controls plan.
+- **Left click** places, **right click** sells for 75%. Hover shows a green or red preview and the tower's range.
+- You can't fully block the path, and you can't build on a creep.
+- **N** starts the next wave. You can keep building during a wave, and creeps reroute immediately. The faint line shows the current route.
+- 10 waves. Leaks cost 1 health out of 20. Kills give 2g, and clearing a wave gives a bonus.
+
+Towers fire on simple timers for now. M3 puts them on the beat.
+
+### What to report back
+
+- Does rerouting feel instant and readable? Can you always tell where creeps will go?
+- Is building fast enough with the keys and clicks? What's annoying?
+- Rough difficulty: did you win, and on what wave did it get hard?
+- Anything you wanted to do and couldn't.
+
+## M1: beat and input feel
 
 The question: is rhythm timing tight and consistent on both your Mac and your PC?
 
@@ -12,7 +36,7 @@ The question: is rhythm timing tight and consistent on both your Mac and your PC
 
 1. Install Godot 4.5 (standard, not .NET) from godotengine.org on both machines.
 2. Open Godot, choose **Import**, and select this folder's `project.godot`.
-3. Press **F5** (or the Play button).
+3. Press **Play** (▶ top right; Cmd+B on Mac, F5 on Windows), then **1**.
 
 ### What to do
 
@@ -38,3 +62,6 @@ The question: is rhythm timing tight and consistent on both your Mac and your PC
 
 - `scripts/beat_clock.gd`: the audio-clock beat source every rhythm system will use.
 - `scripts/m1_beat_test.gd`: the M1 test scene.
+- `scripts/maze_grid.gd`: the grid and flow field (pathing).
+- `scripts/m2_maze.gd`: the M2 maze scene.
+- `scripts/menu.gd`: milestone picker.

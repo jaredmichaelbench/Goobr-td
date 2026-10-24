@@ -14,7 +14,7 @@ Active work. Each task has an id, status, and a link to the decision or prototyp
 
 | Id | Task | Status | Notes |
 |---|---|---|---|
-| T-014 | M2: maze, grid, flow-field pathing | doing | Started 2026-10-24 |
+| T-014 | M2: maze, grid, flow-field pathing | doing | Built and tested headless 2026-10-24. Waiting on Jared's playtest (see `game/README.md`) |
 | T-015 | M3: the maze plays the song | todo | |
 | T-016 | M4: suppress and Restore | todo | |
 | T-017 | M5: first boss | todo | |

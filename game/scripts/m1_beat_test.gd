@@ -3,7 +3,7 @@ extends Node2D
 ## you were. Answers P-01: is timing tight and consistent on Mac and PC?
 ##
 ## Keys: Q W E Space = tap   [ ] = calibration -/+ 5 ms   C = auto-calibrate
-##       - = = BPM -/+ 5   M = mute click (visual only)   R = reset stats
+##       - = = BPM -/+ 5   M = mute click (visual only)   R = reset stats   Esc = menu
 
 const PERFECT_MS := 35.0
 const GOOD_MS := 90.0
@@ -65,6 +65,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			clock.set_muted(muted)
 		KEY_R:
 			_reset_stats()
+		KEY_ESCAPE:
+			get_tree().change_scene_to_file("res://menu.tscn")
 
 
 func _tap(key_name: String) -> void:
