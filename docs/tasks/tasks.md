@@ -8,13 +8,13 @@ Active work. Each task has an id, status, and a link to the decision or prototyp
 |---|---|---|---|
 | T-011 | Agree how we build: who writes code, how Jared runs builds | doing | Waiting on Jared |
 | T-012 | M0: set up the engine project in the repo | done | `game/` in this repo |
-| T-013 | M1: beat and input feel, tested on Mac and PC | doing | Built and headless-checked 2026-10-24. Waiting on Jared to play it on both machines and report (see `game/README.md`) |
+| T-013 | M1: beat and input feel, tested on Mac and PC | doing | Mac passed 2026-10-24 (`docs/prototypes/M1-results.md`). PC still to test. |
 
 ## Next
 
 | Id | Task | Status | Notes |
 |---|---|---|---|
-| T-014 | M2: maze, grid, flow-field pathing | todo | |
+| T-014 | M2: maze, grid, flow-field pathing | doing | Started 2026-10-24 |
 | T-015 | M3: the maze plays the song | todo | |
 | T-016 | M4: suppress and Restore | todo | |
 | T-017 | M5: first boss | todo | |
