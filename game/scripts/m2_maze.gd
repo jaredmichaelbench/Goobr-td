@@ -24,14 +24,14 @@ const SPEEDS: Array[int] = [1, 2, 4, 8]
 const AUTO_SEND_DELAY := 2.0
 const ESC_CONFIRM_TIME := 1.5
 
-const BUILDS := {
+const BASE_BUILDS := {
 	"wall": {"cost": 4, "color": Color(0.55, 0.55, 0.6)},
 	"kick": {"cost": 20, "color": Color(1.0, 0.55, 0.3), "range": 2.6, "damage": 14.0, "cooldown": 1.0, "splash": 0.0},
 	"hat": {"cost": 15, "color": Color(0.4, 0.85, 1.0), "range": 2.0, "damage": 3.0, "cooldown": 0.25, "splash": 0.0},
 	"bass": {"cost": 25, "color": Color(0.7, 0.45, 1.0), "range": 2.0, "damage": 7.0, "cooldown": 1.0, "splash": 1.1},
 }
-const BUILD_KEYS := {KEY_1: "wall", KEY_Q: "kick", KEY_W: "hat", KEY_E: "bass"}
 
+var builds: Dictionary = BASE_BUILDS.duplicate(true)
 var grid: MazeGrid
 var gold := START_GOLD
 var health := START_HEALTH
@@ -50,6 +50,8 @@ var _message := ""
 var _message_time := 0.0
 var _origin := Vector2.ZERO
 var endless := false
+var title := "M2 Maze"
+var build_keys := {KEY_1: "wall", KEY_Q: "kick", KEY_W: "hat", KEY_E: "bass"}
 
 # Test tools.
 var speed_index := 0
@@ -101,8 +103,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			build_mode = not build_mode
 		elif event.keycode == KEY_N:
 			start_wave()
-		elif build_mode and BUILD_KEYS.has(event.keycode):
-			selected = BUILD_KEYS[event.keycode]
+		elif build_mode and build_keys.has(event.keycode):
+			selected = build_keys[event.keycode]
 	elif event is InputEventMouseButton and event.pressed and build_mode and state == "playing":
 		var cell := cell_at(event.position)
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -114,7 +116,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # --- Building ----------------------------------------------------------------
 
 func try_place(cell: Vector2i, type: String) -> bool:
-	var cost: int = BUILDS[type]["cost"]
+	var cost: int = builds[type]["cost"]
 	if not grid.in_bounds(cell):
 		return false
 	if gold < cost:
@@ -133,7 +135,7 @@ func try_place(cell: Vector2i, type: String) -> bool:
 func sell(cell: Vector2i) -> void:
 	if not structures.has(cell):
 		return
-	gold += int(BUILDS[structures[cell]["type"]]["cost"] * SELL_REFUND)
+	gold += int(builds[structures[cell]["type"]]["cost"] * SELL_REFUND)
 	structures.erase(cell)
 	grid.blocked.erase(cell)
 	grid.rebuild()
@@ -253,7 +255,7 @@ func _fire_towers(delta: float) -> void:
 		var s: Dictionary = structures[cell]
 		if s["type"] == "wall":
 			continue
-		var spec: Dictionary = BUILDS[s["type"]]
+		var spec: Dictionary = builds[s["type"]]
 		s["cooldown"] = maxf(0.0, s["cooldown"] - delta)
 		if s["cooldown"] > 0.0:
 			continue
@@ -299,6 +301,35 @@ func _say(text: String) -> void:
 	_message_time = 1.5
 
 
+func status_lines() -> Array[String]:
+	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > LAST_WAVE else ("Wave %d/%d" % [wave, LAST_WAVE])
+	return [
+		"Gold %d    Health %d" % [gold, health],
+		(wave_label + " in progress") if wave_active else ("Press N to start wave %d" % (wave + 1)),
+		"",
+		"Build mode: %s (B)" % ("ON" if build_mode else "off"),
+		"Selected: %s (%dg)" % [selected, builds[selected]["cost"]],
+	]
+
+
+func help_lines() -> Array[String]:
+	var keys := {}
+	for k in build_keys:
+		keys[build_keys[k]] = OS.get_keycode_string(k)
+	return [
+		"%s  Wall     4g" % keys["wall"],
+		"%s  Kick    20g  slow, heavy" % keys["kick"],
+		"%s  Hat     15g  fast, light" % keys["hat"],
+		"%s  Bass    25g  splash" % keys["bass"],
+		"Left click  place     Right click  sell (75%)",
+		"Esc twice  menu",
+		"",
+		"TEST  F1 speed %dx   F2 auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
+		"TEST  F3 +100g   F4 skip a wave",
+		"Next wave: %d creeps, %.0f HP each" % [8 + 2 * (wave + 1), 18.0 * pow(1.2, wave)],
+	]
+
+
 func _draw() -> void:
 	var view := get_viewport_rect().size
 	_origin = Vector2((view.x - GRID_SIZE.x * TILE) * 0.5 + 120.0, (view.y - GRID_SIZE.y * TILE) * 0.5)
@@ -321,10 +352,10 @@ func _draw() -> void:
 		var type: String = structures[cell]["type"]
 		var r := Rect2(_origin + Vector2(cell) * TILE, Vector2(TILE, TILE)).grow(-2)
 		if type == "wall":
-			draw_rect(r, BUILDS[type]["color"])
+			draw_rect(r, builds[type]["color"])
 		else:
 			draw_rect(r, Color(0.2, 0.2, 0.24))
-			draw_circle(r.get_center(), TILE * 0.32, BUILDS[type]["color"])
+			draw_circle(r.get_center(), TILE * 0.32, builds[type]["color"])
 
 	# Creeps and shots.
 	for c in creeps:
@@ -341,40 +372,23 @@ func _draw() -> void:
 	# Hover ghost and range.
 	var hover := cell_at(get_local_mouse_position())
 	if build_mode and grid.in_bounds(hover) and state == "playing":
-		var ok: bool = gold >= BUILDS[selected]["cost"] and grid.can_block([hover], _creep_cells())
+		var ok: bool = gold >= builds[selected]["cost"] and grid.can_block([hover], _creep_cells())
 		draw_rect(Rect2(_origin + Vector2(hover) * TILE, Vector2(TILE, TILE)), Color(0.3, 1.0, 0.4, 0.3) if ok else Color(1.0, 0.3, 0.3, 0.3))
-		if BUILDS[selected].has("range"):
-			draw_arc(_to_screen(Vector2(hover)), BUILDS[selected]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.3), 1.5)
-	if structures.has(hover) and BUILDS[structures[hover]["type"]].has("range"):
-		draw_arc(_to_screen(Vector2(hover)), BUILDS[structures[hover]["type"]]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.4), 1.5)
+		if builds[selected].has("range"):
+			draw_arc(_to_screen(Vector2(hover)), builds[selected]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.3), 1.5)
+	if structures.has(hover) and builds[structures[hover]["type"]].has("range"):
+		draw_arc(_to_screen(Vector2(hover)), builds[structures[hover]["type"]]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.4), 1.5)
 
-	# HUD.
-	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > LAST_WAVE else ("Wave %d/%d" % [wave, LAST_WAVE])
-	var status := (wave_label + " in progress") if wave_active else ("Press N to start wave %d" % (wave + 1))
-	var lines := [
-		"M2 Maze",
-		"Gold %d    Health %d" % [gold, health],
-		status,
-		"",
-		"Build mode: %s (B)" % ("ON" if build_mode else "off"),
-		"Selected: %s (%dg)" % [selected, BUILDS[selected]["cost"]],
-		"",
-		"1  Wall     4g",
-		"Q  Kick    20g  slow, heavy",
-		"W  Hat     15g  fast, light",
-		"E  Bass    25g  splash",
-		"",
-		"Left click  place",
-		"Right click  sell (75%)",
-		"Esc twice  menu",
-		"",
-		"TEST  F1 speed %dx   F2 auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
-		"TEST  F3 +100g   F4 skip a wave",
-		"Next wave: %d creeps, %.0f HP each" % [8 + 2 * (wave + 1), 18.0 * pow(1.2, wave)],
-	]
-	for i in lines.size():
-		draw_string(font, Vector2(24, 40 + i * 24), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 20 if i == 0 else 16,
-			Color.WHITE if i < 7 else Color(1, 1, 1, 0.55))
+	# HUD: bright status lines, then dimmer help lines.
+	var y := 40.0
+	draw_string(font, Vector2(24, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20)
+	for line in status_lines():
+		y += 22.0
+		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 16)
+	y += 10.0
+	for line in help_lines():
+		y += 21.0
+		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 1, 1, 0.55))
 	if _message_time > 0.0:
 		draw_string(font, Vector2(24, view.y - 40), _message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.5, 0.4))
 	if state != "playing":

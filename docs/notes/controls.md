@@ -21,7 +21,7 @@ _Started 2026-10-23 from Jared's comment on boss-design open question 1. This re
 | **Space** | Parry | The souls key. Boss and elite attacks aimed at the Conductor. |
 | **F** | Restore | Limited charges, timed on the downbeat after suppression. |
 | **1–4** | Items and consumables | Panic buttons, shop items (later). |
-| **B** | Build mode | Then hotkeys pick the tower or wall, and the mouse places. |
+| **B** | Build mode | Then hotkeys pick the tower or wall, and the mouse places. In the demo these are 1-4 (D-0012). |
 | **Mouse** | Camera, pings, placement in build mode, inspect | No mouse aiming during waves. |
 
 QWER being instruments is the big change from the earlier baseline. Accents are **colored by instrument**, so a kick accent wants Q and a bass accent wants E. A crossfire where two instruments overlap could take a two-key chord (e.g. Q+E) for a bigger hit, which is the "playing your maze" fantasy.

@@ -4,7 +4,27 @@ Greybox build of the game, made in milestones. The plan is in `../docs/prototype
 
 Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are needed, because all audio is generated in code.
 
-Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze. **Esc** returns to the menu.
+Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song. **Esc** returns to the menu.
+
+## M3: the maze plays the song
+
+The question: can you hear your maze, and does it make you want to build for more accents?
+
+- Calibrate in M1 first (press **C** there). M3 uses the same calibration.
+- Build keys are now **1** wall, **2** kick, **3** hat, **4** bass, so Q/W/E are free for playing.
+- Towers fire on the beat: kick on beats 1 and 3, hat on every 8th note, bass on the off-beats.
+- Each instrument's part of the music only plays while one of its towers has a target. Between waves you just hear a quiet kick. The meters right of the board show what's playing.
+- **Accents:** when 2 or more towers are about to hit the same creep on the same note, a ring closes on that creep, colored by instrument and labelled with its key. Press that key (**Q** kick, **W** hat, **E** bass) as the ring closes and the note lands: that's a **Resonance** burst. Perfect timing is a crit. The lead melody joins in for 2 bars after a hit. Missing costs nothing.
+- **F5** toggles one-key mode, where any of Q/W/E/Space plays any accent. Try both and tell me which feels better.
+- Speeding up (F1) mutes the music and turns accents off, since the beat can't speed up.
+
+### What to report back
+
+- Can you hear your maze? Does a busier maze sound fuller?
+- Do the accent rings feel readable and fair, or too fast or too frequent?
+- Did you rebuild your maze to get more or bigger accents?
+- Three keys vs one-key mode (F5): which felt better?
+- Is it fun or busywork? Too much input, or not enough?
 
 ## M2: the maze
 
@@ -74,3 +94,6 @@ The question: is rhythm timing tight and consistent on both your Mac and your PC
 - `scripts/maze_grid.gd`: the grid and flow field (pathing).
 - `scripts/m2_maze.gd`: the M2 maze scene.
 - `scripts/menu.gd`: milestone picker.
+- `scripts/timing.gd`: shared Perfect/Good windows and saved calibration.
+- `scripts/stem_synth.gd`: generated placeholder music, one loop per instrument.
+- `scripts/m3_song.gd`: the M3 scene (builds on M2).

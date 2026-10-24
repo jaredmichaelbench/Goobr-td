@@ -4,6 +4,7 @@ extends Node2D
 const SCENES := {
 	KEY_1: "res://m1_beat_test.tscn",
 	KEY_2: "res://m2_maze.tscn",
+	KEY_3: "res://m3_song.tscn",
 }
 
 
@@ -19,6 +20,7 @@ func _draw() -> void:
 		"",
 		"1   M1 Beat test",
 		"2   M2 Maze",
+		"3   M3 The maze plays the song",
 		"",
 		"Esc in any test returns here",
 	]

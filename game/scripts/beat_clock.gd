@@ -2,6 +2,10 @@ class_name BeatClock
 extends Node
 ## Plays a looping one-bar click track and reports song time from the audio
 ## clock, not from frame delta. Every rhythm system reads time from here.
+##
+## Extra one-bar stems can be added before start(). They play sample-locked
+## with the click (one AudioStreamSynchronized), and each has its own volume,
+## which is how towers bring their instrument in and out of the mix.
 
 signal beat(index: int)
 
@@ -11,6 +15,10 @@ const MIX_RATE := 44100
 @export var beats_per_bar := 4
 
 var _player: AudioStreamPlayer
+var _sync: AudioStreamSynchronized
+var _stems: Array[AudioStream] = []
+var _stem_db := PackedFloat32Array()
+var _click_muted := false
 var _bar_count := 0
 var _last_raw_pos := 0.0
 var _last_beat := -1
@@ -43,8 +51,23 @@ func set_bpm(value: float) -> void:
 		start()
 
 
+## Mutes only the click (stem 0).
 func set_muted(muted: bool) -> void:
-	_player.volume_db = -80.0 if muted else 0.0
+	_click_muted = muted
+	_sync.set_sync_stream_volume(0, -80.0 if muted else 0.0)
+
+
+## Adds a looping stem one bar long at the current BPM. Returns its index,
+## which is what set_stem_volume_db() takes. Call before start().
+func add_stem(stream: AudioStream, volume_db := 0.0) -> int:
+	_stems.append(stream)
+	_stem_db.append(volume_db)
+	_rebuild_stream()
+	return _stems.size()
+
+
+func set_stem_volume_db(index: int, db: float) -> void:
+	_sync.set_sync_stream_volume(index, db)
 
 
 func beat_length() -> float:
@@ -91,6 +114,19 @@ func _rebuild_stream() -> void:
 		var t := float(in_beat) / MIX_RATE
 		var accent := (i / beat_frames) == 0
 		data.encode_s16(i * 2, int(_kick(t, accent) * 32767.0))
+	var click := make_loop(data)
+	_sync = AudioStreamSynchronized.new()
+	_sync.stream_count = 1 + _stems.size()
+	_sync.set_sync_stream(0, click)
+	_sync.set_sync_stream_volume(0, -80.0 if _click_muted else 0.0)
+	for i in _stems.size():
+		_sync.set_sync_stream(i + 1, _stems[i])
+		_sync.set_sync_stream_volume(i + 1, _stem_db[i])
+	_player.stream = _sync
+
+
+## Wraps 16-bit mono samples as a forward-looping WAV stream.
+static func make_loop(data: PackedByteArray) -> AudioStreamWAV:
 	var stream := AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = MIX_RATE
@@ -98,8 +134,8 @@ func _rebuild_stream() -> void:
 	stream.data = data
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_begin = 0
-	stream.loop_end = frames
-	_player.stream = stream
+	stream.loop_end = data.size() / 2
+	return stream
 
 
 ## Synth kick: a pitch-swept sine with a short click, louder on the downbeat.

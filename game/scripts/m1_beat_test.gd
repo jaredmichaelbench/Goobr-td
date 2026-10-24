@@ -5,10 +5,7 @@ extends Node2D
 ## Keys: Q W E Space = tap   [ ] = calibration -/+ 5 ms   C = auto-calibrate
 ##       - = = BPM -/+ 5   M = mute click (visual only)   R = reset stats   Esc = menu
 
-const PERFECT_MS := 35.0
-const GOOD_MS := 90.0
 const HISTORY := 16
-const SETTINGS_PATH := "user://settings.cfg"
 
 const COLOR_PERFECT := Color(1.0, 0.85, 0.3)
 const COLOR_GOOD := Color(0.4, 0.85, 1.0)
@@ -82,12 +79,7 @@ func _tap(key_name: String) -> void:
 
 
 static func grade(offset_ms: float) -> String:
-	var a := absf(offset_ms)
-	if a <= PERFECT_MS:
-		return "Perfect"
-	if a <= GOOD_MS:
-		return "Good"
-	return "Miss"
+	return Timing.grade(offset_ms)
 
 
 func _process(delta: float) -> void:
@@ -149,15 +141,11 @@ func _grade_color(g: String) -> Color:
 
 func _set_calibration(ms: float) -> void:
 	calibration_ms = clampf(round(ms), -250.0, 250.0)
-	var cfg := ConfigFile.new()
-	cfg.set_value("timing", "calibration_ms", calibration_ms)
-	cfg.save(SETTINGS_PATH)
+	Timing.save_calibration_ms(calibration_ms)
 
 
 func _load_settings() -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_PATH) == OK:
-		calibration_ms = cfg.get_value("timing", "calibration_ms", 0.0)
+	calibration_ms = Timing.load_calibration_ms()
 
 
 func _reset_stats() -> void:

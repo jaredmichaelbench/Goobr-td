@@ -77,3 +77,9 @@ Alternatives: More design iteration first (rejected: diminishing returns). Separ
 Context: Demo 0 needs an engine. The options were Godot 4 and Unity + FMOD.
 Decision: Godot 4 with native audio (synced stems on the audio clock). Add the FMOD GDExtension only if M1 shows native audio isn't good enough. Revisit if M1 timing fails on Windows.
 Alternatives: Unity + FMOD (heavier, but the most mature middleware). Building M1 in both (unnecessary).
+
+## D-0012: Build keys move to 1-4 in M3
+2026-10-24 · proposed (for the demo; revisit when items exist)
+Context: In M2, Q/W/E selected towers in build mode. In M3 they play instrument accents, and you build during waves, so the same keys can't do both.
+Decision: Build selection uses 1 (wall), 2 (kick), 3 (hat), 4 (bass). Q/W/E are always instruments. When items arrive (1-4 in D-0008), build selection needs a new home, for example a build bar on the mouse or Shift+Q/W/E.
+Alternatives: Q/W/E select only while build mode is on (rejected: you'd have to leave build mode to play accents mid-wave). Context-sensitive keys (rejected: confusing).
