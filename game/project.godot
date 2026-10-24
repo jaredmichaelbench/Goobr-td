@@ -1,5 +1,10 @@
 ; Engine configuration file.
-; Demo 0 for Goobr's Tower Defense. See ../docs/prototypes/demo-0-plan.md
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -8,10 +13,6 @@ config_version=5
 config/name="Goobr TD - Demo 0"
 run/main_scene="res://menu.tscn"
 config/features=PackedStringArray("4.5")
-
-[audio]
-
-driver/output_latency=15
 
 [display]
 
