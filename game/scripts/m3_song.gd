@@ -392,9 +392,10 @@ func _draw() -> void:
 			var left := clampf((c["time"] - beat_time()) / span, 0.0, 1.0)
 			draw_arc(p, TILE * (0.5 + 2.0 * left), 0, TAU, 48, color * Color(1, 1, 1, 0.4 + 0.6 * (1.0 - left)), 3.0)
 			draw_arc(p, TILE * 0.5, 0, TAU, 48, color, 2.0)
-			draw_string(font, p + Vector2(-20, -TILE * 0.75), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 20, Color.WHITE)
+			draw_string(font, p + Vector2(-20, 5), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 14, Color.WHITE)
 		else:
-			draw_string(font, p + Vector2(-20, -TILE * 0.55), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 11, Color(1, 1, 1, 0.45))
+			# Key sits right on the tower, small and dark on its colour.
+			draw_string(font, p + Vector2(-20, 4), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 11, Color(0, 0, 0, 0.7))
 
 	for b in _bursts:
 		var a: float = b["ttl"] / 0.35
