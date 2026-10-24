@@ -1,32 +1,44 @@
 extends "res://scripts/m2_maze.gd"
 ## M3: the maze plays the song. Answers P-04: can you hear your maze, and do
-## you rebuild it to get more accents?
+## you rebuild it to get more out of the moments you play?
 ##
-## Towers fire on their instrument's beat pattern (8th-note steps), and each
-## instrument's stem only plays while one of its towers has a target. When 2+
-## towers will hit the same creep on the same step, an accent ring closes on
-## that creep. Press the instrument's key (Q kick, W hat, E bass) on the hit
-## for a Resonance burst. Perfect timing crits. Missing costs nothing.
+## Towers auto-fire on their instrument's beat pattern, and each instrument's
+## stem only plays while one of its towers has a target. You don't play every
+## note. The song runs in 4-bar phrases:
+##   bars 1-2  groove: the maze plays itself
+##   bar 3     call: a chime plays a short rhythm, one note per tower to cue
+##   bar 4     answer: that rhythm comes back on your towers. A ring closes on
+##             each cued tower; press the key shown above it as the ring lands.
+## The call tells you the rhythm by ear, and the rings confirm it by eye.
+## Perfect = crit. Missing costs nothing. Towers in crossfire hit harder.
 ##
-## Build keys move to 1-4 so Q/W/E are free for playing (D-0012).
-## F5 = one-key mode (P-04 arm B): any of Q/W/E/Space plays every accent.
+## Build keys are 1-4 so Q/W/E are free for playing (D-0012).
+## F5 = one-key mode (P-04 arm B): any of Q/W/E/Space answers any cue.
 
 const STEPS_PER_BAR := 8
+const PHRASE_BARS := 4
+const CALL_BAR := 2
+const ANSWER_BAR := 3
+const RING_LEAD_STEPS := 4  # Rings appear two beats before their note.
 const PATTERNS := {
 	"kick": StemSynth.KICK_STEPS,
 	"hat": StemSynth.HAT_STEPS,
 	"bass": StemSynth.BASS_STEPS,
 }
 const INSTRUMENT_KEYS := {"kick": KEY_Q, "hat": KEY_W, "bass": KEY_E}
-const ACCENT_PRIORITY: Array[String] = ["kick", "bass", "hat"]
-const ACCENT_LEAD_STEPS := 2  # Accents are announced one beat ahead.
-const RESONANCE_GOOD := 0.5  # Bonus as a share of the crossfire's normal damage.
-const RESONANCE_PERFECT := 1.0
+const CHIME_FREQ := {"kick": 523.25, "hat": 1046.5, "bass": 659.25}
+## Answer rhythms, in 8th-note steps within the bar. Each is held for two
+## phrases so it can be learned, then the next one is drawn.
+const MOTIFS: Array = [[0, 4], [0, 2, 4], [0, 3, 6], [2, 4, 6], [0, 1, 4], [0, 3, 4], [4, 6]]
+const MOTIF_REPEATS := 2
+const RESONANCE_GOOD := 1.0  # Bonus = tower damage x this x crossfire factor.
+const RESONANCE_PERFECT := 2.0
+const CROSSFIRE_BONUS := 0.5  # Per extra tower that also covers the target.
 const RESONANCE_RADIUS := 1.0
 const LEAD_HOLD_BARS := 2.0
 
 const IDLE_DB := {"kick": -16.0, "hat": -80.0, "bass": -80.0, "lead": -80.0}
-const ACTIVE_DB := {"kick": 0.0, "hat": -2.0, "bass": 0.0, "lead": -1.0}
+const ACTIVE_DB := {"kick": 0.0, "hat": -4.0, "bass": 0.0, "lead": -1.0}
 
 var clock: BeatClock
 var calibration_ms := 0.0
@@ -34,18 +46,24 @@ var one_key_mode := false
 
 var stem_index := {}  # instrument -> BeatClock stem index
 var stem_db := {}  # instrument -> current dB
+var _chimes := {}  # instrument -> AudioStreamPlayer
 var _time_offset := 0.0  # Extra time from the speed-up test tool.
 var _last_step := -1
 var _lead_timer := 0.0
 var _flashes := {}  # tower cell -> seconds left
 
-var accent := {}  # step, time, creep, towers, instrument, announced_at
-var stats := {"accents": 0, "hits": 0, "perfects": 0, "wrong_key": 0}
-var _wave_accents := 0
+var _phrase := -1
+var _motif: Array = []
+var _motif_left := 0
+var _plan: Array[Dictionary] = []  # This phrase's cues: step, tower, instrument
+var cues: Array[Dictionary] = []  # Live rings: time, shown_at, tower, instrument
+var stats := {"cues": 0, "hits": 0, "perfects": 0, "wrong_key": 0}
+var _wave_cues := 0
 var _feedback := ""
 var _feedback_color := Color.WHITE
 var _feedback_time := 0.0
 var _bursts: Array[Dictionary] = []
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -53,6 +71,7 @@ func _ready() -> void:
 	build_keys = {KEY_1: "wall", KEY_2: "kick", KEY_3: "hat", KEY_4: "bass"}
 	builds["bass"]["damage"] = 4.5  # Bass fires twice as often on the off-beats.
 	calibration_ms = Timing.load_calibration_ms()
+	_rng.randomize()
 	super._ready()
 
 	clock = BeatClock.new()
@@ -65,21 +84,28 @@ func _ready() -> void:
 	stem_index["lead"] = clock.add_stem(StemSynth.lead(bar), IDLE_DB["lead"])
 	for k in IDLE_DB:
 		stem_db[k] = IDLE_DB[k]
+	for k in CHIME_FREQ:
+		var p := AudioStreamPlayer.new()
+		p.stream = StemSynth.chime(CHIME_FREQ[k])
+		p.volume_db = -4.0
+		add_child(p)
+		_chimes[k] = p
 	clock.start()
 
 
 func reset() -> void:
 	super.reset()
-	accent = {}
-	stats = {"accents": 0, "hits": 0, "perfects": 0, "wrong_key": 0}
-	_wave_accents = 0
+	cues.clear()
+	_plan.clear()
+	stats = {"cues": 0, "hits": 0, "perfects": 0, "wrong_key": 0}
+	_wave_cues = 0
 
 
 func start_wave() -> void:
 	var was_active := wave_active
 	super.start_wave()
 	if wave_active and not was_active:
-		_wave_accents = 0
+		_wave_cues = 0
 
 
 # --- Time ----------------------------------------------------------------------
@@ -94,12 +120,18 @@ func beat_time() -> float:
 	return clock.song_time() + _time_offset
 
 
+## When the player meant to press, after calibration.
+func press_time() -> float:
+	return beat_time() - calibration_ms / 1000.0
+
+
 func _process(delta: float) -> void:
 	_esc_time = maxf(0.0, _esc_time - delta)
 	var speed := SPEEDS[speed_index]
 	if speed > 1:
 		_time_offset += delta * (speed - 1)
-		accent = {}
+		cues.clear()
+		_plan.clear()
 	for i in speed:
 		step(delta)
 	if auto_send and state == "playing" and not wave_active:
@@ -113,28 +145,64 @@ func _process(delta: float) -> void:
 		_last_step = now_step
 	# Catch up on every step since last frame, capped so a hitch can't flood.
 	for s in range(maxi(_last_step + 1, now_step - 32), now_step + 1):
-		fire_step(s)
+		on_step(s)
 	_last_step = maxi(_last_step, now_step)
 
-	if not accent.is_empty() and beat_time() - calibration_ms / 1000.0 > accent["time"] + Timing.GOOD_MS / 1000.0:
-		accent = {}  # Let it pass. No penalty.
+	# Let rings that have passed go. No penalty.
+	var live: Array[Dictionary] = []
+	for c in cues:
+		if press_time() <= c["time"] + Timing.GOOD_MS / 1000.0:
+			live.append(c)
+	cues = live
 
 	_update_stems(delta, speed)
 	_tick_effects(delta)
 	queue_redraw()
 
 
-# --- Firing on the beat --------------------------------------------------------
+# --- The beat ------------------------------------------------------------------
 
-## Cooldown firing from M2 is replaced by fire_step().
+## Cooldown firing from M2 is replaced by on_step().
 func _fire_towers(_delta: float) -> void:
 	pass
 
 
-func fire_step(s: int) -> void:
+func on_step(s: int) -> void:
 	if state != "playing":
 		return
+	var bar := floori(float(s) / STEPS_PER_BAR)
 	var pattern_step := posmod(s, STEPS_PER_BAR)
+	var phrase := floori(float(bar) / PHRASE_BARS)
+	var bar_in_phrase := posmod(bar, PHRASE_BARS)
+
+	if phrase != _phrase:
+		_phrase = phrase
+		_plan.clear()
+	if bar_in_phrase == CALL_BAR and pattern_step == 0 and SPEEDS[speed_index] == 1:
+		_plan_answer()
+	# Call: the chime plays the rhythm one bar ahead of the answer.
+	if bar_in_phrase == CALL_BAR:
+		for p in _plan:
+			if p["step"] == pattern_step:
+				_chimes[p["instrument"]].play()
+	# Rings appear RING_LEAD_STEPS before each answer note.
+	var answer_start := (phrase * PHRASE_BARS + ANSWER_BAR) * STEPS_PER_BAR
+	for p in _plan:
+		var hit_step: int = answer_start + p["step"]
+		if s == hit_step - RING_LEAD_STEPS and structures.has(p["tower"]):
+			cues.append({
+				"time": hit_step * step_length(),
+				"shown_at": s * step_length(),
+				"tower": p["tower"],
+				"instrument": p["instrument"],
+			})
+			stats["cues"] += 1
+			_wave_cues += 1
+
+	_fire_towers_on(pattern_step)
+
+
+func _fire_towers_on(pattern_step: int) -> void:
 	for cell in structures:
 		var type: String = structures[cell]["type"]
 		if not PATTERNS.has(type) or not PATTERNS[type].has(pattern_step):
@@ -143,57 +211,56 @@ func fire_step(s: int) -> void:
 		var target := _pick_target(Vector2(cell), spec["range"])
 		if target.is_empty():
 			continue
-		_hit(target, spec)
+		_hit(target, spec, spec["damage"])
 		_flashes[cell] = 0.12
 		shots.append({"from": Vector2(cell), "to": target["pos"], "color": spec["color"], "ttl": 0.12, "splash": spec["splash"]})
-	if accent.is_empty() and SPEEDS[speed_index] == 1:
-		_predict_accent(s + ACCENT_LEAD_STEPS)
 
 
-func _hit(target: Dictionary, spec: Dictionary) -> void:
+func _hit(target: Dictionary, spec: Dictionary, damage: float) -> void:
 	if spec["splash"] > 0.0:
 		for c in creeps:
 			if c["pos"].distance_to(target["pos"]) <= spec["splash"]:
-				c["hp"] -= spec["damage"]
+				c["hp"] -= damage
 	else:
-		target["hp"] -= spec["damage"]
+		target["hp"] -= damage
 
 
-## Looks ahead to step s: if 2+ towers that play on that step have the same
-## creep in range, that creep gets an accent ring.
-func _predict_accent(s: int) -> void:
-	var pattern_step := posmod(s, STEPS_PER_BAR)
-	var best := {}
-	var best_towers: Array = []
-	for c in creeps:
-		if c["hp"] <= 0.0:
-			continue
-		var towers: Array = []
-		for cell in structures:
-			var type: String = structures[cell]["type"]
-			if PATTERNS.has(type) and PATTERNS[type].has(pattern_step) \
-					and c["pos"].distance_to(Vector2(cell)) <= builds[type]["range"]:
-				towers.append(cell)
-		if towers.size() >= 2 and towers.size() > best_towers.size():
-			best = c
-			best_towers = towers
-	if best.is_empty():
+## Picks this phrase's answer: a rhythm, and a tower in the fight for each
+## note. Towers whose target is covered by the most other towers come first,
+## so a maze with real crossfire gets the best cues.
+func _plan_answer() -> void:
+	_plan.clear()
+	if not wave_active:
 		return
-	var instrument := "hat"
-	for p in ACCENT_PRIORITY:
-		if best_towers.any(func(cell): return structures[cell]["type"] == p):
-			instrument = p
-			break
-	accent = {
-		"step": s,
-		"time": s * step_length(),
-		"creep": best,
-		"towers": best_towers,
-		"instrument": instrument,
-		"announced_at": beat_time(),
-	}
-	stats["accents"] += 1
-	_wave_accents += 1
+	if _motif_left <= 0:
+		_motif = MOTIFS[_rng.randi() % MOTIFS.size()]
+		_motif_left = MOTIF_REPEATS
+	_motif_left -= 1
+
+	var candidates: Array = []
+	for cell in structures:
+		var type: String = structures[cell]["type"]
+		if not PATTERNS.has(type):
+			continue
+		var target := _pick_target(Vector2(cell), builds[type]["range"])
+		if not target.is_empty():
+			candidates.append({"cell": cell, "type": type, "cover": _coverage(target["pos"])})
+	if candidates.is_empty():
+		return
+	candidates.sort_custom(func(a, b): return a["cover"] > b["cover"])
+	for i in _motif.size():
+		var c: Dictionary = candidates[i % candidates.size()]
+		_plan.append({"step": _motif[i], "tower": c["cell"], "instrument": c["type"]})
+
+
+## How many towers have this spot in range.
+func _coverage(pos: Vector2) -> int:
+	var n := 0
+	for cell in structures:
+		var type: String = structures[cell]["type"]
+		if PATTERNS.has(type) and pos.distance_to(Vector2(cell)) <= builds[type]["range"]:
+			n += 1
+	return n
 
 
 # --- Playing -------------------------------------------------------------------
@@ -209,39 +276,52 @@ func _unhandled_input(event: InputEvent) -> void:
 	super._unhandled_input(event)
 
 
+## Answers the closest ring in time that this key can play.
 func _play(key: Key) -> void:
-	if accent.is_empty():
+	var best := -1
+	var best_off := INF
+	for i in cues.size():
+		if not one_key_mode and key != INSTRUMENT_KEYS[cues[i]["instrument"]]:
+			continue
+		var off: float = absf(press_time() - cues[i]["time"])
+		if off < best_off:
+			best = i
+			best_off = off
+	if best < 0:
+		if not cues.is_empty():
+			stats["wrong_key"] += 1
+			_show_feedback("Wrong key", Color(1, 0.5, 0.4))
 		return
-	var press := beat_time() - calibration_ms / 1000.0
-	var offset_ms: float = (press - accent["time"]) * 1000.0
+	var offset_ms: float = (press_time() - cues[best]["time"]) * 1000.0
 	var g := Timing.grade(offset_ms)
 	if g == "Miss":
-		return  # Too early or too late: the ring is still yours to hit (or let go).
-	if not one_key_mode and key != INSTRUMENT_KEYS[accent["instrument"]]:
-		stats["wrong_key"] += 1
-		_show_feedback("Wrong key", Color(1, 0.5, 0.4))
+		return  # Too early: the ring is still yours to hit.
+	_resonance(cues[best], g, offset_ms)
+	cues.remove_at(best)
+
+
+func _resonance(cue: Dictionary, g: String, offset_ms: float) -> void:
+	var cell: Vector2i = cue["tower"]
+	if not structures.has(cell):
 		return
-	_resonance(g, offset_ms)
-
-
-func _resonance(g: String, offset_ms: float) -> void:
-	var total := 0.0
-	for cell in accent["towers"]:
-		if structures.has(cell):
-			total += builds[structures[cell]["type"]]["damage"]
-	var bonus := total * (RESONANCE_PERFECT if g == "Perfect" else RESONANCE_GOOD)
-	var center: Vector2 = accent["creep"]["pos"]
-	for c in creeps:
-		if c["pos"].distance_to(center) <= RESONANCE_RADIUS:
-			c["hp"] -= bonus
+	var spec: Dictionary = builds[structures[cell]["type"]]
+	var target := _pick_target(Vector2(cell), spec["range"])
+	var color: Color = spec["color"]
 	stats["hits"] += 1
 	if g == "Perfect":
 		stats["perfects"] += 1
 	_lead_timer = clock.bar_length() * LEAD_HOLD_BARS
-	var color: Color = builds[accent["instrument"]]["color"]
-	_bursts.append({"pos": center, "color": color, "ttl": 0.35, "crit": g == "Perfect"})
+	_flashes[cell] = 0.25
 	_show_feedback(("CRIT  " if g == "Perfect" else "") + "%s  %+.0f ms" % [g, offset_ms], color)
-	accent = {}
+	if target.is_empty():
+		return
+	var crossfire := 1.0 + CROSSFIRE_BONUS * maxi(0, _coverage(target["pos"]) - 1)
+	var bonus: float = spec["damage"] * crossfire * (RESONANCE_PERFECT if g == "Perfect" else RESONANCE_GOOD)
+	for c in creeps:
+		if c["pos"].distance_to(target["pos"]) <= RESONANCE_RADIUS:
+			c["hp"] -= bonus
+	shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.25, "splash": RESONANCE_RADIUS})
+	_bursts.append({"pos": target["pos"], "color": color, "ttl": 0.35, "crit": g == "Perfect"})
 
 
 func _show_feedback(text: String, color: Color) -> void:
@@ -292,36 +372,51 @@ func _draw() -> void:
 	super._draw()
 	var font := ThemeDB.fallback_font
 
-	# Towers pop when they fire.
-	for cell in _flashes:
-		if structures.has(cell):
-			var a: float = _flashes[cell] / 0.12
-			draw_circle(_to_screen(Vector2(cell)), TILE * (0.32 + 0.15 * a), builds[structures[cell]["type"]]["color"] * Color(1, 1, 1, 0.5 * a))
-
-	# Beat pulse along the top of the board.
-	var phase := fposmod(beat_time(), clock.beat_length()) / clock.beat_length()
-	var board_w := GRID_SIZE.x * TILE
-	draw_rect(Rect2(_origin + Vector2(0, -8), Vector2(board_w, 4)), Color(1, 1, 1, 0.08))
-	draw_rect(Rect2(_origin + Vector2(0, -8), Vector2(board_w * (1.0 - phase), 4)), Color(1, 1, 1, 0.25 * (1.0 - phase)))
-
-	# Accent ring closing on its creep.
-	if not accent.is_empty():
-		var creep: Dictionary = accent["creep"]
-		var p := _to_screen(creep["pos"])
-		var span: float = maxf(0.001, accent["time"] - accent["announced_at"])
-		var left := clampf((accent["time"] - beat_time()) / span, 0.0, 1.0)
-		var color: Color = builds[accent["instrument"]]["color"]
-		draw_arc(p, TILE * (0.45 + 1.6 * left), 0, TAU, 40, color, 3.0)
-		draw_arc(p, TILE * 0.45, 0, TAU, 40, color * Color(1, 1, 1, 0.5), 2.0)
-		var label := "any" if one_key_mode else OS.get_keycode_string(INSTRUMENT_KEYS[accent["instrument"]])
-		draw_string(font, p + Vector2(-20, -TILE * 0.9), "%s x%d" % [label, accent["towers"].size()], HORIZONTAL_ALIGNMENT_CENTER, 40, 16, color)
+	# Every tower shows its key. Cued towers get a ring closing on the note.
+	var cued := {}
+	for c in cues:
+		cued[c["tower"]] = c
+	for cell in structures:
+		var type: String = structures[cell]["type"]
+		if not INSTRUMENT_KEYS.has(type):
+			continue
+		var p := _to_screen(Vector2(cell))
+		var color: Color = builds[type]["color"]
+		if _flashes.has(cell):
+			var a: float = clampf(_flashes[cell] / 0.12, 0.0, 1.0)
+			draw_circle(p, TILE * (0.32 + 0.15 * a), color * Color(1, 1, 1, 0.5 * a))
+		var key := OS.get_keycode_string(INSTRUMENT_KEYS[type])
+		if cued.has(cell):
+			var c: Dictionary = cued[cell]
+			var span: float = maxf(0.001, c["time"] - c["shown_at"])
+			var left := clampf((c["time"] - beat_time()) / span, 0.0, 1.0)
+			draw_arc(p, TILE * (0.5 + 2.0 * left), 0, TAU, 48, color * Color(1, 1, 1, 0.4 + 0.6 * (1.0 - left)), 3.0)
+			draw_arc(p, TILE * 0.5, 0, TAU, 48, color, 2.0)
+			draw_string(font, p + Vector2(-20, -TILE * 0.75), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 20, Color.WHITE)
+		else:
+			draw_string(font, p + Vector2(-20, -TILE * 0.55), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 11, Color(1, 1, 1, 0.45))
 
 	for b in _bursts:
 		var a: float = b["ttl"] / 0.35
 		draw_arc(_to_screen(b["pos"]), TILE * (RESONANCE_RADIUS + 0.6 * (1.0 - a)), 0, TAU, 48, b["color"] * Color(1, 1, 1, a), 6.0 if b["crit"] else 3.0)
 
+	var board_w := GRID_SIZE.x * TILE
 	if _feedback_time > 0.0:
 		draw_string(font, _origin + Vector2(board_w * 0.5 - 150, -20), _feedback, HORIZONTAL_ALIGNMENT_CENTER, 300, 20, _feedback_color)
+
+	# Phrase position: groove, groove, call, answer.
+	var bar_pos := fposmod(beat_time() / clock.bar_length(), PHRASE_BARS)
+	var seg_w := board_w / PHRASE_BARS
+	for i in PHRASE_BARS:
+		var r := Rect2(_origin + Vector2(i * seg_w + 2, GRID_SIZE.y * TILE + 8), Vector2(seg_w - 4, 4))
+		var col := Color(1, 1, 1, 0.08)
+		if i == CALL_BAR:
+			col = Color(1.0, 0.85, 0.3, 0.25)
+		elif i == ANSWER_BAR:
+			col = Color(1.0, 0.85, 0.3, 0.45)
+		draw_rect(r, col)
+		if int(bar_pos) == i:
+			draw_rect(Rect2(r.position, Vector2(r.size.x * fmod(bar_pos, 1.0), r.size.y)), Color(1, 1, 1, 0.5))
 
 	# Stem meters, so you can see what you're hearing.
 	var x := _origin.x + board_w + 20
@@ -339,16 +434,16 @@ func _draw() -> void:
 
 func status_lines() -> Array[String]:
 	var lines := super.status_lines()
-	var rate: float = 0.0 if stats["accents"] == 0 else 100.0 * stats["hits"] / stats["accents"]
+	var rate: float = 0.0 if stats["cues"] == 0 else 100.0 * stats["hits"] / stats["cues"]
 	lines.append("")
-	lines.append("Accents this wave %d   total %d" % [_wave_accents, stats["accents"]])
-	lines.append("Resonance %d (%.0f%%)   Crits %d" % [stats["hits"], rate, stats["perfects"]])
+	lines.append("Cues this wave %d   total %d" % [_wave_cues, stats["cues"]])
+	lines.append("Hits %d (%.0f%%)   Crits %d" % [stats["hits"], rate, stats["perfects"]])
 	lines.append("Calibration %+.0f ms (set in M1)%s" % [calibration_ms, "   ONE-KEY MODE" if one_key_mode else ""])
 	return lines
 
 
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
-	lines.insert(4, "Q / W / E  play kick / hat / bass accents")
-	lines.insert(5, "F5  one-key mode (any key plays any accent)")
+	lines.insert(4, "Q / W / E  answer a ringed tower (key shown above it)")
+	lines.insert(5, "F5  one-key mode (any key answers any ring)")
 	return lines

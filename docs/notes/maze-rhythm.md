@@ -1,5 +1,7 @@
 # How the maze makes the rhythm: baseline v0.1
 
+> **Update 2026-10-24 (D-0013):** after M3's first playtest, crossfire accents on every shared note were too dense. Player input now comes in call-and-response phrases (groove, groove, call, answer), with rings on towers. Rules 1–2 below still describe how towers and stems work. See `docs/prototypes/M3-results.md`.
+
 > **Update 2026-10-23 (D-0008):** controls changed to Jared's League-style layout. Q/W/E fire Resonance per instrument, R is an ultimate, Space parries, F restores. Rules 1–2 still stand. Rules 3–4 below describe the older one-key version, now P-04's comparison arm. See `controls.md`.
 
 _Started 2026-10-23 from Jared's comment on pillar 1. This is a baseline for the first test, not a final answer. It is expected to evolve._

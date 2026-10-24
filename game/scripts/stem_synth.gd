@@ -61,3 +61,18 @@ static func _render(bar_seconds: float, voice: Callable) -> AudioStreamWAV:
 		var v: float = voice.call(step, t)
 		data.encode_s16(i * 2, int(clampf(v, -1.0, 1.0) * 32767.0))
 	return BeatClock.make_loop(data)
+
+
+## A short bell for the "call" half of a phrase. Not looped.
+static func chime(freq: float) -> AudioStreamWAV:
+	var frames := int(0.5 * MIX_RATE)
+	var data := PackedByteArray()
+	data.resize(frames * 2)
+	for i in frames:
+		var t := float(i) / MIX_RATE
+		var env := minf(t * 400.0, 1.0) * exp(-t * 6.0)
+		var v := (sin(TAU * freq * t) + 0.35 * sin(TAU * 2.76 * freq * t) * exp(-t * 10.0)) * env * 0.35
+		data.encode_s16(i * 2, int(clampf(v, -1.0, 1.0) * 32767.0))
+	var stream := BeatClock.make_loop(data)
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream

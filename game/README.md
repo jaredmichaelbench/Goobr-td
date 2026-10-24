@@ -8,23 +8,26 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 ## M3: the maze plays the song
 
-The question: can you hear your maze, and does it make you want to build for more accents?
+The question: can you hear your maze, and do the moments you play feel like locking in?
 
 - Calibrate in M1 first (press **C** there). M3 uses the same calibration.
-- Build keys are now **1** wall, **2** kick, **3** hat, **4** bass, so Q/W/E are free for playing.
-- Towers fire on the beat: kick on beats 1 and 3, hat on every 8th note, bass on the off-beats.
-- Each instrument's part of the music only plays while one of its towers has a target. Between waves you just hear a quiet kick. The meters right of the board show what's playing.
-- **Accents:** when 2 or more towers are about to hit the same creep on the same note, a ring closes on that creep, colored by instrument and labelled with its key. Press that key (**Q** kick, **W** hat, **E** bass) as the ring closes and the note lands: that's a **Resonance** burst. Perfect timing is a crit. The lead melody joins in for 2 bars after a hit. Missing costs nothing.
-- **F5** toggles one-key mode, where any of Q/W/E/Space plays any accent. Try both and tell me which feels better.
-- Speeding up (F1) mutes the music and turns accents off, since the beat can't speed up.
+- Build keys are **1** wall, **2**, **3**, **4** for the three towers. Q/W/E are for playing.
+- Towers fire on their own and play their part of the music while they have a target. You don't play along with them.
+- The music runs in 4-bar phrases (the strip under the board shows where you are):
+  - **Bars 1-2:** groove. Nothing to press.
+  - **Bar 3, the call:** a chime plays a short rhythm.
+  - **Bar 4, the answer:** that rhythm comes back on your towers. A ring shrinks onto each tower in turn; press the key shown above that tower as the ring lands. Perfect is a crit, and the melody joins in for 2 bars.
+- Each rhythm repeats for two phrases, then changes. Towers in crossfire get picked first and hit harder.
+- Missing costs nothing. **F5** toggles one-key mode, where any key answers any ring.
+- Speeding up (F1) mutes the music and turns cues off.
 
 ### What to report back
 
-- Can you hear your maze? Does a busier maze sound fuller?
-- Do the accent rings feel readable and fair, or too fast or too frequent?
-- Did you rebuild your maze to get more or bigger accents?
-- Three keys vs one-key mode (F5): which felt better?
-- Is it fun or busywork? Too much input, or not enough?
+- Does it feel like locking in, rather than playing the drums?
+- Is the call (chime) a useful hint before the rings?
+- Too sparse, too dense, or about right?
+- Did you change your maze to get better cues?
+- Three keys vs one-key mode (F5)?
 
 ## M2: the maze
 

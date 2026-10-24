@@ -83,3 +83,9 @@ Alternatives: Unity + FMOD (heavier, but the most mature middleware). Building M
 Context: In M2, Q/W/E selected towers in build mode. In M3 they play instrument accents, and you build during waves, so the same keys can't do both.
 Decision: Build selection uses 1 (wall), 2 (kick), 3 (hat), 4 (bass). Q/W/E are always instruments. When items arrive (1-4 in D-0008), build selection needs a new home, for example a build bar on the mouse or Shift+Q/W/E.
 Alternatives: Q/W/E select only while build mode is on (rejected: you'd have to leave build mode to play accents mid-wave). Context-sensitive keys (rejected: confusing).
+
+## D-0013: Call-and-response phrases replace constant accents
+2026-10-24 · proposed (testing in M3)
+Context: M3's first pass made an accent whenever towers crossfired on a note. With hats on every 8th note, Jared said it felt like playing the drums. He wants Expedition 33 style lock-in moments with breaks, telegraphed on the tower, with music that hints at the pattern (Silksong's Cogwork Dancers) rather than a DDR chart.
+Decision: The song runs in 4-bar phrases: groove, groove, call, answer. In the call bar a chime plays a short rhythm. In the answer bar that rhythm returns as rings receding onto specific towers, and the player presses the key shown above each tower. Rhythms repeat for two phrases so they can be learned. Crossfire decides which towers get cued and multiplies the bonus, so mazing still matters (pillar 1). Instrument names stay internal; players see keys and colors.
+Alternatives: Crossfire accents on every shared note (rejected: too dense). No audio call, rings only (weaker: the music should telegraph, per Jared).
