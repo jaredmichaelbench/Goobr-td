@@ -1,0 +1,79 @@
+# Decision log
+
+One entry per decision, newest at the bottom. Never edit a past decision; supersede it with a new one that links back.
+
+Format:
+
+```
+## D-000X: Title
+Date · Status (proposed / accepted / superseded by D-00Y)
+Context: why this came up.
+Decision: what we chose.
+Alternatives: what we didn't choose and why.
+```
+
+---
+
+## D-0001: Target platforms
+2026-10-23 · accepted (from pitch notes)
+Context: Jared's target surface is Steam.
+Decision: Steam on Windows and macOS (Apple Silicon native), from the first prototype.
+Alternatives: Windows-only first. Rejected because rhythm latency behaves differently per OS and needs testing on both early.
+
+## D-0002: Docs-first workflow
+2026-10-23 · accepted
+Context: The project should survive many sessions without relying on chat memory.
+Decision: All vision, decisions, tasks, backlog, and notes live in this file structure. Chat is for conversation; anything worth keeping lands in a file the same day.
+Alternatives: Google Doc as the hub. Kept only as an archive of the original scratchpad.
+
+## D-0003: First playable scope
+2026-10-23 · proposed (awaiting Jared's review)
+Context: The pitch has far more ideas than a first playable can hold.
+Decision: First playable = single-player, one map, core conductor loop (suppress, restore, stems), one light draft, one boss. Everything else goes to backlog. See `vision/vision.md`.
+Alternatives: Include quests or EXP now. Deferred until the core loop is proven fun.
+
+## D-0004: Engine
+2026-10-23 · superseded by D-0011
+Context: Unity + FMOD (lowest friction for stems and Steam multiplayer) vs. Godot 4 (lighter, fast on Mac and PC).
+Decision: Not yet. Decide after P-01.
+
+## D-0005: Boss direction
+2026-10-23 · accepted (direction), partly superseded by D-0007
+Context: Jared's comment on pillar 5. Bosses must not be a big enemy walking the maze while you play Guitar Hero.
+Decision: Bosses are souls-like duels built on parrying. The rhythm is hidden in attack strings and tells, with no note highway. Bosses engage the maze (recommended: anchor to it) rather than walk the creep path.
+Alternatives: Boss walks the maze with telegraphs (rejected by Jared). Boss buffs itself unless rhythm is kept (kept in backlog as a variant). Open sub-options in `notes/boss-design.md`.
+
+## D-0006: Maze-to-rhythm baseline
+2026-10-23 · proposed (baseline for P-04, expected to evolve)
+Context: Jared asked what "the maze is the instrument" means in practice.
+Decision: The maze is a sequencer. Tower types are instruments with fixed beat patterns and stems that play while they have targets. Crossfire on a shared beat creates accents. One Conduct key fires a Resonance on accents and also parries and Restores.
+Alternatives: One keybind per tower type (tested as P-04 arm B). Longer maze = longer song (rejected: length gives more phrases, not a longer song).
+
+## D-0007: Boss model options reopened
+2026-10-23 · proposed (refines D-0005)
+Context: Jared's comment on boss-design options A to C.
+Decision: All boss models stay open (A latch-on, B lunges, C off-board, D walks the maze while firing ranged attacks at the Conductor that speed up as it approaches). D-0005's "don't walk the creep path" is relaxed: a walking boss is fine if its attacks, not its walk, are the event. First prototype likely C or D. Possible theme: the Conductor is a character (such as a knight) guarding an objective.
+
+## D-0008: League-style keyboard controls
+2026-10-23 · accepted (Jared's original vision), exact bindings proposed
+Context: Jared answered the boss-design input question: traditional keyboard play, like League rather than an MMO.
+Decision: 4 primary binds plus specials, all rebindable. Proposed defaults: Q/W/E = instrument Resonance, R = ultimate, Space = parry, F = restore, 1–4 = items, B = build, mouse = camera, pings, and placement. No cursor aiming during waves. This supersedes D-0006's single Conduct key, which becomes P-04 arm B.
+Alternatives: One context-sensitive key (kept as a comparison and accessibility option). Cursor-targeted parries (rejected).
+
+## D-0009: Damage balance philosophy
+2026-10-23 · accepted (direction), numbers to tune
+Context: Jared's answer to boss-design question 2.
+Decision: Tower base damage (build, talents, tower choice, maze) is the main damage source, for bosses too. Note play adds damage, and perfect timing = critical strikes. Crescendo (posture break) is about a +30% damage window, not the main way to deal damage. A good maze plus decent note play kills the boss, and the boss never feels invincible outside Crescendo.
+Alternatives: 70% of boss damage from Crescendo (rejected: it shrinks the TD loop and puts too much into one window).
+
+## D-0010: Move to Demo 0
+2026-10-24 · accepted (Jared asked to get a demo on the board)
+Context: The first full review found that the remaining questions are about feel and need a build to answer.
+Decision: Stop refining on paper. Build one evolving greybox project in milestones M0–M6 (`prototypes/demo-0-plan.md`). Also settled: one global BPM with per-tower patterns on it; 3 tower stems plus a Conductor lead stem; one health pool at the objective; procedural placeholder audio.
+Alternatives: More design iteration first (rejected: diminishing returns). Separate throwaway prototypes (rejected: one project compounds).
+
+## D-0011: Engine is Godot 4
+2026-10-24 · accepted (Jared picked it)
+Context: Demo 0 needs an engine. The options were Godot 4 and Unity + FMOD.
+Decision: Godot 4 with native audio (synced stems on the audio clock). Add the FMOD GDExtension only if M1 shows native audio isn't good enough. Revisit if M1 timing fails on Windows.
+Alternatives: Unity + FMOD (heavier, but the most mature middleware). Building M1 in both (unnecessary).
