@@ -240,7 +240,7 @@ func _load_song(path: String, bpm: float) -> AudioStreamWAV:
 		push_warning("Could not load song " + path)
 		return null
 	var bar := 60.0 / bpm * clock.beats_per_bar
-	var bars := floorf(stream.get_length() / bar)
+	var bars := floorf(stream.get_length() / bar + 0.01)
 	if bars >= 1.0:
 		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		stream.loop_begin = 0
@@ -301,8 +301,8 @@ func _process(delta: float) -> void:
 			start_wave()
 
 	var now_step := int(floor(beat_time() / step_length()))
-	if _last_step < 0:
-		_last_step = now_step
+	if _last_step < 0 or now_step < _last_step:
+		_last_step = now_step  # First frame, or the clock went backwards: never wait for it.
 	# Catch up on every step since last frame, capped so a hitch can't flood.
 	for s in range(maxi(_last_step + 1, now_step - 32), now_step + 1):
 		on_step(s)

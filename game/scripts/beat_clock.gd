@@ -19,9 +19,10 @@ var _sync: AudioStreamSynchronized
 var _stems: Array[AudioStream] = []
 var _stem_db := PackedFloat32Array()
 var _click_muted := false
-var _bar_count := 0
+var _offset := 0.0  # Seconds of audio that played before the last position wrap.
 var _last_raw_pos := 0.0
 var _last_beat := -1
+var _loop_lengths: Array[float] = []  # Every length the reported position can wrap at.
 
 
 func _ready() -> void:
@@ -36,7 +37,7 @@ func _exit_tree() -> void:
 
 
 func start() -> void:
-	_bar_count = 0
+	_offset = 0.0
 	_last_raw_pos = 0.0
 	_last_beat = -1
 	_player.play()
@@ -57,13 +58,23 @@ func set_muted(muted: bool) -> void:
 	_sync.set_sync_stream_volume(0, -80.0 if muted else 0.0)
 
 
-## Adds a looping stem one bar long at the current BPM. Returns its index,
-## which is what set_stem_volume_db() takes. Call before start().
+## Adds a looping stem (one bar, or any whole number of bars, such as a real
+## song). Returns its index, which is what set_stem_volume_db() takes. Call
+## before start().
 func add_stem(stream: AudioStream, volume_db := 0.0) -> int:
 	_stems.append(stream)
 	_stem_db.append(volume_db)
 	_rebuild_stream()
 	return _stems.size()
+
+
+## How long a stream plays before its position wraps.
+static func loop_length(stream: AudioStream) -> float:
+	if stream is AudioStreamWAV:
+		var w := stream as AudioStreamWAV
+		if w.loop_mode != AudioStreamWAV.LOOP_DISABLED and w.loop_end > w.loop_begin:
+			return float(w.loop_end - w.loop_begin) / w.mix_rate
+	return stream.get_length()
 
 
 func set_stem_volume_db(index: int, db: float) -> void:
@@ -79,15 +90,26 @@ func bar_length() -> float:
 
 
 ## Seconds since start() as heard by the player, compensated for mix and
-## output latency.
+## output latency. The reported position wraps whenever the synchronized
+## stream loops, which with a real song is the song's length rather than one
+## bar, so on a wrap we add the loop length that best matches where it was.
 func song_time() -> float:
 	if not _player.playing:
-		return 0.0
+		if _last_raw_pos > 0.0:
+			# The stream stopped on its own. Keep the time and carry on.
+			_offset += _last_raw_pos
+			_last_raw_pos = 0.0
+			_player.play()
+		return _offset
 	var raw := _player.get_playback_position()
 	if raw + 0.0001 < _last_raw_pos:
-		_bar_count += 1
+		var wrapped := _last_raw_pos
+		for len in _loop_lengths:
+			if len >= _last_raw_pos - 0.05 and (wrapped == _last_raw_pos or len < wrapped):
+				wrapped = len
+		_offset += wrapped
 	_last_raw_pos = raw
-	var t := _bar_count * bar_length() + raw
+	var t := _offset + raw
 	return t + AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()
 
 
@@ -118,6 +140,11 @@ func _rebuild_stream() -> void:
 	_sync = AudioStreamSynchronized.new()
 	_sync.stream_count = 1 + _stems.size()
 	_sync.set_sync_stream(0, click)
+	_loop_lengths = [bar_length()]
+	for stem in _stems:
+		var len := loop_length(stem)
+		if not _loop_lengths.has(len):
+			_loop_lengths.append(len)
 	_sync.set_sync_stream_volume(0, -80.0 if _click_muted else 0.0)
 	for i in _stems.size():
 		_sync.set_sync_stream(i + 1, _stems[i])
