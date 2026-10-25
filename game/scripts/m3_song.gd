@@ -89,6 +89,7 @@ var idle_db := IDLE_DB.duplicate()
 var active_db := ACTIVE_DB.duplicate()
 var songs: Array[Dictionary] = []  # name, path, bpm. Index 0 is "synth stems".
 var song_index := 0
+var _song_end := INF  # Song time when the current track finishes and the playlist moves on.
 var _time_offset := 0.0  # Extra time from the speed-up test tool.
 var _last_step := -1
 var _lead_timer := 0.0
@@ -141,6 +142,7 @@ func _ready() -> void:
 		idle_db["hat"] = SONG_IDLE_DB
 		active_db["hat"] = SONG_ACTIVE_DB
 		stem_index["hat"] = clock.add_stem(song_stream, idle_db["hat"])
+		_song_end = BeatClock.loop_length(song_stream)
 	else:
 		stem_index["hat"] = clock.add_stem(StemSynth.hat(bar), idle_db["hat"])
 	stem_index["bass"] = clock.add_stem(StemSynth.bass(bar), idle_db["bass"])
@@ -230,7 +232,7 @@ func _scan_songs() -> void:
 		if songs[i]["name"] == want:
 			song_index = i
 	if song_index > 0:
-		_say("Song %d/%d: %s (%.0f BPM)   [ ] to switch" % [song_index + 1, songs.size(), songs[song_index]["name"], songs[song_index]["bpm"]])
+		_say("Song %d/%d: %s (%.0f BPM)   [ ] to switch, plays on as a playlist" % [song_index + 1, songs.size(), songs[song_index]["name"], songs[song_index]["bpm"]])
 
 
 ## Loads a WAV at runtime (no import step) and loops it on a whole bar.
@@ -262,11 +264,31 @@ func _save_song_choice(name: String) -> void:
 	cfg.save(Timing.SETTINGS_PATH)
 
 
-## Switching songs rebuilds the audio graph, so it restarts the scene.
+## Jumps to another song. Same BPM: swapped live, the beat carries on. Any
+## other case (synth stems, a different BPM): the scene restarts.
 func _switch_song(delta_index: int) -> void:
 	var next := posmod(song_index + delta_index, songs.size())
 	_save_song_choice(songs[next]["name"])
-	get_tree().reload_current_scene()
+	if next == 0 or song_index == 0 or songs[next]["bpm"] != songs[song_index]["bpm"]:
+		get_tree().reload_current_scene()
+		return
+	var stream := _load_song(songs[next]["path"], songs[next]["bpm"])
+	if stream == null:
+		return
+	song_index = next
+	clock.swap_stem(stem_index["hat"], stream)
+	_song_end = clock.song_time() + BeatClock.loop_length(stream)
+	_say("Song %d/%d: %s (%.0f BPM)   [ ] to switch" % [song_index + 1, songs.size(), songs[song_index]["name"], songs[song_index]["bpm"]])
+
+
+## Playlist: when the track ends, move to the next one (skipping synth stems).
+func _tick_playlist() -> void:
+	if song_index == 0 or songs.size() < 3 or clock.song_time() < _song_end - 0.05:
+		return
+	var next := song_index + 1
+	if next >= songs.size():
+		next = 1
+	_switch_song(next - song_index)
 
 
 # --- Time ----------------------------------------------------------------------
@@ -321,6 +343,7 @@ func _process(delta: float) -> void:
 
 	_update_stems(delta, speed)
 	_tick_effects(delta)
+	_tick_playlist()
 	queue_redraw()
 
 

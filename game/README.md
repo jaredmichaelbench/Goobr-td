@@ -6,7 +6,7 @@ Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are neede
 
 Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore. **Esc** returns to the menu.
 
-**Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3 or M4, **]** and **[** switch songs; the test restarts and names the song at the bottom left. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
+**Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3 or M4, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
 ## M4: suppress and Restore (v3)
 

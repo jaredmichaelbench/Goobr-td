@@ -68,6 +68,19 @@ func add_stem(stream: AudioStream, volume_db := 0.0) -> int:
 	return _stems.size()
 
 
+## Replaces a stem while playing and keeps song time running, snapped to the
+## nearest bar so the beat carries straight on (a playlist moving to the next
+## track). Only for stems at the same BPM.
+func swap_stem(index: int, stream: AudioStream) -> void:
+	var now := _offset + _last_raw_pos
+	_stems[index - 1] = stream
+	_player.stop()
+	_rebuild_stream()
+	_offset = roundf(now / bar_length()) * bar_length()
+	_last_raw_pos = 0.0
+	_player.play()
+
+
 ## How long a stream plays before its position wraps.
 static func loop_length(stream: AudioStream) -> float:
 	if stream is AudioStreamWAV:
