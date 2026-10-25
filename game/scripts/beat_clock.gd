@@ -23,6 +23,8 @@ var _offset := 0.0  # Seconds of audio that played before the last position wrap
 var _last_raw_pos := 0.0
 var _last_beat := -1
 var _loop_lengths: Array[float] = []  # Every length the reported position can wrap at.
+var _paused := false
+var _paused_time := 0.0  # Song time held while paused.
 
 
 func _ready() -> void:
@@ -52,7 +54,37 @@ func set_bpm(value: float) -> void:
 		start()
 
 
+## Pause holds the audio and the song time, so everything timed off it holds
+## too. The time is held here as well as in the audio player, because a player
+## with no live playback (headless, or a stream that stopped) does not keep
+## the pause flag, and song time must not drift while paused.
+func set_paused(paused: bool) -> void:
+	if paused == _paused:
+		return
+	if paused:
+		_paused_time = song_time()
+		_paused = true
+		_player.stream_paused = true
+	else:
+		_player.stream_paused = false
+		_paused = false
+		if _player.playing:
+			var raw := _player.get_playback_position()
+			_offset = _paused_time - raw
+			_last_raw_pos = raw
+		else:
+			_offset = _paused_time
+			_last_raw_pos = 0.0
+			_player.play()
+
+
+func is_paused() -> bool:
+	return _paused
+
+
 ## Mutes only the click (stem 0).
+
+
 func set_muted(muted: bool) -> void:
 	_click_muted = muted
 	_sync.set_sync_stream_volume(0, -80.0 if muted else 0.0)
@@ -107,6 +139,8 @@ func bar_length() -> float:
 ## stream loops, which with a real song is the song's length rather than one
 ## bar, so on a wrap we add the loop length that best matches where it was.
 func song_time() -> float:
+	if _paused:
+		return _paused_time
 	if not _player.playing:
 		if _last_raw_pos > 0.0:
 			# The stream stopped on its own. Keep the time and carry on.

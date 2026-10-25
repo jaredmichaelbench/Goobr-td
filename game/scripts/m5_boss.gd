@@ -370,7 +370,7 @@ func _draw() -> void:
 	# Boss health and posture over the board.
 	if boss_alive():
 		var w := board_w * 0.5
-		var x := (get_viewport_rect().size.x + 480.0) * 0.5 - w * 0.5
+		var x := _origin.x + board_w * 0.5 - w * 0.5
 		var y := 14.0
 		draw_rect(Rect2(x, y, w, 10), Color(1, 1, 1, 0.1))
 		draw_rect(Rect2(x, y, w * clampf(boss["hp"] / boss["max_hp"], 0.0, 1.0), 10), Color(0.9, 0.25, 0.4))

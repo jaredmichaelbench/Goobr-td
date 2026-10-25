@@ -64,3 +64,18 @@ Waiting on Jared's playtest of all three slices.
 ## M6b playtest (2026-10-25, Jared)
 
 Cleared the run: 5:13, health 3, 142 notes (68%, 66 Perfects), 41 of 62 attacks parried, 21 locks, 6 shields lost, 1 Restore; boss 29 bolts, 6 stomps, 4 breaks; 9 picks. "Fun, an improvement." Can see the new enemies coming in; they need more work. Picks feel samey; Jared wants them to reach into the bizarre, parked for the power progression review. "I like how it plays for now." Asked for next steps: progression review or evolving towers, and noted nothing can be selected and there is no tower info or upgrade menu yet (M6c).
+
+## M6c built (2026-10-25, D-0036)
+
+The clickable layer (`game/scripts/hud.gd`): build bar, tower panel with Upgrade and Sell, draft cards and run screens as buttons, P pause, 26x16 landscape board. Keys unchanged.
+
+Headless and xvfb bots:
+
+- Click on a tower selects it and opens the panel with the right title; Upgrade raises the tier and the button greys to "Upgraded"; a build button selects that build; the wave button starts the wave; a card button picks and closes the draft; the end box shows the run lines on a win.
+- Pause: song time held exactly across 24 frames (0.488 s before and after). Found and fixed on the way: `AudioStreamPlayer.stream_paused` is not kept when the player has no live playback, so BeatClock now holds the paused time itself and re-syncs on unpause.
+- Layout fixed from screenshots: the bar was positioned off screen (a `ready` signal connected after it had fired) and the panel sat on top of the help lines; now the bar and panel are laid out every frame from the window size, the help lines hide while a panel is open, and the drawn "N for endless" line is gone in M6.
+- Regression bots for M3, M4 and M5 pass on the wider board.
+
+Screenshots: project `screens/rework/m6c-panel.png`, `m6c-draft.png`, `m6c-end.png`.
+
+Watch items carried over: waves 8 to 10 density for a wall-less maze (M5 scene); draft pool to be replaced after the progression review.

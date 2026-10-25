@@ -12,10 +12,10 @@ extends Node2D
 ##
 ## Towers fire on simple cooldowns here. M3 moves them onto the beat.
 
-const GRID_SIZE := Vector2i(20, 20)
+const GRID_SIZE := Vector2i(26, 16)  # Wider than tall: boards read horizontal (Jared, 2026-10-25).
 const TILE := 30.0
-const SPAWN := Vector2i(0, 10)
-const GOAL := Vector2i(19, 10)
+const SPAWN := Vector2i(0, 8)
+const GOAL := Vector2i(25, 8)
 const LAST_WAVE := 10
 const START_GOLD := 150
 const START_HEALTH := 20
@@ -52,6 +52,9 @@ var _message := ""
 var _message_time := 0.0
 var _origin := Vector2.ZERO
 var endless := false
+var paused := false  # P. The sim and the clock hold.
+var hud_left := 120.0  # Pixels the board is pushed right to leave room for the HUD column.
+var selected_cell := Vector2i(-1, -1)  # A tower picked with the mouse (M6 panel), or (-1, -1).
 # Map and balance knobs. M2 uses a flat map with unlimited walls; later
 # milestones override these before _ready().
 var terrain := {}  # Vector2i -> true. Rock: no walking, no building.
@@ -207,6 +210,8 @@ func sell(cell: Vector2i) -> void:
 	structures.erase(cell)
 	grid.blocked.erase(cell)
 	grid.rebuild()
+	if selected_cell == cell:
+		selected_cell = Vector2i(-1, -1)
 
 
 func wall_count() -> int:
@@ -327,9 +332,10 @@ func damage(c: Dictionary, amount: float) -> float:
 func _process(delta: float) -> void:
 	_esc_time = maxf(0.0, _esc_time - delta)
 	# Speed-up runs extra simulation steps so collisions and pathing stay accurate.
-	for i in SPEEDS[speed_index]:
-		step(delta)
-	if auto_send and state == "playing" and not wave_active:
+	if not paused:
+		for i in SPEEDS[speed_index]:
+			step(delta)
+	if auto_send and state == "playing" and not wave_active and not paused:
 		_auto_timer -= delta
 		if _auto_timer <= 0.0:
 			_auto_timer = AUTO_SEND_DELAY
@@ -563,10 +569,10 @@ func _draw() -> void:
 		# Fit the diamond beside the HUD: width (W+H)/2 tiles, height (W+H)/4.
 		var n := float(GRID_SIZE.x + GRID_SIZE.y)
 		_iso_w = minf(TILE * 1.5, minf(2.0 * (view.x - 500.0) / n, 4.0 * (view.y - 90.0) / n))
-		var center := Vector2((view.x + 480.0) * 0.5, view.y * 0.5 + 10.0)
+		var center := Vector2((view.x + hud_left * 4.0) * 0.5, view.y * 0.5 + 10.0)
 		_origin = center - Vector2((GRID_SIZE.x - GRID_SIZE.y) * _iso_w * 0.25, n * _iso_w * 0.125)
 	else:
-		_origin = Vector2((view.x - GRID_SIZE.x * TILE) * 0.5 + 120.0, (view.y - GRID_SIZE.y * TILE) * 0.5)
+		_origin = Vector2((view.x - GRID_SIZE.x * TILE) * 0.5 + hud_left, (view.y - GRID_SIZE.y * TILE) * 0.5)
 	var font := ThemeDB.fallback_font
 
 	# Board and route.
@@ -635,6 +641,12 @@ func _draw() -> void:
 		if s["splash"] > 0.0:
 			draw_arc(_to_screen(s["to"]), s["splash"] * TILE, 0, TAU, 32, s["color"] * Color(1, 1, 1, a * 0.6), 2.0)
 
+	# The selected tower (M6 panel): a white ring and its range.
+	if structures.has(selected_cell) and tower_spec(selected_cell).has("range"):
+		var sp := _to_screen(Vector2(selected_cell))
+		draw_arc(sp, TILE * 0.5, 0, TAU, 32, Color.WHITE, 2.5)
+		draw_arc(sp, tower_spec(selected_cell)["range"] * TILE, 0, TAU, 64, Color(1, 1, 1, 0.5), 1.5)
+
 	# Hover ghost and range.
 	var hover := cell_at(get_local_mouse_position())
 	if build_mode and grid.in_bounds(hover) and state == "playing":
@@ -659,6 +671,6 @@ func _draw() -> void:
 		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 1, 1, 0.55))
 	if _message_time > 0.0:
 		draw_string(font, Vector2(24, view.y - 40), _message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.5, 0.4))
-	if state != "playing":
+	if state != "playing" and get("hud") == null:  # M6 shows this on its run screen instead.
 		var text := "Wave 10 cleared!  N for endless, R to restart" if state == "won" else "The goal fell.  R to try again"
 		draw_string(font, Vector2(_origin.x, _origin.y - 16), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1, 0.85, 0.3))

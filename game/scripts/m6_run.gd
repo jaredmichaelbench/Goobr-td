@@ -50,15 +50,46 @@ var _last_gold := 0
 var m6_stats := {"stomps": 0, "stomp_parries": 0, "stomp_hits": 0, "unlocked": 0, "lost": 0}
 
 
+var hud: Hud
+
+
 func _ready() -> void:
 	super._ready()
 	title = "M6 The run"
 	rng.randomize()
 	_last_gold = gold
+	hud_left = 150.0
+	hud = Hud.new(self)
+	add_child(hud)
+
+
+func toggle_pause() -> void:
+	if state != "playing":
+		return
+	paused = not paused
+	clock.set_paused(paused)
+	_show_feedback("PAUSED" if paused else "", Color(1, 1, 1, 0.7))
+
+
+## The run screen's lines; the HUD shows them.
+func run_lines() -> Array[String]:
+	var won := state == "won"
+	return [
+		"RUN COMPLETE   the Conductor stands" if won else "RUN OVER   the Conductor fell on wave %d" % wave,
+		"Time %d:%02d   Health %d/%d   Gold earned %d" % [int(run_time) / 60, int(run_time) % 60, health, START_HEALTH, gold_earned],
+		"Notes %d hit of %d (%d%%)   Perfects %d" % [stat_total("hits"), stat_total("notes"), int(100.0 * stat_total("hits") / maxi(stat_total("notes"), 1)), stat_total("perfects")],
+		"Parries %d of %d   Towers locked %d   Shields lost %d   Restores %d" % [m4_stats["parried"] + m5_stats["parries"], m4_stats["pulses"] + m4_stats["arrows"] + m5_stats["bolts"] + m6_stats["stomps"], m4_stats["suppressed"], m4_stats["shields_lost"], m4_stats["restores"]],
+		"Boss: %d bolts, %d stomps, %d breaks" % [m5_stats["bolts"], m6_stats["stomps"], m5_stats["breaks"]],
+		"Picks: %s" % (", ".join(picks.map(func(id): return CARDS[id]["name"])) if not picks.is_empty() else "none"),
+	]
 
 
 func reset() -> void:
 	super.reset()
+	if paused:
+		paused = false
+		clock.set_paused(false)
+	selected_cell = Vector2i(-1, -1)
 	drafting = false
 	draft.clear()
 	taken.clear()
@@ -214,11 +245,26 @@ func _apply(id: String) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if drafting and event is InputEventKey and event.pressed and not event.echo:
-		var keys := [KEY_1, KEY_2, KEY_3]
-		if keys.has(event.keycode):
-			_pick(keys.find(event.keycode))
+	if event is InputEventKey and event.pressed and not event.echo:
+		if drafting and [KEY_1, KEY_2, KEY_3].has(event.keycode):
+			_pick([KEY_1, KEY_2, KEY_3].find(event.keycode))
 			return
+		if event.keycode == KEY_P:
+			toggle_pause()
+			return
+		if event.keycode == KEY_U and structures.has(selected_cell) and state == "playing":
+			upgrade(selected_cell)
+			return
+	if paused and not (event is InputEventKey and event.keycode == KEY_ESCAPE):
+		return
+	# Left click on a tower or wall selects it for the panel; elsewhere it builds.
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and state == "playing":
+		var cell := cell_at(event.position)
+		if structures.has(cell):
+			selected_cell = cell
+			return
+		if _on_board(event.position):
+			selected_cell = Vector2i(-1, -1)
 	super._unhandled_input(event)
 
 
@@ -363,77 +409,6 @@ func _draw() -> void:
 		for cell in _stomp_targets(st["pos"]):
 			draw_arc(_to_screen(Vector2(cell)), TILE * 0.5, 0, TAU, 32, Color(1, 0.35, 0.5, 0.5 + 0.5 * frac), 2.0)
 
-	var view := get_viewport_rect().size
-	# The draft: three cards over the board.
-	if drafting:
-		var w := 230.0
-		var h := 150.0
-		var total := draft.size() * w + (draft.size() - 1) * 16.0
-		var x0 := _origin.x + GRID_SIZE.x * TILE * 0.5 - total * 0.5
-		var y0 := _origin.y + GRID_SIZE.y * TILE * 0.5 - h * 0.5
-		draw_rect(Rect2(x0 - 20, y0 - 50, total + 40, h + 80), Color(0.05, 0.05, 0.07, 0.92))
-		draw_string(font, Vector2(x0, y0 - 22), "WAVE %d CLEAR   pick one (1, 2, 3), then build and press N" % wave, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1.0, 0.9, 0.3))
-		for i in draft.size():
-			var card: Dictionary = CARDS[draft[i]]
-			var x := x0 + i * (w + 16.0)
-			var tint := Color(0.75, 0.75, 0.8)
-			if card["type"] == "altering":
-				tint = Color(1.0, 0.75, 0.4)
-			elif card["type"] == "conditional":
-				tint = Color(0.7, 0.7, 1.0)
-			draw_rect(Rect2(x, y0, w, h), Color(0.12, 0.12, 0.16))
-			draw_rect(Rect2(x, y0, w, h), tint, false, 2.0)
-			draw_string(font, Vector2(x + 12, y0 + 28), "%d   %s" % [i + 1, card["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, tint)
-			draw_string(font, Vector2(x + 12, y0 + 50), card["type"].to_upper() if card["type"] != "conditional" else "LOCKED PICK", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.5))
-			var lines := _wrap(font, card["text"], 14, w - 24)
-			var y := y0 + 78
-			for line in lines:
-				draw_string(font, Vector2(x + 12, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.9))
-				y += 18
-			if card["type"] == "conditional":
-				for line in _wrap(font, "Unlocks if you " + card["condition"], 12, w - 24):
-					draw_string(font, Vector2(x + 12, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.75, 0.75, 1.0))
-					y += 15
-
-	# Run over: the numbers.
-	if state != "playing":
-		var won := state == "won"
-		var lines: Array[String] = [
-			"RUN COMPLETE   the Conductor stands" if won else "RUN OVER   the Conductor fell on wave %d" % wave,
-			"",
-			"Time %d:%02d   Health %d/%d   Gold earned %d" % [int(run_time) / 60, int(run_time) % 60, health, START_HEALTH, gold_earned],
-			"Notes %d hit of %d (%d%%)   Perfects %d" % [stat_total("hits"), stat_total("notes"), int(100.0 * stat_total("hits") / maxi(stat_total("notes"), 1)), stat_total("perfects")],
-			"Parries %d of %d   Towers locked %d   Shields lost %d   Restores %d" % [m4_stats["parried"] + m5_stats["parries"], m4_stats["pulses"] + m4_stats["arrows"] + m5_stats["bolts"] + m6_stats["stomps"], m4_stats["suppressed"], m4_stats["shields_lost"], m4_stats["restores"]],
-			"Boss: %d bolts, %d stomps, %d breaks" % [m5_stats["bolts"], m6_stats["stomps"], m5_stats["breaks"]],
-			"Picks: %s" % (", ".join(picks.map(func(id): return CARDS[id]["name"])) if not picks.is_empty() else "none"),
-			"",
-			"R  run again" + ("     N  keep going (endless)" if won else ""),
-		]
-		var w := 620.0
-		var h := 40.0 + lines.size() * 24.0
-		var x := _origin.x + GRID_SIZE.x * TILE * 0.5 - w * 0.5
-		var y := _origin.y + GRID_SIZE.y * TILE * 0.5 - h * 0.5
-		draw_rect(Rect2(x, y, w, h), Color(0.05, 0.05, 0.07, 0.94))
-		draw_rect(Rect2(x, y, w, h), Color(1.0, 0.9, 0.3) if won else Color(1, 0.4, 0.4), false, 2.0)
-		for i in lines.size():
-			draw_string(font, Vector2(x + 24, y + 36 + i * 24), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 20 if i == 0 else 15, (Color(1.0, 0.9, 0.3) if won else Color(1, 0.5, 0.5)) if i == 0 else Color.WHITE)
-
-
-func _wrap(font: Font, text: String, size: int, width: float) -> Array[String]:
-	var out: Array[String] = []
-	var line := ""
-	for word in text.split(" "):
-		var trial := word if line == "" else line + " " + word
-		if font.get_string_size(trial, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > width and line != "":
-			out.append(line)
-			line = word
-		else:
-			line = trial
-	if line != "":
-		out.append(line)
-	return out
-
-
 func status_lines() -> Array[String]:
 	var lines := super.status_lines()
 	var extra := "Picks %d" % picks.size()
@@ -445,7 +420,15 @@ func status_lines() -> Array[String]:
 	return lines
 
 
+## The buttons carry the build and action help now; keep the keys that have none.
 func help_lines() -> Array[String]:
-	var lines := super.help_lines()
-	lines.insert(8, "1 / 2 / 3  pick a draft card after a wave clears")
-	return lines
+	if selected_cell.x >= 0:
+		return []  # The tower panel sits where these go.
+	return [
+		"Q / E  press the key shown on a tower as its ring lands",
+		"Space  parry: a pulse on a tower, an arrow or bolt at the Conductor, a stomp on the ground",
+		"Click a tower for its panel.  Right click sells.  Esc twice  menu",
+		"",
+		"TEST  T speed %dx   Y auto-send %s   G +100g   H skip   O boss   [ ] song" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
+		"Next wave: %s   (%.0f HP each)" % [wave_summary(wave + 1), creep_hp_at(wave + 1)],
+	]

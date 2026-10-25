@@ -43,7 +43,7 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 | Area | Status | Notes |
 |---|---|---|
 | Theme and setting | parked | Undecided. Constraint so far: something at the path's end is protected (wall, gem, chest, sword...), and the Conductor may be a character such as a knight. See `notes/boss-design.md`. |
-| Art direction | parked | Isometric / top-down. Readability of the grid and telegraphs first. |
+| Art direction | direction set | Classic fixed TD camera with a slight tilt, 3D, landscape maps (D-0037 proposed, `notes/art-direction.md`). Binding at the sim/view split. Readability of the grid and telegraphs first. |
 | Asset procurement | parked | Asset store vs. commission vs. make. |
 | Music | parked | Core to the game, so it starts early: need stem-friendly tracks, fixed BPM, loopable. Likely the first "later area" to open. |
 | Revenue and Steam strategy | parked | Pricing, Steam page timing, Next Fest demo, wishlists. |

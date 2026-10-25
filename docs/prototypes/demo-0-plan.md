@@ -22,7 +22,7 @@ Placeholder everything: colored shapes for art and **procedurally generated synt
 | M3 | The maze plays the song | Towers fire on their instrument patterns, stems play only while towers have targets, crossfire accents, Q/W/E Resonance, perfect = crit. | P-04: can you hear your maze, and do you rebuild for accents? |
 | M4 | Suppress and Restore | An elite creep that suppresses towers, stems drop out, F restores on the downbeat with an Overcharge salvo, limited charges. | P-03: does silence create tension, and does restoring feel great? |
 | M5 | First boss | Boss model C or D, 2 attack strings on the beat aimed at the Conductor, Space to parry, posture, Crescendo (+30%). | P-05 |
-| M6 | Demo 0 | 10 scripted waves with five creep kinds and three elites, a pick-1-of-3 draft between waves, bosses at 5 and 10, win/lose screens. | Is the whole loop fun for 10 minutes? |
+| M6 | Demo 0 | 10 scripted waves with five creep kinds and three elites, a pick-1-of-3 draft between waves, bosses at 5 and 10, win/lose screens, and a mouse layer (select, tower panel, buttons). | Is the whole loop fun for 10 minutes? |
 
 The single Conduct key (P-04 arm B) is a settings toggle added in M3, so both can be compared without a separate build.
 

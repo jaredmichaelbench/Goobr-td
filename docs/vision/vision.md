@@ -62,6 +62,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 ## Changelog
 
+- 2026-10-25: v0.10 maps are landscape (26x16, spawn left, goal right) and a 1v1v1v1 map is one rectangle with a corner per player; camera direction set as classic fixed TD view with a slight tilt, in 3D, binding at the sim/view split (D-0037 proposed). Mouse layer for the run (D-0036).
 - 2026-10-25: v0.9 scope: five creep kinds and three elites from a hand-written wave script; a between-wave draft with plain, altering and conditional picks; two bosses (wave 5 and 10) with different strings; win and lose screens (D-0033 to D-0035).
 - 2026-10-25: v0.8 scope change: notes become sparse punctuation on single towers, not tied to tower type; Space is the only defensive input and misses never lock; the boss has no chart; "TD first, rhythm amplifies" written into pillar 2 (D-0022, D-0023).
 - 2026-10-25: v0.7 the song chart decides the notes, shown on a timeline; two rhythms (Q, E), hats become background (D-0014).

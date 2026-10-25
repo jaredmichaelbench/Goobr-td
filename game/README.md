@@ -8,11 +8,21 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
-## M6: the run (v1)
+## M6: the run (v2)
 
-The question: is a 10-wave run with picks and two bosses fun from start to finish?
+The question: is a 10-wave run with picks and two bosses fun from start to finish, and can you play it with the mouse?
 
-Everything from M5, plus:
+New in v2 (M6c, the clickable layer):
+
+- **The board is wider**: 26 by 16, spawn on the left, goal on the right. Every milestone uses it.
+- **Click a tower** to select it (white ring). Its panel opens at the bottom left: name and tier, damage, range, rate, what its note does, **Upgrade** with the price, **Sell** with the refund. Click an empty tile to build what is selected, or to clear the selection. Right click still sells.
+- **Bottom bar**: one button per build with its cost (the wall button shows the wall count), **Start wave**, **Restore** with charges, **Pause**. The keys still do everything the buttons do.
+- **P pauses.** The music holds, so the beat and every timer holds with it. Nothing but P and Esc works while paused.
+- **Draft cards are buttons** (1, 2, 3 still work). Grey, orange and blue as before.
+- **Win and lose screens** have Run again, Keep going (after a win; endless as a test) and Menu.
+- The line under the bar is a tip for whatever you are doing.
+
+Everything from M5, plus (M6b):
 
 - **Ten hand-written waves.** The "Next wave" line says what is coming. Five creep kinds, each with an answer: **Runner** (yellow, fast, half health, pairs: slow tower, long corridors), **Brute** (big, armour plate: ignores the first 4 damage of every hit, so heavy snipes win), **Swarm** (packs of six small pink ones: splash), **Shade** (dark, in a pale halo: towers can't touch it until a landed Q or E cracks every veil on the board for 3 beats). Runners from wave 2, Swarm 3, Brute 4, Shade 6.
 - **Warden** (elite with a shield, from wave 7): a faint blue dome around it. Every hit aimed at a creep under the dome goes to the Warden instead, until its pulse is parried; then the cover is gone for good. Same throw as a Jammer, so the parry read is the same.
@@ -29,6 +39,7 @@ Everything from M5, plus:
 - Boss 2: can you read a Stomp from a Volley? Is double-time at two breaks a thrill or a wall?
 - Where did health go: creeps leaking, arrows, boss hits? Which wave is too easy or too hard?
 - Is 10 waves the right length for one sitting?
+- The mouse: did you reach for a key or a button? Is the tower panel enough to decide an upgrade? Anything you wanted to click that did nothing?
 
 ## M5: first boss (v6)
 
