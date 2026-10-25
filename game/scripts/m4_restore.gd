@@ -679,5 +679,5 @@ func status_lines() -> Array[String]:
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
 	lines.insert(5, "F  Restore locked towers (%d/%d charges)" % [restore_charges, RESTORE_CHARGES])
-	lines.insert(6, "Space  parry pulses (on towers) and arrows (at the Conductor, %d/%d shields); a parried Warden drops its cover" % [shields, SHIELDS])
+	lines.insert(6, "Space  parry pulses (on towers) and arrows (at the Conductor, %d/%d shields); a parried Warden drops its cover" % [shields, shield_cap])
 	return lines

@@ -52,3 +52,11 @@ Jared picked enemies first, then asked for the draft and the second boss in the 
 - M6b-3: the wave 10 boss: Volley (three bolts on 8ths) and Stomp (a slam at the maze, parry or the towers in reach lock), double-time after two breaks.
 
 Headless (M5 scene, 1x, perfect notes and parries, a bot that spends every coin on heavy / splash / slow towers): the kinds arrive as scripted, veils crack on every landed note, the Warden's cover drops on the parry, boss at 5 dies with escorts. Full run result and the M6 run result (draft picks, boss 2) are below once the bots finish. Screenshots in the shared folder `screens/rework/m6b1-wave7-warden-shades.png`, `m6b-draft.png`, `m6b-stomp.png`.
+
+Bot results (1x, perfect notes and parries, no walls, every coin spent on towers):
+
+- M5 scene, full run: lost on wave 10 at the boss with 23 towers. No hits, no shields lost; all 20 health went to creeps leaking on waves 8 to 10. 48 landed notes cracked veils; the Warden's cover broke 4 times. A wall-less maze is far shorter than Jared's, so this is a watch item for wave 8 to 10 density, not a verdict.
+- M6 scene, full run: won with 7 health in 5:25. 9 picks (Bulwark, Iron rhythm, Sharpshooter, Shatter, Undertow, Chain snipe, Encore, Rally, Extra shield); 2 locked picks unlocked, 1 lost (Sharpshooter). Boss 2: 17 bolts, 3 stomps all parried, 5 breaks. 45 of 45 attacks parried.
+- Boss 2 with no parries: the first stomp locked 2 towers, four bolts landed, the escorts leaked; lost.
+
+Waiting on Jared's playtest of all three slices.
