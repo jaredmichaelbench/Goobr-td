@@ -14,8 +14,8 @@ Modern TDs fall into the "screensaver" rut: the build phase is the game and the 
 
 Use these to settle arguments. If a feature doesn't serve at least one, it goes to the backlog.
 
-1. **The maze is the instrument.** Mazing and routing are the core skill. Every active mechanic must reward a good layout (crossfire, corners, long corridors), never replace it. In practice the maze is a **sequencer**. Each tower type is an instrument with its own beat pattern and stem, the path decides which towers are in the fight when the song's notes come, and crossfire (2+ towers on the same target) makes those notes hit harder. The song has two playable rhythms, Q (on the beat) and E (off-beat), shown on a scrolling timeline; a note fires every engaged tower of that key (D-0014). See `notes/maze-rhythm.md` and `notes/controls.md`.
-2. **Played, not watched.** The wave phase asks for real inputs, landed on the music's beat. Inputs are punctuation, not constant drumming: high-stakes moments, not APM tax.
+1. **The maze is the instrument.** Mazing and routing are the core skill. Every active mechanic must reward a good layout (crossfire, corners, long corridors), never replace it. In practice the maze is a **sequencer**. Each tower type is an instrument with its own beat pattern and stem, the path decides which towers are in the fight when the song's notes come, and crossfire (2+ towers on the same target) makes those notes hit harder. The song's notes are sparse punctuation: each one lands on a single tower in the fight (Q on the beat, E off the beat, independent of tower type) and a landed note fires that tower's bolt anywhere on the board, harder with crossfire (D-0022). Tower types are TD roles. See `notes/maze-rhythm.md` and `notes/controls.md`.
+2. **Played, not watched.** The wave phase asks for real inputs, landed on the music's beat. Inputs are punctuation, not constant drumming: high-stakes moments, not APM tax. Q/E are offence (a bonus you can only gain), Space is defence (a parry you can lose); a miss on offence never punishes (D-0022, D-0023). This is a TD first; rhythm amplifies it.
 3. **The music tells the truth.** Game state is audible. Healthy towers = full mix. Suppressed towers = stems drop out. Restoring on the beat slams them back in.
 4. **Light, fair chance.** Each wave has a small roll or draft that changes your plan. Randomness shapes options; your maze decides the outcome.
 5. **Bosses are exams.** A boss is a souls-like duel, not a big creep walking the maze while you play Guitar Hero. It attacks you and your maze in learnable strings (several models are still open, including a boss that walks the maze but whose attacks speed up as it nears the Conductor). You parry by reading its tells, and the rhythm is felt rather than shown. Your maze and towers do most of the damage, perfect notes crit, and breaking its posture opens a Crescendo bonus window (about +30%). See `notes/boss-design.md`.
@@ -24,8 +24,8 @@ Use these to settle arguments. If a feature doesn't serve at least one, it goes 
 
 1. **Build**: place walls and towers on a grid; creeps reroute live.
 2. **Draft**: a light per-wave roll (pick 1 of 3 modifiers or tower mods).
-3. **Wave**: towers auto-fire on their instrument patterns, and your maze plays the song. Notes from the song's chart scroll along a timeline, and hitting Q or E on a note fires a Resonance burst from every tower of that key in the fight. Threats (elite hits, boss telegraphs) suppress towers and their stems drop out.
-4. **Restore**: spend a limited Restore charge, timed on the downbeat, to snap towers back with an Overcharge salvo. Off-beat still works but late and without the salvo.
+3. **Wave**: towers auto-fire, and your maze plays the song. A few notes per phrase land on single towers; hitting Q or E as the ring closes fires that tower's bolt anywhere on the board. Elites and bosses attack on the beat with a tell; Space parries, and an unparried attack suppresses towers so their stems drop out.
+4. **Restore**: spend a limited Restore charge any time to snap towers back with a ripple and an Overcharge salvo, landing on the next 8th note.
 5. Repeat; every few waves, a boss tests all of it.
 
 The "bump bump bump, failed, shoot, restore, next" cadence from the notes is the heartbeat of the game. Prove that it feels good before building anything else.
@@ -62,6 +62,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 ## Changelog
 
+- 2026-10-25: v0.8 scope change: notes become sparse punctuation on single towers, not tied to tower type; Space is the only defensive input and misses never lock; the boss has no chart; "TD first, rhythm amplifies" written into pillar 2 (D-0022, D-0023).
 - 2026-10-25: v0.7 the song chart decides the notes, shown on a timeline; two rhythms (Q, E), hats become background (D-0014).
 - 2026-10-24: v0.6 first full review: global beat settled, stems clarified, moving to Demo 0 (D-0010). Engine: Godot 4 (D-0011).
 - 2026-10-23: v0.5 damage philosophy: towers are the main source, perfects crit, Crescendo is about +30% (D-0009).

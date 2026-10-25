@@ -6,70 +6,71 @@ Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are neede
 
 Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore, **5** = M5 first boss. **Esc** returns to the menu.
 
-**Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3 or M4, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
+**Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
-## M5: first boss
+## M5: first boss (v2)
 
 The question: does the boss feel like learning a souls boss, not reading a chart?
 
 Everything from M4, plus:
 
-- **Wave 5 is the boss**, alone. Press **O** to summon it any time instead. It walks your maze slowly (0.4 tiles a second) with a big health bar over the board and a thin yellow **posture** bar under it. Towers, notes and Restore salvos all damage it.
-- Its attacks are the event. It throws **bolts down your path at the Conductor** (the goal, marked with a ring) in short strings of four. There is no timing UI: the tell is the boss swelling for a beat, a low tone, then the bolt itself flying along your maze. Every bolt arrives on the beat grid.
+- **Wave 5 is the boss**, alone. Press **O** to summon it any time instead. It walks your maze slowly (0.4 tiles a second) with a big health bar over the board and a thin yellow **posture** bar under it. Towers, parries and Restore salvos all damage it.
+- **No chart notes during the boss.** The fight is Space. Your towers keep firing on their own.
+- Its attacks are the event. It throws **bolts down your path at the Conductor** (the goal, marked with a ring) in short strings of four. The tell is the boss swelling for a beat, a low tone, then the bolt itself flying along your maze. Every bolt arrives on the beat grid.
 - Far away, bolts take 4-5 seconds to arrive and strings are half-time. In the middle third they're on the beat. In the last third, or once it reaches the Conductor, they come on 8th notes with half a second of warning. A long maze buys you time to read it.
 - **Space parries** a bolt as it reaches the Conductor. Perfect or Good deflects it back for damage and posture (Perfect counts double). Four Perfect parries in a row break posture.
 - A **hit** (no parry, or late) costs 2 health and locks the towers near the boss, so Restore applies.
-- **Posture break**: the boss staggers for 6 seconds, every tower does +30%, the full mix slams in, and the board glows. Then it carries on.
+- **Posture break**: the boss staggers for 6 seconds, every tower does +30%, the full mix slams in, and the board glows. A short **note burst** opens too: one note per beat on your towers, each a free infinite-range bolt at the boss. That is the only time notes appear in the boss fight.
 - Kill it to clear the wave. If it reaches the Conductor it doesn't leak; it stands there and attacks at the fastest tempo.
-- Space is the parry key, so one-key mode (K) is Q/E only here.
 
 ### What to report back
 
-- Can you read the strings from the tell and the bolt alone, without wanting a timing bar?
-- Does the half-time / on-beat / 8th-note tightening feel like the boss closing in, or like three separate fights?
+- Does the fight feel like a duel now that there is no chart to follow during it?
+- Can you read the strings from the tell and the bolt alone?
 - Did your maze length change how the fight felt? Did you rebuild for the boss?
-- Is a posture break satisfying, and is 6 seconds of Crescendo enough to matter?
+- Is a posture break satisfying, and does the note burst feel like a reward rather than a test?
 - Too hard or too easy, and where: the parry window, the bolt damage, the boss health?
 
-## M4: suppress and Restore (v3)
+## M4: suppress and Restore (v4)
 
 The question: does silence create tension, and does restoring feel great?
 
 Everything from M3, plus:
 
-- From wave 2, every 6th creep is an **elite**: big, dark red, 4x health, a bit slower. While it has towers within reach, its ring pulses and it says "miss = lock".
-- **Miss a note while an elite is armed** and it locks every tower in its reach for 10 seconds. Locked towers go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. The groove drops out too. Clean play never gets locked. The same elite can lock again after 2 bars.
-- **F = Restore, any time.** No timing, nothing wasted. It lands on the next 8th note (at most 250 ms later; a yellow mark on the timeline shows where), so the sound and the effect sit on the music. A refresh ripple sweeps the board from the goal outward, and every locked tower relights as it passes with an **Overcharge salvo** (2.5x damage, splash). The melody joins for 2 bars.
-- **3 Restore charges**, yellow bars under the meters, one back per wave cleared (cap 3). Locks also wear off on their own after 10 seconds (the red bar under the tower drains).
-- The HUD counts locks, Restores, and locks that wore off.
+- From wave 2, every 6th creep is an **elite**: big, dark red, 4x health, a bit slower. Missing a note never locks anything any more.
+- **Elites attack on the beat.** When an elite has towers within reach, it winds up a **pulse** that lands on the next downbeat. You see its ring swell for a beat and hear a low tell. **Press Space as it lands to parry it**: the pulse is cancelled and the elite takes damage (Perfect counts double). Miss the parry and the pulse locks every tower it threatened for 10 seconds. The same elite winds up again after 4 bars.
+- Locked towers go dark with a red cross, stop firing, stop answering notes, and their instrument drops out.
+- **F = Restore, any time.** It lands on the next 8th note so the sound sits on the music. A refresh ripple sweeps the board from the goal outward, and every locked tower relights as it passes with an **Overcharge salvo** (2.5x damage, splash). The melody joins for 2 bars.
+- **3 Restore charges**, one back per wave cleared (cap 3). Locks also wear off on their own after 10 seconds.
+- The HUD counts pulses, parries, locks, Restores, and locks that wore off.
 
 ### What to report back
 
-- Does the Restore feel like a payoff now? Does the 8th-note delay read as "on the music" or as lag?
-- Are 3 charges and +1 per wave about right, or should Restore be a cooldown instead?
-- Does the 10 s self-recovery register? Would 6 s be better?
-- Are elites readable? Did you reroute or rebuild to keep them away from towers?
+- Is the pulse readable from the swelling ring and the tell alone? Did you ever get locked without seeing it coming?
+- Does Space feel like one clear job (defence), separate from Q/E (offence)?
+- Did you reroute or rebuild to keep elites away from towers, now that a pulse means a parry?
+- Are 3 charges and +1 per wave about right?
 
-## M3: the maze plays the song (v4)
+## M3: the maze plays the song (v5)
 
 The question: can you hear your maze, and do you build it so your towers are in the fight when the song calls for them?
 
 - Calibrate in M1 first (press **C** there). M3 uses the same calibration.
-- Build keys: **1** wall, **2** Q tower (on the beat, heavy), **3** E tower (off-beat, splash). Hats are background groove only.
-- **The map has rock** (brown). Creeps can't walk on it and you can't build on it. Two ridges split the board into three fields joined by gaps. **Walls are limited to 20**, so use the terrain.
-- During a wave, notes scroll right to left along a faint **timeline across the top of the board** (Q lane on top, E below). Press the key as a note reaches the line. **L** hides the timeline so you can try playing from the rings and music alone.
-- Two beats before a note, a ring closes on every tower of that key **that has a target**. Towers with nothing in range only glow softly.
-- A hit fires a Resonance from every engaged tower of that key. You get a chime, damage numbers over the targets (yellow with "!" for a Perfect crit), and a flash on the timeline line. A note that passes with towers ready and no press is a **MISS**: low tone, red flash, "miss" over those towers. Pressing with nothing to hit says "Too early" or "No note".
-- The chart builds up: one Q per bar in wave 1, more Q in wave 2, E joins at wave 3, both mixed from wave 5. The HUD shows notes, hits, crits, misses and wasted presses per key.
-- Balance: 100 starting gold, 1g per kill, creeps get 30% tougher each wave. In bot runs, 4 starter towers alone fall at wave 4, and spending everything on towers with no walls and no notes falls around wave 9. Walls and notes should carry you to 10.
-- Missing costs nothing. **K** toggles one-key mode. Speeding up (T) mutes the music and turns notes off.
+- Build keys: **1** wall, **2** heavy tower (sand), **3** splash tower (teal). Tower type no longer decides which notes you get; it is a role, like any TD.
+- **The map has rock** (brown). Creeps can't walk on it and you can't build on it. **Walls are limited to 20**, so use the terrain.
+- **Notes are punctuation now.** A wave has a few notes per phrase, not a stream. Two beats before a note, a coloured ring closes on **one tower** (orange = Q, on the beat; purple = E, off the beat) with the key written on it. The ring stays on that tower until the note is gone, even if its target walks off.
+- Press the key as the ring closes and that tower fires a **bolt with infinite range** at the creep closest to the Conductor: 2.5x its damage, 5x on a Perfect, more when other towers also have that creep in range (crossfire), with splash if it is a splash tower. Chime, damage number, and a flash.
+- **A miss costs only the bonus.** Nothing locks, nothing else happens. If you have no towers, the note is skipped.
+- **The timeline is off by default.** Press **L** to show the faint scrolling strip at the top if you want to compare. Play from the rings and the music.
+- The chart grows: one note per bar in wave 1, two in wave 2, Q and E mixed from wave 3, four from wave 4.
+- Balance: 100 starting gold, 1g per kill, creeps get 30% tougher each wave.
 
 ### What to report back
 
-- Timeline at the top: readable without stealing your eyes? Better with it on or off (L)?
-- Do hits feel good now, and can you tell when you miss?
-- Does the rock map make mazing more interesting? Is 20 walls too few or too many?
-- Difficulty: where did it get hard, and did gold feel tight?
+- Do the rings on single towers read clearly, and do you still know a note is coming without the timeline?
+- Does a landed bolt feel like a payoff, and does the miss feel fair (just a lost bonus)?
+- Do the notes pull your eyes to the maze rather than to the top of the screen?
+- Did tower choice (heavy vs splash) feel like a TD decision?
 
 ## M2: the maze
 

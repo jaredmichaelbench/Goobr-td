@@ -2,11 +2,13 @@ extends "res://scripts/m3_song.gd"
 ## M4: suppress and Restore. Answers P-03: does silence create tension, and
 ## does restoring on the beat feel great?
 ##
-## Elite creeps (big, dark red) walk the maze with the wave. While an elite has
-## towers in reach it is armed. Miss a note then, and it pulses: every tower in
-## its reach is locked (suppressed). Locked towers don't fire, don't answer
-## notes, and their part drops out of the music. The groove drops too, so the
-## mix goes thin. Clean play never gets locked (Jared, 2026-10-25).
+## Elite creeps (big, dark red) walk the maze with the wave. When an elite has
+## towers in reach it winds up a pulse on a coming downbeat: a swelling ring
+## and a low tone are the tell. Press Space as it lands to parry (the elite
+## takes damage); miss it and every tower in its reach is locked (suppressed).
+## Locked towers don't fire, don't answer notes, and their part drops out of
+## the music. The groove drops too, so the mix goes thin. Notes never lock
+## anything (D-0023): Space is the one defensive input, here and on the boss.
 ##
 ## F = Restore, any time. It lands on the next 8th note (at most 250 ms later)
 ## so the ripple, salvo and sound sit on the grid without you timing anything
@@ -20,7 +22,10 @@ const SUPPRESS_RADIUS := 2.2
 const ELITE_EVERY := 6  # One elite per this many creeps, from wave 2.
 const ELITE_HP_MULT := 4.0
 const ELITE_SPEED_MULT := 0.8
-const ELITE_PULSE_BARS := 2  # Bars before the same elite can lock again.
+const ELITE_PULSE_BARS := 4  # Bars before the same elite winds up again.
+const PULSE_LEAD_BEATS := 2.0  # A pulse lands this long after it is called.
+const PARRY_DAMAGE := 40.0
+const PULSE_TELL_BEATS := 1.0
 const RESTORE_GRID_STEPS := 1  # Restore lands on the next 8th note. 0 = instant.
 const RIPPLE_SPEED := 28.0  # Tiles per second the refresh ripple travels.
 const RESTORE_CHARGES := 3
@@ -33,7 +38,7 @@ var _restore_flash := 0.0
 var _restore_at := -1.0  # Song time a pressed Restore lands, or -1.
 var _relight := {}  # cell -> distance from the goal, waiting for the ripple
 var _ripple := -1.0  # Ripple radius in tiles, or -1 when idle.
-var m4_stats := {"suppressed": 0, "restores": 0, "expired": 0}
+var m4_stats := {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "parried": 0}
 
 
 func _ready() -> void:
@@ -49,6 +54,14 @@ func _ready() -> void:
 	zap.volume_db = -6.0
 	add_child(zap)
 	_sfx["suppress"] = zap
+	for sfx in [["tell", 165.0, -4.0], ["parry", 1760.0, -2.0]]:
+		if _sfx.has(sfx[0]):
+			continue
+		var player := AudioStreamPlayer.new()
+		player.stream = StemSynth.chime(sfx[1])
+		player.volume_db = sfx[2]
+		add_child(player)
+		_sfx[sfx[0]] = player
 
 
 func reset() -> void:
@@ -58,7 +71,7 @@ func reset() -> void:
 	_restore_at = -1.0
 	_relight.clear()
 	_ripple = -1.0
-	m4_stats = {"suppressed": 0, "restores": 0, "expired": 0}
+	m4_stats = {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "parried": 0}
 
 
 func start_wave() -> void:
@@ -81,7 +94,10 @@ func _spawn_creep() -> void:
 		c["hp"] *= ELITE_HP_MULT
 		c["max_hp"] = c["hp"]
 		c["speed"] *= ELITE_SPEED_MULT
-		c["pulse_bar"] = -1
+		c["pulse_at"] = -1.0  # Song time its next pulse lands, or -1.
+		c["pulse_targets"] = [] as Array[Vector2i]
+		c["told"] = false
+		c["cooldown_until"] = 0.0
 
 
 func tower_ready(cell: Vector2i) -> bool:
@@ -110,28 +126,106 @@ func _towers_in_reach(pos: Vector2) -> Array[Vector2i]:
 	return hit
 
 
-## A missed note while an elite is armed locks the towers in its reach.
-func _on_miss(type: String) -> void:
-	super._on_miss(type)
-	var bar := floori(beat_time() / clock.bar_length())
-	var fresh := 0
+## Called every step. An armed elite with its cooldown done winds up a pulse
+## on the next downbeat at least PULSE_LEAD_BEATS away.
+func _arm_elites(s: int) -> void:
+	if posmod(s, STEPS_PER_BAR) != 0:
+		return
+	var bar_time := floori(float(s) / STEPS_PER_BAR) * clock.bar_length()
 	for c in armed_elites():
-		if c["pulse_bar"] >= 0 and bar - c["pulse_bar"] < ELITE_PULSE_BARS:
+		if c["pulse_at"] >= 0.0 or beat_time() < c["cooldown_until"]:
 			continue
-		c["pulse_bar"] = bar
-		for cell in _towers_in_reach(c["pos"]):
-			if not suppressed.has(cell):
-				fresh += 1
-			suppressed[cell] = SUPPRESS_SECONDS
-		_shockwaves.append({"pos": c["pos"], "ttl": 0.5, "color": Color(0.9, 0.2, 0.3)})
+		c["pulse_at"] = bar_time + clock.bar_length()  # The next downbeat: a full bar of warning.
+		c["told"] = false
+		c["pulse_targets"] = _towers_in_reach(c["pos"])  # The towers threatened when the pulse was called.
+		m4_stats["pulses"] += 1
+
+
+## The pulse landed unparried: lock everything in reach.
+func _pulse_lands(c: Dictionary) -> void:
+	c["pulse_at"] = -1.0
+	c["cooldown_until"] = beat_time() + ELITE_PULSE_BARS * clock.bar_length()
+	var fresh := 0
+	# Lock what the pulse threatened when it was called plus anything the elite
+	# has walked up to since, so walking past a tower never saves it.
+	var targets: Array[Vector2i] = _towers_in_reach(c["pos"])
+	for cell in c.get("pulse_targets", []):
+		if structures.has(cell) and not targets.has(cell):
+			targets.append(cell)
+	for cell in targets:
+		if not suppressed.has(cell):
+			fresh += 1
+		suppressed[cell] = SUPPRESS_SECONDS
+	_shockwaves.append({"pos": c["pos"], "ttl": 0.5, "color": Color(0.9, 0.2, 0.3)})
 	if fresh > 0:
 		m4_stats["suppressed"] += fresh
 		_sfx["suppress"].play()
-		_show_feedback("MISS   %d tower%s LOCKED   F to Restore" % [fresh, "" if fresh == 1 else "s"], Color(1, 0.3, 0.3))
+		_show_feedback("PULSE   %d tower%s LOCKED   F to Restore" % [fresh, "" if fresh == 1 else "s"], Color(1, 0.3, 0.3))
+
+
+# --- Parry (Space) -------------------------------------------------------------
+
+## Things Space can parry right now: {time, kind, ref}. M5 adds boss bolts.
+func _parry_candidates() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for c in creeps:
+		if c.get("elite", false) and c["hp"] > 0.0 and c["pulse_at"] >= 0.0:
+			out.append({"time": c["pulse_at"], "kind": "elite", "ref": c})
+	return out
+
+
+func _parry() -> void:
+	var best := {}
+	var best_off := INF
+	for cand in _parry_candidates():
+		var off: float = absf(press_time() - cand["time"])
+		if off < best_off:
+			best = cand
+			best_off = off
+	if best.is_empty():
+		_show_feedback("Nothing to parry", Color(1, 1, 1, 0.4))
+		return
+	var offset_ms: float = (press_time() - best["time"]) * 1000.0
+	var g := Timing.grade(offset_ms)
+	if g == "Miss":
+		_show_feedback("Too early (%+.0f ms)" % offset_ms, Color(1, 1, 1, 0.5))
+		return
+	_sfx["parry"].play()
+	_lead_timer = clock.bar_length()
+	_resolve_parry(best, g, offset_ms)
+
+
+## What a parry does, by kind. M5 extends this for bolts.
+func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
+	var perfect := g == "Perfect"
+	if cand["kind"] == "elite":
+		var c: Dictionary = cand["ref"]
+		c["pulse_at"] = -1.0
+		c["cooldown_until"] = beat_time() + ELITE_PULSE_BARS * clock.bar_length()
+		m4_stats["parried"] += 1
+		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
+		c["hp"] -= dmg
+		shots.append({"from": Vector2(GOAL), "to": c["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.3, "splash": 0.0})
+		_popup(c["pos"], ("%d!" if perfect else "%d") % roundi(dmg), Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, 20 if perfect else 15)
+		_show_feedback("%sPARRY  %+.0f ms" % ["PERFECT " if perfect else "", offset_ms], Color(1.0, 0.9, 0.3) if perfect else Color.WHITE)
+
+
+func on_step(s: int) -> void:
+	super.on_step(s)
+	if state == "playing":
+		_arm_elites(s)
 
 
 func step(delta: float) -> void:
 	super.step(delta)
+	# Pulses that landed without a parry.
+	for c in creeps:
+		if c.get("elite", false) and c["pulse_at"] >= 0.0:
+			if not c["told"] and beat_time() >= c["pulse_at"] - PULSE_TELL_BEATS * clock.beat_length():
+				c["told"] = true
+				_sfx["tell"].play()
+			if press_time() > c["pulse_at"] + Timing.GOOD_MS / 1000.0:
+				_pulse_lands(c)
 	if _restore_at >= 0.0 and beat_time() >= _restore_at:
 		_restore_at = -1.0
 		_restore()
@@ -163,9 +257,13 @@ func sell(cell: Vector2i) -> void:
 # --- Restore -----------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
-		_press_restore()
-		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F:
+			_press_restore()
+			return
+		if event.keycode == KEY_SPACE:
+			_parry()
+			return
 	super._unhandled_input(event)
 
 
@@ -245,13 +343,19 @@ func _draw() -> void:
 		if not c.get("elite", false):
 			continue
 		var p := _to_screen(c["pos"])
-		var armed := not _towers_in_reach(c["pos"]).is_empty()
-		var pulse := 0.5 + 0.5 * sin(beat_time() * TAU * 2.0)
 		draw_circle(p, TILE * 0.4, Color(0.55, 0.1, 0.2))
 		draw_arc(p, TILE * 0.4, 0, TAU, 32, Color(1, 0.3, 0.4), 2.0)
-		draw_arc(p, SUPPRESS_RADIUS * TILE, 0, TAU, 48, Color(1, 0.3, 0.4, 0.15 + 0.35 * pulse if armed else 0.12), 2.0 if armed else 1.0)
-		if armed:
-			draw_string(font, p + Vector2(-30, -TILE * 0.6), "miss = lock", HORIZONTAL_ALIGNMENT_CENTER, 60, 11, Color(1, 0.4, 0.45, 0.6 + 0.4 * pulse))
+		draw_arc(p, SUPPRESS_RADIUS * TILE, 0, TAU, 48, Color(1, 0.3, 0.4, 0.12), 1.0)
+		# The tell: a ring swells out of the elite over the last beat and
+		# snaps to its reach as the pulse lands. Space as it lands.
+		if c["pulse_at"] >= 0.0:
+			var to_go: float = c["pulse_at"] - beat_time()
+			var window := PULSE_TELL_BEATS * clock.beat_length()
+			if to_go <= window:
+				var a: float = clampf(1.0 - to_go / window, 0.0, 1.0)
+				draw_arc(p, TILE * (0.4 + (SUPPRESS_RADIUS - 0.4) * a), 0, TAU, 48, Color(1, 0.4, 0.5, 0.3 + 0.7 * a), 2.0 + 3.0 * a)
+			else:
+				draw_arc(p, TILE * 0.55, 0, TAU, 32, Color(1, 0.4, 0.5, 0.5), 2.0)
 
 	# Suppressed towers: greyed out with a cross and a draining bar.
 	for cell in suppressed:
@@ -309,11 +413,12 @@ func _draw() -> void:
 
 func status_lines() -> Array[String]:
 	var lines := super.status_lines()
-	lines.append("Locked %d   Restores %d   Wore off %d" % [m4_stats["suppressed"], m4_stats["restores"], m4_stats["expired"]])
+	lines.append("Elite pulses %d   parried %d   Locked %d   Restores %d   Wore off %d" % [m4_stats["pulses"], m4_stats["parried"], m4_stats["suppressed"], m4_stats["restores"], m4_stats["expired"]])
 	return lines
 
 
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
 	lines.insert(5, "F  Restore locked towers (%d/%d charges)" % [restore_charges, RESTORE_CHARGES])
+	lines.insert(6, "Space  parry an elite's pulse as its ring lands")
 	return lines

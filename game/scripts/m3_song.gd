@@ -2,15 +2,17 @@ extends "res://scripts/m2_maze.gd"
 ## M3: the maze plays the song. Answers P-04: can you hear your maze, and do
 ## you build it so your towers are in the fight when the song calls for them?
 ##
-## The song decides the notes (D-0014). During a wave a fixed chart of Q and E
-## notes scrolls along the timeline under the board, so you always see what's
-## coming. Pressing a note's key as it reaches the line fires a Resonance from
-## every tower on that key that has a target. A tower with nothing in range
-## adds nothing, so the maze decides what each note is worth.
-## Perfect = crit. Missing costs nothing. The chart starts sparse and builds
-## up wave by wave so early waves teach the rhythm.
+## The song decides the notes (D-0014), but notes are punctuation, not a
+## stream (D-0022): a few accents per wave. Two beats before each note the
+## game hands it to one tower, the one with the best crossfire that will have
+## targets when it lands, and a ring in the note's color (Q orange, E purple)
+## closes on that tower. It never moves. Press the key as the ring lands and
+## that tower fires a bolt across the whole board at the creep nearest the
+## Conductor: Perfect = crit, a miss costs only the bonus. Nothing else
+## happens on a miss. The timeline overlay is a test aid, off by default (L).
 ##
-## Towers: 2 = Q tower (on the beat), 3 = E tower (off-beat). 1 = wall.
+## Towers: 2 = heavy (single target), 3 = splash. 1 = wall. Any tower can
+## carry any note.
 ## K = one-key mode (P-04 arm B): any of Q/E/Space plays any note.
 ## L = show or hide the timeline overlay.
 ##
@@ -31,13 +33,15 @@ const KEY_TYPE := {KEY_Q: "kick", KEY_E: "bass"}
 ## kick's beats, E notes on the bass's off-beats, so each note lands on a shot
 ## its towers are already playing. Index = level; see chart_for_wave().
 const CHARTS: Array = [
-	[[0, 0, "kick"], [1, 0, "kick"], [2, 0, "kick"], [3, 0, "kick"]],
-	[[0, 0, "kick"], [1, 0, "kick"], [1, 4, "kick"], [2, 0, "kick"], [3, 0, "kick"], [3, 4, "kick"]],
-	[[0, 0, "kick"], [1, 0, "kick"], [1, 3, "bass"], [2, 0, "kick"], [3, 0, "kick"], [3, 3, "bass"], [3, 5, "bass"]],
-	[[0, 0, "kick"], [0, 3, "bass"], [1, 0, "kick"], [1, 3, "bass"], [1, 7, "bass"], [2, 0, "kick"], [2, 4, "kick"], [3, 0, "kick"], [3, 3, "bass"], [3, 5, "bass"], [3, 7, "bass"]],
+	[[3, 4, "kick"]],
+	[[1, 4, "kick"], [3, 4, "kick"]],
+	[[1, 4, "kick"], [3, 3, "bass"]],
+	[[0, 4, "kick"], [1, 3, "bass"], [3, 4, "kick"], [3, 5, "bass"]],
 ]
-const RESONANCE_GOOD := 1.0  # Bonus per engaged tower = its damage x this x crossfire.
-const RESONANCE_PERFECT := 2.0
+const NOTE_COLORS := {"kick": Color(1.0, 0.55, 0.3), "bass": Color(0.7, 0.45, 1.0)}
+const NOTE_NAMES := {"kick": "Q", "bass": "E"}
+const RESONANCE_GOOD := 2.5  # Bolt damage = the tower's damage x this x crossfire.
+const RESONANCE_PERFECT := 5.0
 const CROSSFIRE_BONUS := 0.25  # Per extra tower that also covers the target.
 const RESONANCE_RADIUS := 1.0
 const LEAD_HOLD_BARS := 2.0
@@ -81,7 +85,7 @@ const DEFAULT_BPM := 120.0
 var clock: BeatClock
 var calibration_ms := 0.0
 var one_key_mode := false
-var show_timeline := true
+var show_timeline := false
 
 var stem_index := {}  # stem name -> BeatClock stem index
 var stem_db := {}  # stem name -> current dB
@@ -95,8 +99,8 @@ var _last_step := -1
 var _lead_timer := 0.0
 var _flashes := {}  # tower cell -> seconds left
 
-var notes: Array[Dictionary] = []  # time, type, state ("open", "hit", "missed")
-var stats := {}  # tower type -> {notes, hits, perfects, wasted, missed}
+var notes: Array[Dictionary] = []  # time, type, tower (Vector2i or null), state ("open", "hit", "missed")
+var stats := {}  # note type -> {notes, hits, perfects, missed}
 var _wave_notes := 0
 var _feedback := ""
 var _feedback_color := Color.WHITE
@@ -111,7 +115,10 @@ func _ready() -> void:
 	title = "M3 The maze plays the song"
 	build_keys = {KEY_1: "wall", KEY_2: "kick", KEY_3: "bass"}
 	builds.erase("hat")  # Hats are background music now, not a tower (D-0014).
-	builds["bass"]["damage"] = 4.5  # Bass fires twice as often on the off-beats.
+	builds["bass"]["damage"] = 4.5  # Splash fires twice as often, on the off-beats.
+	# Tower colors are roles now; note colors (NOTE_COLORS) are the keys.
+	builds["kick"]["color"] = Color(0.9, 0.78, 0.5)
+	builds["bass"]["color"] = Color(0.5, 0.82, 0.75)
 	calibration_ms = Timing.load_calibration_ms()
 	for y in MAP.size():
 		for x in MAP[y].length():
@@ -169,7 +176,7 @@ func reset() -> void:
 func _reset_stats() -> void:
 	stats = {}
 	for type in KEYS:
-		stats[type] = {"notes": 0, "hits": 0, "perfects": 0, "wasted": 0, "missed": 0}
+		stats[type] = {"notes": 0, "hits": 0, "perfects": 0, "missed": 0}
 
 
 func stat_total(field: String) -> int:
@@ -330,14 +337,25 @@ func _process(delta: float) -> void:
 		on_step(s)
 	_last_step = maxi(_last_step, now_step)
 
-	# Notes that slid past the line are missed. No penalty, they just fade.
+	var lead := RING_LEAD_STEPS * step_length()
 	for n in notes:
-		if n["state"] == "open" and press_time() > n["time"] + Timing.GOOD_MS / 1000.0:
+		if n["state"] != "open":
+			continue
+		if n["tower"] == null and n["time"] - beat_time() <= lead:
+			_assign_note(n)
+			if n["tower"] == Vector2i(-1, -1):
+				n["state"] = "void"  # No towers at all: the note never existed.
+				stats[n["type"]]["notes"] -= 1
+				_wave_notes -= 1
+		elif n["tower"] is Vector2i and not structures.has(n["tower"]):
+			_assign_note(n)  # Its tower was sold.
+		# A note that slid past the ring is missed. It only costs the bonus.
+		if press_time() > n["time"] + Timing.GOOD_MS / 1000.0:
 			n["state"] = "missed"
-			_on_miss(n["type"])
+			_on_miss(n)
 	var keep: Array[Dictionary] = []
 	for n in notes:
-		if n["time"] > beat_time() - TIMELINE_BEHIND:
+		if n["state"] != "void" and n["time"] > beat_time() - TIMELINE_BEHIND:
 			keep.append(n)
 	notes = keep
 
@@ -364,14 +382,61 @@ func on_step(s: int) -> void:
 
 ## Writes one bar of the chart onto the timeline, a couple of bars ahead.
 func _schedule_bar(bar: int) -> void:
+	if not chart_allowed():
+		return
 	var bar_in_phrase := posmod(bar, PHRASE_BARS)
 	for entry in chart_for_wave(wave):
 		if entry[0] != bar_in_phrase:
 			continue
-		var time: float = (bar * STEPS_PER_BAR + entry[1]) * step_length()
-		notes.append({"time": time, "type": entry[2], "state": "open"})
-		stats[entry[2]]["notes"] += 1
-		_wave_notes += 1
+		add_note((bar * STEPS_PER_BAR + entry[1]) * step_length(), entry[2])
+
+
+## Hook: M5 turns the chart off during the boss fight.
+func chart_allowed() -> bool:
+	return true
+
+
+func add_note(time: float, type: String) -> void:
+	notes.append({"time": time, "type": type, "tower": null, "state": "open"})
+	stats[type]["notes"] += 1
+	_wave_notes += 1
+
+
+## Two beats out, a note is handed to one tower: the one covering the most
+## creeps, ties broken by crossfire. With no creeps near any tower, the tower
+## nearest the creep closest to the Conductor. The ring stays there.
+func _assign_note(n: Dictionary) -> void:
+	var best := Vector2i(-1, -1)
+	var best_score := -INF
+	var lead_creep := _lead_creep()
+	for cell in structures:
+		var type: String = structures[cell]["type"]
+		if not builds[type].has("range") or not tower_ready(cell):
+			continue
+		var score := 0.0
+		for c in creeps:
+			if c["hp"] > 0.0 and c["pos"].distance_to(Vector2(cell)) <= builds[type]["range"] + 1.0:
+				score += 1.0 + 0.25 * _coverage(c["pos"])
+		if score == 0.0 and not lead_creep.is_empty():
+			score = -lead_creep["pos"].distance_to(Vector2(cell)) * 0.01
+		if score > best_score:
+			best_score = score
+			best = cell
+	n["tower"] = best
+
+
+## The creep closest to the Conductor, anywhere on the board.
+func _lead_creep() -> Dictionary:
+	var best := {}
+	var best_d := INF
+	for c in creeps:
+		if c["hp"] <= 0.0:
+			continue
+		var d: float = float(grid.dist(c["target"])) + c["pos"].distance_to(Vector2(c["target"]))
+		if d < best_d:
+			best = c
+			best_d = d
+	return best
 
 
 func _fire_towers_on(pattern_step: int) -> void:
@@ -455,7 +520,7 @@ func _play(key: Key) -> void:
 	var best := {}
 	var best_off := INF
 	for n in notes:
-		if n["state"] != "open":
+		if n["state"] != "open" or n["tower"] == null:
 			continue
 		if not one_key_mode and KEY_TYPE.get(key, "") != n["type"]:
 			continue
@@ -472,60 +537,54 @@ func _play(key: Key) -> void:
 		_show_feedback("Too early", Color(1, 1, 1, 0.5))
 		return  # The note is still yours to hit.
 	best["state"] = "hit"
-	_resonance(best["type"], g, offset_ms)
+	_resonance(best, g, offset_ms)
 
 
-func _resonance(type: String, g: String, offset_ms: float) -> void:
-	var color: Color = builds[type]["color"]
+## The note's tower fires a bolt across the whole board at the creep nearest
+## the Conductor. Crossfire on that creep multiplies it; Perfect doubles it.
+func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
+	var type: String = n["type"]
+	var color: Color = NOTE_COLORS[type]
 	var crit := g == "Perfect"
-	var towers := engaged_towers(type)
 	stats[type]["hits"] += 1
 	if crit:
 		stats[type]["perfects"] += 1
 	_lead_timer = clock.bar_length() * LEAD_HOLD_BARS
 	_sfx["perfect" if crit else "good"].play()
-	if towers.is_empty():
-		stats[type]["wasted"] += 1
-		_flash_line(Color(1, 0.6, 0.4))
-		_show_feedback("%s, but no %s tower in the fight" % [g, OS.get_keycode_string(KEYS[type])], Color(1, 0.6, 0.4))
+	var cell: Vector2i = n["tower"]
+	if not structures.has(cell):
+		_assign_note(n)
+		cell = n["tower"]
+	var target := _lead_creep()
+	if target.is_empty() or not structures.has(cell):
+		_flash_line(color)
+		_show_feedback("%s   nothing to hit" % g, color)
 		return
-	var spec: Dictionary = builds[type]
-	var total := 0.0
-	var shown := 0
-	for cell in towers:
-		var target := _pick_target(Vector2(cell), spec["range"])
-		if target.is_empty():
-			continue
-		var crossfire := 1.0 + CROSSFIRE_BONUS * maxi(0, _coverage(target["pos"]) - 1)
-		var bonus: float = spec["damage"] * damage_scale() * crossfire * (RESONANCE_PERFECT if crit else RESONANCE_GOOD)
-		var dealt := 0.0
-		for c in creeps:
-			if c["pos"].distance_to(target["pos"]) <= RESONANCE_RADIUS:
-				dealt += minf(bonus, maxf(c["hp"], 0.0))
-				c["hp"] -= bonus
-		total += dealt
-		_flashes[cell] = 0.25
-		shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.25, "splash": RESONANCE_RADIUS})
-		_bursts.append({"pos": target["pos"], "color": color, "ttl": 0.35, "crit": crit})
-		# Stagger numbers so several towers on one target stay readable.
-		var spot: Vector2 = target["pos"] + Vector2(-0.7 if shown % 2 == 0 else 0.7, -0.4 * shown)
-		_popup(spot, ("%d!" if crit else "%d") % roundi(dealt), Color(1.0, 0.9, 0.3) if crit else Color.WHITE, 22 if crit else 15)
-		shown += 1
+	var spec: Dictionary = builds[structures[cell]["type"]]
+	var crossfire := 1.0 + CROSSFIRE_BONUS * maxi(0, _coverage(target["pos"]) - 1)
+	var bonus: float = spec["damage"] * damage_scale() * crossfire * (RESONANCE_PERFECT if crit else RESONANCE_GOOD)
+	var radius: float = maxf(spec["splash"], 0.0)
+	var dealt := 0.0
+	for c in creeps:
+		if c == target or (radius > 0.0 and c["pos"].distance_to(target["pos"]) <= radius):
+			dealt += minf(bonus, maxf(c["hp"], 0.0))
+			c["hp"] -= bonus
+	_flashes[cell] = 0.3
+	shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.4, "splash": radius})
+	_bursts.append({"pos": target["pos"], "color": color, "ttl": 0.35, "crit": crit})
+	_popup(target["pos"], ("%d!" if crit else "%d") % roundi(dealt), Color(1.0, 0.9, 0.3) if crit else Color.WHITE, 22 if crit else 15)
 	_flash_line(Color(1.0, 0.9, 0.3) if crit else Color.WHITE)
-	_show_feedback("%s%s  %+.0f ms   %d damage from %d tower%s" % ["CRIT  " if crit else "", g, offset_ms, roundi(total), towers.size(), "" if towers.size() == 1 else "s"], Color(1.0, 0.9, 0.3) if crit else color)
+	_show_feedback("%s%s  %+.0f ms   %d damage%s" % ["CRIT  " if crit else "", g, offset_ms, roundi(dealt), "   x%.2f crossfire" % crossfire if crossfire > 1.0 else ""], Color(1.0, 0.9, 0.3) if crit else color)
 
 
-## A note slid past the line. Only counts as a miss if towers were ready to fire.
-func _on_miss(type: String) -> void:
-	var towers := engaged_towers(type)
-	if towers.is_empty():
-		return
-	stats[type]["missed"] += 1
+## A note slid past its ring. It costs the bonus and nothing else.
+func _on_miss(n: Dictionary) -> void:
+	stats[n["type"]]["missed"] += 1
 	_sfx["miss"].play()
 	_flash_line(Color(1, 0.3, 0.3))
 	_show_feedback("MISS", Color(1, 0.3, 0.3))
-	for cell in towers:
-		_popup(Vector2(cell), "miss", Color(1, 0.35, 0.35, 0.9), 13)
+	if n["tower"] is Vector2i and structures.has(n["tower"]):
+		_popup(Vector2(n["tower"]), "miss", Color(1, 0.35, 0.35, 0.9), 13)
 
 
 func _popup(pos: Vector2, text: String, color: Color, size: int) -> void:
@@ -600,43 +659,31 @@ func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	var board_w := GRID_SIZE.x * TILE
 
-	# The next note of each key puts a closing ring on that key's towers that
-	# are in the fight. Towers with nothing in range only glow softly, so you
-	# know the note is coming but your eye goes to the towers that matter.
-	var next_note := {}
-	for n in notes:
-		if n["state"] == "open" and (not next_note.has(n["type"]) or n["time"] < next_note[n["type"]]["time"]):
-			next_note[n["type"]] = n
-	var lead := RING_LEAD_STEPS * step_length()
-	for cell in structures:
-		var type: String = structures[cell]["type"]
-		if not KEYS.has(type):
+	# Tower fire flashes.
+	for cell in _flashes:
+		if not structures.has(cell):
 			continue
 		var p := _to_screen(Vector2(cell))
-		var color: Color = builds[type]["color"]
-		if _flashes.has(cell):
-			var a: float = clampf(_flashes[cell] / 0.12, 0.0, 1.0)
-			draw_circle(p, TILE * (0.32 + 0.15 * a), color * Color(1, 1, 1, 0.5 * a))
-		var key := OS.get_keycode_string(KEYS[type])
-		var ringed := false
-		if next_note.has(type):
-			var to_go: float = next_note[type]["time"] - beat_time()
-			if to_go <= lead:
-				var left := clampf(to_go / lead, 0.0, 1.0)
-				if tower_engaged(cell):
-					ringed = true
-					draw_arc(p, TILE * (0.5 + 2.0 * left), 0, TAU, 48, color * Color(1, 1, 1, 0.4 + 0.6 * (1.0 - left)), 3.0)
-					draw_arc(p, TILE * 0.5, 0, TAU, 48, color, 2.0)
-				else:
-					draw_circle(p, TILE * 0.45, color * Color(1, 1, 1, 0.25 * (1.0 - left)))
-		if ringed:
-			draw_string(font, p + Vector2(-20, 5), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 14, Color.WHITE)
-		else:
-			draw_string(font, p + Vector2(-20, 4), key, HORIZONTAL_ALIGNMENT_CENTER, 40, 11, Color(0, 0, 0, 0.7))
+		var a: float = clampf(_flashes[cell] / 0.12, 0.0, 1.0)
+		draw_circle(p, TILE * (0.32 + 0.15 * a), builds[structures[cell]["type"]]["color"] * Color(1, 1, 1, 0.5 * a))
+
+	# Each pending note is one ring on one tower, in the note's color, closing
+	# over two beats and holding at the tower until the note is gone.
+	var lead := RING_LEAD_STEPS * step_length()
+	for n in notes:
+		if n["state"] != "open" or not (n["tower"] is Vector2i) or not structures.has(n["tower"]):
+			continue
+		var p := _to_screen(Vector2(n["tower"]))
+		var color: Color = NOTE_COLORS[n["type"]]
+		var left := clampf((n["time"] - beat_time()) / lead, 0.0, 1.0)
+		draw_arc(p, TILE * (0.5 + 2.2 * left), 0, TAU, 48, color * Color(1, 1, 1, 0.5 + 0.5 * (1.0 - left)), 3.0)
+		draw_arc(p, TILE * 0.55, 0, TAU, 48, color, 3.0)
+		draw_string_outline(font, p + Vector2(-20, 6), NOTE_NAMES[n["type"]], HORIZONTAL_ALIGNMENT_CENTER, 40, 16, 4, Color(0, 0, 0, 0.9))
+		draw_string(font, p + Vector2(-20, 6), NOTE_NAMES[n["type"]], HORIZONTAL_ALIGNMENT_CENTER, 40, 16, Color.WHITE)
 
 	for b in _bursts:
 		var a: float = b["ttl"] / 0.35
-		draw_arc(_to_screen(b["pos"]), TILE * (RESONANCE_RADIUS + 0.6 * (1.0 - a)), 0, TAU, 48, b["color"] * Color(1, 1, 1, a), 6.0 if b["crit"] else 3.0)
+		draw_arc(_to_screen(b["pos"]), TILE * (0.6 + 0.8 * (1.0 - a)), 0, TAU, 48, b["color"] * Color(1, 1, 1, a), 6.0 if b["crit"] else 3.0)
 
 	for pop in _popups:
 		var age: float = 1.0 - pop["ttl"] / 0.8
@@ -676,19 +723,19 @@ func _draw_timeline(font: Font, board_w: float) -> void:
 		var is_bar := posmod(b, clock.beats_per_bar) == 0
 		draw_line(Vector2(x, top + 2), Vector2(x, rect.end.y - 2), Color(1, 1, 1, 0.12 if is_bar else 0.05), 1.0)
 
-	draw_string(font, Vector2(left - 14, top + 12), "Q", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, builds["kick"]["color"] * Color(1, 1, 1, 0.5))
-	draw_string(font, Vector2(left - 14, top + lane_h + 14), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, builds["bass"]["color"] * Color(1, 1, 1, 0.5))
+	draw_string(font, Vector2(left - 14, top + 12), "Q", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, NOTE_COLORS["kick"] * Color(1, 1, 1, 0.5))
+	draw_string(font, Vector2(left - 14, top + lane_h + 14), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, NOTE_COLORS["bass"] * Color(1, 1, 1, 0.5))
 	for n in notes:
 		var x: float = line_x + (n["time"] - now) * px_per_s
 		if x < rect.position.x or x > rect.end.x:
 			continue
 		var lane := 0 if n["type"] == "kick" else 1
 		var center := Vector2(x, top + 2 + lane * lane_h + lane_h * 0.5)
-		var color: Color = builds[n["type"]]["color"] * Color(1, 1, 1, 0.6)
+		var color: Color = NOTE_COLORS[n["type"]] * Color(1, 1, 1, 0.6)
 		if n["state"] == "hit":
 			color = Color(1, 1, 1, 0.7)
 		elif n["state"] == "missed":
-			color = builds[n["type"]]["color"] * Color(1, 1, 1, 0.15)
+			color = NOTE_COLORS[n["type"]] * Color(1, 1, 1, 0.15)
 		var r := 5.0
 		draw_colored_polygon(PackedVector2Array([center + Vector2(0, -r), center + Vector2(r, 0), center + Vector2(0, r), center + Vector2(-r, 0)]), color)
 	draw_line(Vector2(line_x, top - 2), Vector2(line_x, rect.end.y + 2), Color(1, 1, 1, 0.45), 2.0)
@@ -700,7 +747,7 @@ func _draw_timeline(font: Font, board_w: float) -> void:
 ## Stem meters, so you can see what you're hearing.
 func _draw_meters(font: Font, board_w: float) -> void:
 	var x := _origin.x + board_w + 20
-	var names := {"kick": "Q tower", "bass": "E tower", "hat": "Groove", "lead": "Melody"}
+	var names := {"kick": "Heavy", "bass": "Splash", "hat": "Groove", "lead": "Melody"}
 	var i := 0
 	for k in ["kick", "bass", "hat", "lead"]:
 		var level := clampf((stem_db[k] + 40.0) / 40.0, 0.0, 1.0)
@@ -719,7 +766,7 @@ func status_lines() -> Array[String]:
 	for type in KEYS:
 		var st: Dictionary = stats[type]
 		var rate: float = 0.0 if st["notes"] == 0 else 100.0 * st["hits"] / st["notes"]
-		lines.append("%s  notes %d   hits %d (%.0f%%)   crits %d   missed %d   no tower %d" % [OS.get_keycode_string(KEYS[type]), st["notes"], st["hits"], rate, st["perfects"], st["missed"], st["wasted"]])
+		lines.append("%s  notes %d   hits %d (%.0f%%)   crits %d   missed %d" % [OS.get_keycode_string(KEYS[type]), st["notes"], st["hits"], rate, st["perfects"], st["missed"]])
 	lines.append("Calibration %+.0f ms (set in M1)%s" % [calibration_ms, "   ONE-KEY MODE" if one_key_mode else ""])
 	lines.append("Song: %s (%.0f BPM)   [ ] switch (%d/%d)" % [songs[song_index]["name"], clock.bpm, song_index + 1, songs.size()])
 	return lines
@@ -731,9 +778,9 @@ func help_lines() -> Array[String]:
 		keys[build_keys[k]] = OS.get_keycode_string(k)
 	return [
 		"%s  Wall       4g" % keys["wall"],
-		"%s  Q tower   20g  on the beat, heavy" % keys["kick"],
-		"%s  E tower   25g  off-beat, splash" % keys["bass"],
-		"Q / E  play notes as they reach the line",
+		"%s  Heavy tower   20g  single target, on the beat" % keys["kick"],
+		"%s  Splash tower  25g  off-beat" % keys["bass"],
+		"Q / E  press the key shown on a tower as its ring lands",
 		"K  one-key mode (any key plays any note)",
 		"L  timeline %s" % ("on" if show_timeline else "off"),
 		"Left click  place     Right click  sell (75%)",

@@ -13,9 +13,10 @@ extends "res://scripts/m4_restore.gd"
 ## Space parries the bolt as it reaches the Conductor. A parry deflects it
 ## back into the boss (damage + posture, Perfect = double). A hit costs
 ## objective health and locks the towers near the boss, so Restore applies.
+## The chart is silent while the boss is up (D-0023): parries are the fight.
 ## When the posture bar fills the boss staggers: it stops, and for
-## CRESCENDO_SECONDS every tower does +30% and the full mix slams in.
-## Kill the boss to clear the wave.
+## CRESCENDO_SECONDS every tower does +30%, the full mix slams in, and a short
+## burst of notes comes, one per beat. Kill the boss to clear the wave.
 
 const BOSS_WAVE := 5
 const BOSS_HP_MULT := 40.0  # x creep HP of that wave.
@@ -25,7 +26,6 @@ const BOLT_MIN_TRAVEL := 0.5
 const STRINGS := [[0.0, 1.0, 2.0, 3.5], [0.0, 0.5, 2.0, 3.0]]  # Arrival offsets in beats.
 const STRING_LEAD_BEATS := 2.0  # First arrival this long after the string is called.
 const HIT_HEALTH := 2
-const PARRY_DAMAGE := 40.0
 const POSTURE_GOOD := 15.0
 const POSTURE_PERFECT := 25.0  # Four Perfect parries, one full string, break it.
 const POSTURE_MAX := 100.0
@@ -45,7 +45,7 @@ var _conductor_flash := {"color": Color.WHITE, "ttl": 0.0}
 func _ready() -> void:
 	super._ready()
 	title = "M5 First boss"
-	for sfx in [["tell", 165.0, -4.0], ["parry", 1760.0, -2.0], ["break", 82.0, 4.0]]:
+	for sfx in [["break", 82.0, 4.0]]:
 		var player := AudioStreamPlayer.new()
 		player.stream = StemSynth.chime(sfx[1])
 		player.volume_db = sfx[2]
@@ -65,6 +65,12 @@ func reset() -> void:
 
 func damage_scale() -> float:
 	return CRESCENDO_MULT if crescendo > 0.0 else 1.0
+
+
+## No chart while the boss is up: parries are the fight. Crescendo brings
+## its own burst of notes.
+func chart_allowed() -> bool:
+	return not boss_alive()
 
 
 # --- The boss wave -------------------------------------------------------------
@@ -206,42 +212,31 @@ func _bolt_hit() -> void:
 # --- Parry -----------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_SPACE:
-			_parry()
-			return
-		if event.keycode == KEY_O and state == "playing":
-			_summon_boss()
-			return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_O and state == "playing":
+		_summon_boss()
+		return
 	super._unhandled_input(event)
 
 
-func _parry() -> void:
-	var best := {}
-	var best_off := INF
+func _parry_candidates() -> Array[Dictionary]:
+	var out := super._parry_candidates()
 	for b in bolts:
-		if b["state"] != "flying":
-			continue
-		var off: float = absf(press_time() - b["arrive"])
-		if off < best_off:
-			best = b
-			best_off = off
-	if best.is_empty():
-		_show_feedback("Nothing to parry", Color(1, 1, 1, 0.4))
+		if b["state"] == "flying":
+			out.append({"time": b["arrive"], "kind": "bolt", "ref": b})
+	return out
+
+
+func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
+	if cand["kind"] != "bolt":
+		super._resolve_parry(cand, g, offset_ms)
 		return
-	var offset_ms: float = (press_time() - best["arrive"]) * 1000.0
-	var g := Timing.grade(offset_ms)
-	if g == "Miss":
-		_show_feedback("Too early (%+.0f ms)" % offset_ms, Color(1, 1, 1, 0.5))
-		return
+	var best: Dictionary = cand["ref"]
 	best["state"] = "parried"
 	var perfect := g == "Perfect"
 	m5_stats["parries"] += 1
 	if perfect:
 		m5_stats["perfect"] += 1
-	_sfx["parry"].play()
 	_conductor_flash = {"color": Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, "ttl": 0.4}
-	_lead_timer = clock.bar_length()
 	if boss_alive():
 		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
 		boss["hp"] -= dmg
@@ -261,8 +256,16 @@ func _posture_break() -> void:
 	_sfx["break"].play()
 	_lead_timer = CRESCENDO_SECONDS
 	_restore_flash = 0.5
-	_show_feedback("POSTURE BREAK   CRESCENDO  +30%% for %.0f s" % CRESCENDO_SECONDS, Color(1.0, 0.9, 0.3))
+	_show_feedback("POSTURE BREAK   CRESCENDO  +30%% for %.0f s   play!" % CRESCENDO_SECONDS, Color(1.0, 0.9, 0.3))
 	_next_string_bar = floori((beat_time() + CRESCENDO_SECONDS) / clock.bar_length()) + 1
+	# The burst: a note on every beat of the Crescendo, Q and E alternating,
+	# starting two beats out so the first ring has time to close.
+	var beat := clock.beat_length()
+	var first := (floorf(beat_time() / beat) + 2.0) * beat
+	var i := 0
+	while first + i * beat < beat_time() + CRESCENDO_SECONDS - 0.2:
+		add_note(first + i * beat, "kick" if i % 2 == 0 else "bass")
+		i += 1
 
 
 ## Crescendo: everything plays.
@@ -365,6 +368,6 @@ func status_lines() -> Array[String]:
 
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
-	lines.insert(6, "Space  parry a boss bolt as it reaches the Conductor")
+	lines.insert(7, "Space  also parries boss bolts as they reach the Conductor")
 	lines.append("TEST  O summon the boss now (boss wave is %d)" % BOSS_WAVE)
 	return lines
