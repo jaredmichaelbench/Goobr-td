@@ -9,3 +9,13 @@ Model D: the boss walks the maze and throws bolts at the Conductor; Space parrie
 Headless, dense test maze (11 towers): a bot that parries every bolt Perfectly kills the boss in about 25 s with two posture breaks. A bot that never parries loses the objective in about 30 s (10 hits at 2 health). Bolts took 4-5 s to arrive while the boss was far.
 
 Waiting on Jared's playtest.
+
+## First pass playtest, feedback collected (2026-10-25, not yet acted on)
+
+Jared played waves 1-5, then on to wave 12 in a second run (stats: Q 70% hits, E 73%, 74 locks, 9 Restores, boss: 24 bolts, 14 parries, 9 perfect, 9 hits, 2 breaks).
+
+- Boss: difficult. The music not lining up with the parries made it hard to focus on both; the game had trained him to fear missing a note, and the lock is debilitating.
+- Waves: challenging, but "eyes glued to the top sequence". Something is missing. The top bar might need to go, towers need better indication, maybe less punishing. "Not quite there."
+- Bug: O didn't re-summon the boss after it died (fixed: a parry kill left the boss record behind).
+- Open: iron out now or dial later? Some of this may be solved by rogue-lite elements, talents, tower upgrades, more tower types.
+- Core concern: not sold on music as the centre of the game. Rhythm should amplify the TD action; at heart it must be a TD. The sequence bar makes the build phase feel irrelevant: maze length is king, you extend with all your gold, then you're locked into timings for the fight. "Maybe we need to tone that down."

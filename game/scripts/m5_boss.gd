@@ -79,7 +79,7 @@ func start_wave() -> void:
 
 ## Test tool: O summons the boss into whatever is happening.
 func _summon_boss() -> void:
-	if not boss.is_empty():
+	if boss_alive():
 		return
 	var hp := creep_hp_at(maxi(wave, 1)) * BOSS_HP_MULT
 	boss = {"pos": Vector2(SPAWN), "target": SPAWN, "hp": hp, "max_hp": hp, "speed": BOSS_SPEED, "boss": true}
@@ -117,10 +117,11 @@ func _move_creeps(delta: float) -> void:
 
 
 func step(delta: float) -> void:
-	var had_boss := boss_alive()
 	super.step(delta)
 	crescendo = maxf(0.0, crescendo - delta)
-	if had_boss and not boss_alive():
+	# A parry can kill the boss between steps, so check every tick, not just
+	# when it was alive at the start of this one.
+	if not boss.is_empty() and not boss_alive():
 		_show_feedback("BOSS DOWN", Color(1.0, 0.9, 0.3))
 		boss = {}
 		bolts.clear()
