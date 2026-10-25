@@ -271,10 +271,20 @@ func _draw() -> void:
 	if _ripple >= 0.0:
 		# The refresh ripple: a bright ring with a soft band behind it.
 		var center := _to_screen(Vector2(GOAL))
+		var board := Rect2(_origin, Vector2(GRID_SIZE) * TILE)
 		for i in 4:
 			var r: float = (_ripple - i * 0.8) * TILE
-			if r > 0.0:
-				draw_arc(center, r, 0, TAU, 96, Color(1.0, 0.95, 0.6, 0.8 - i * 0.18), 6.0 - i * 1.2)
+			if r <= 0.0:
+				continue
+			# Drawn as segments so the ring stays inside the board.
+			var color := Color(1.0, 0.95, 0.6, 0.8 - i * 0.18)
+			var prev := center + Vector2(r, 0)
+			for k in range(1, 97):
+				var ang := TAU * k / 96.0
+				var pt := center + Vector2(cos(ang), sin(ang)) * r
+				if board.has_point(prev) and board.has_point(pt):
+					draw_line(prev, pt, color, 6.0 - i * 1.2)
+				prev = pt
 
 	# A pressed Restore shows where it lands on the timeline.
 	if show_timeline and _restore_at >= 0.0:
