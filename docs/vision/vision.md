@@ -1,6 +1,6 @@
 # Vision (working draft v0.1)
 
-_Status: draft, 2026-10-23. Expected to change as prototypes teach us things. Every change gets a line in the changelog at the bottom._
+_Status: draft v0.9, 2026-10-25. Expected to change as prototypes teach us things. Every change gets a line in the changelog at the bottom._
 
 ## The one-liner
 
@@ -62,6 +62,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 ## Changelog
 
+- 2026-10-25: v0.9 scope: five creep kinds and three elites from a hand-written wave script; a between-wave draft with plain, altering and conditional picks; two bosses (wave 5 and 10) with different strings; win and lose screens (D-0033 to D-0035).
 - 2026-10-25: v0.8 scope change: notes become sparse punctuation on single towers, not tied to tower type; Space is the only defensive input and misses never lock; the boss has no chart; "TD first, rhythm amplifies" written into pillar 2 (D-0022, D-0023).
 - 2026-10-25: v0.7 the song chart decides the notes, shown on a timeline; two rhythms (Q, E), hats become background (D-0014).
 - 2026-10-24: v0.6 first full review: global beat settled, stems clarified, moving to Demo 0 (D-0010). Engine: Godot 4 (D-0011).

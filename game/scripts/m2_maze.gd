@@ -44,7 +44,8 @@ var state := "playing"  # playing, won, lost
 var structures := {}  # Vector2i -> {"type", "cooldown"}
 var creeps: Array[Dictionary] = []
 var shots: Array[Dictionary] = []
-var _to_spawn := 0
+var _to_spawn := 0  # Creeps still to come this wave (the spawn queue's size).
+var spawn_queue: Array[Dictionary] = []  # {"kind", "gap"} in spawn order; see wave_plan().
 var sim_time := 0.0  # Seconds of simulation, for slows and freezes.
 var _spawn_timer := 0.0
 var _message := ""
@@ -58,6 +59,17 @@ var iso := false  # Look-test: draw the board as a 2:1 isometric diamond (I togg
 var _iso_w := TILE * 1.5  # Width of one tile diamond on screen; set per frame to fit the view.
 var wall_limit := 0  # 0 = unlimited.
 var creep_hp := 18.0
+## Creep kinds (D-0033). hp and speed multiply the wave's base; armour is flat
+## damage ignored per hit; veil = immune to towers until a note cracks it.
+const CREEP_KINDS := {
+	"grunt": {"hp": 1.0, "speed": 1.0, "color": Color(0.9, 0.3, 0.35), "radius": 0.28},
+	"runner": {"hp": 0.5, "speed": 2.0, "color": Color(1.0, 0.75, 0.3), "radius": 0.22},
+	"brute": {"hp": 3.0, "speed": 0.8, "color": Color(0.6, 0.35, 0.3), "radius": 0.36, "armour": 4.0},
+	"swarm": {"hp": 0.4, "speed": 1.1, "color": Color(0.95, 0.45, 0.6), "radius": 0.16},
+	"shade": {"hp": 1.2, "speed": 1.0, "color": Color(0.35, 0.3, 0.55), "radius": 0.28, "veil": true},
+}
+const VEIL_CRACK_BEATS := 3.0  # A landed note opens every Shade's veil for this long.
+const WARDEN_COVER := 2.0  # Tiles around a Warden whose creeps it takes the damage for.
 var creep_hp_growth := 1.2
 var kill_gold := 2
 var title := "M2 Maze"
@@ -87,6 +99,7 @@ func reset() -> void:
 	structures.clear()
 	creeps.clear()
 	shots.clear()
+	spawn_queue.clear()
 	_to_spawn = 0
 	endless = false
 
@@ -223,8 +236,17 @@ func start_wave() -> void:
 		return
 	wave += 1
 	wave_active = true
-	_to_spawn = creeps_in_wave(wave)
+	spawn_queue = wave_plan(wave)
+	_to_spawn = spawn_queue.size()
 	_spawn_timer = 0.0
+
+
+## What a wave sends, in order. M2 sends grunts; M3+ use the wave script.
+func wave_plan(w: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for i in creeps_in_wave(w):
+		out.append({"kind": "grunt", "gap": 0.7})
+	return out
 
 
 func creep_hp_at(w: int) -> float:
@@ -235,15 +257,69 @@ func creeps_in_wave(w: int) -> int:
 	return 8 + 2 * w
 
 
-func _spawn_creep() -> void:
-	var hp := creep_hp_at(wave)
-	creeps.append({
+## One line about the wave for the HUD.
+func wave_summary(w: int) -> String:
+	return "%d creeps" % creeps_in_wave(w)
+
+
+func _spawn_creep(kind := "grunt") -> Dictionary:
+	var k: Dictionary = CREEP_KINDS.get(kind, CREEP_KINDS["grunt"])
+	var hp: float = creep_hp_at(wave) * k["hp"]
+	var c := {
 		"pos": Vector2(SPAWN),
 		"target": SPAWN,
 		"hp": hp,
 		"max_hp": hp,
-		"speed": 1.5 + 0.04 * wave,
-	})
+		"speed": (1.5 + 0.04 * wave) * k["speed"],
+		"kind": kind,
+	}
+	if k.has("armour"):
+		c["armour"] = k["armour"]
+	if k.get("veil", false):
+		c["veil"] = true
+		c["veil_open_until"] = 0.0
+	creeps.append(c)
+	return c
+
+
+## Is this creep's veil up right now (towers can't hurt it)?
+func veiled(c: Dictionary) -> bool:
+	return c.get("veil", false) and c.get("veil_open_until", 0.0) <= sim_time
+
+
+## A note landed: every Shade's veil opens for a few beats.
+func crack_veils(seconds: float) -> int:
+	var n := 0
+	for c in creeps:
+		if c.get("veil", false) and c["hp"] > 0.0:
+			c["veil_open_until"] = sim_time + seconds
+			n += 1
+	return n
+
+
+## The Warden covering this creep, if one is near and still unbroken.
+func cover_for(c: Dictionary) -> Dictionary:
+	if c.get("covering", false) or c.get("boss", false):
+		return {}
+	for w in creeps:
+		if w.get("covering", false) and w["hp"] > 0.0 and w != c and w["pos"].distance_to(c["pos"]) <= WARDEN_COVER:
+			return w
+	return {}
+
+
+## Every hit on a creep goes through here (D-0033): a Warden's cover takes it,
+## a veiled Shade ignores it, a Brute's armour knocks a flat amount off.
+## Returns the damage actually dealt.
+func damage(c: Dictionary, amount: float) -> float:
+	var cover := cover_for(c)
+	if not cover.is_empty():
+		c = cover
+	if veiled(c):
+		return 0.0
+	amount = maxf(0.0, amount - c.get("armour", 0.0))
+	var dealt := minf(amount, maxf(c["hp"], 0.0))
+	c["hp"] -= amount
+	return dealt
 
 
 # --- Simulation ----------------------------------------------------------------
@@ -274,12 +350,13 @@ func step(delta: float) -> void:
 	if state != "playing":
 		return
 
-	if _to_spawn > 0:
+	if not spawn_queue.is_empty():
 		_spawn_timer -= delta
 		if _spawn_timer <= 0.0:
-			_spawn_creep()
-			_to_spawn -= 1
-			_spawn_timer = 0.7
+			var e: Dictionary = spawn_queue.pop_front()
+			_spawn_creep(e["kind"])
+			_spawn_timer = e["gap"]
+	_to_spawn = spawn_queue.size()
 
 	_move_creeps(delta)
 	_fire_towers(delta)
@@ -343,9 +420,9 @@ func _fire_towers(delta: float) -> void:
 		if spec["splash"] > 0.0:
 			for c in creeps:
 				if c["pos"].distance_to(target["pos"]) <= spec["splash"]:
-					c["hp"] -= spec["damage"]
+					damage(c, spec["damage"])
 		else:
-			target["hp"] -= spec["damage"]
+			damage(target, spec["damage"])
 		shots.append({"from": Vector2(cell), "to": target["pos"], "color": spec["color"], "ttl": 0.12, "splash": spec["splash"]})
 
 
@@ -354,7 +431,7 @@ func _pick_target(from: Vector2, tower_range: float) -> Dictionary:
 	var best := {}
 	var best_d := INF
 	for c in creeps:
-		if c["hp"] <= 0.0 or c["pos"].distance_to(from) > tower_range:
+		if c["hp"] <= 0.0 or veiled(c) or c["pos"].distance_to(from) > tower_range:
 			continue
 		var d: float = float(grid.dist(c["target"])) + c["pos"].distance_to(Vector2(c["target"]))
 		if d < best_d:
@@ -476,7 +553,7 @@ func help_lines() -> Array[String]:
 		"",
 		"TEST  T speed %dx   Y auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
 		"TEST  G +100g   H skip a wave   I isometric look-test %s" % ("ON" if iso else "off"),
-		"Next wave: %d creeps, %.0f HP each" % [creeps_in_wave(wave + 1), creep_hp_at(wave + 1)],
+		"Next wave: %s   (%.0f HP each)" % [wave_summary(wave + 1), creep_hp_at(wave + 1)],
 	]
 
 
@@ -530,14 +607,28 @@ func _draw() -> void:
 	# Creeps and shots.
 	for c in creeps:
 		var p := _to_screen(c["pos"])
-		var body := Color(0.9, 0.3, 0.35)
+		var k: Dictionary = CREEP_KINDS.get(c.get("kind", "grunt"), CREEP_KINDS["grunt"])
+		var body: Color = k["color"]
 		if c.get("frozen_until", 0.0) > sim_time:
 			body = Color(0.75, 0.9, 1.0)
 		elif c.get("slow_until", 0.0) > sim_time:
 			body = Color(0.7, 0.5, 0.8)
-		draw_circle(p, TILE * 0.28, body)
+		var r: float = TILE * k["radius"]
+		if veiled(c):
+			# A Shade behind its veil: a dark body in a pale halo.
+			draw_circle(p, r * 1.5, Color(0.6, 0.6, 0.9, 0.18))
+			draw_arc(p, r * 1.5, 0, TAU, 24, Color(0.75, 0.75, 1.0, 0.6), 1.5)
+			body = body.darkened(0.3)
+		draw_circle(p, r, body)
+		if c.get("kind", "") == "brute":
+			draw_arc(p, r, 0, TAU, 24, Color(0.85, 0.85, 0.9), 2.5)  # Armour plate.
+		elif c.get("kind", "") == "runner":
+			draw_line(p + Vector2(-r * 1.6, 0), p - Vector2(r * 0.4, 0), Color(1, 1, 1, 0.5), 2.0)  # Speed line.
+		elif c.get("kind", "") == "shade" and not veiled(c):
+			draw_arc(p, r * 1.5, 0, TAU, 24, Color(1, 1, 1, 0.5), 1.0)  # Cracked veil.
 		var frac: float = clampf(c["hp"] / c["max_hp"], 0.0, 1.0)
-		draw_rect(Rect2(p + Vector2(-12, -16), Vector2(24 * frac, 3)), Color(0.4, 1.0, 0.4))
+		var w: float = maxf(12.0, r * 1.6)
+		draw_rect(Rect2(p + Vector2(-w, -r - 8), Vector2(2.0 * w * frac, 3)), Color(0.4, 1.0, 0.4))
 	for s in shots:
 		var a := clampf(s["ttl"] / 0.12, 0.0, 1.0)
 		draw_line(_to_screen(s["from"]), _to_screen(s["to"]), s["color"] * Color(1, 1, 1, a), s.get("width", 2.0))

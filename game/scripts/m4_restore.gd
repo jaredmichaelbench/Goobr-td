@@ -38,6 +38,10 @@ const IMMUNE_BARS := 2.0  # Towers relit by Restore can't be locked for this lon
 const ARCHER_RANGE := INF  # Archers shoot from anywhere on the board (Jared, playtest 5). Was 16 tiles.
 const ARCHER_BARS := 4  # Bars between one Archer's shots.
 const SHIELDS := 3  # Conductor shields per wave; each absorbs one ranged hit.
+const ELITE_KINDS := ["jammer", "archer", "warden"]
+var shield_cap := SHIELDS  # A draft pick can raise it.
+var _refunded_this_wave := false  # The "refund" mod gives one free Restore a wave.
+const THROWERS := ["jammer", "warden"]  # Elites that stop and throw a pulse at a tower.
 const RESTORE_GRID_STEPS := 1  # Restore lands on the next 8th note. 0 = instant.
 const RIPPLE_SPEED := 28.0  # Tiles per second the refresh ripple travels.
 const RESTORE_CHARGES := 3
@@ -74,7 +78,7 @@ func reset() -> void:
 	super.reset()
 	suppressed.clear()
 	immune.clear()
-	shields = SHIELDS
+	shields = shield_cap
 	arrows.clear()
 	restore_charges = RESTORE_CHARGES
 	_restore_at = -1.0
@@ -87,7 +91,8 @@ func start_wave() -> void:
 	var was_active := wave_active
 	super.start_wave()
 	if wave_active and not was_active:
-		shields = SHIELDS
+		shields = shield_cap
+		_refunded_this_wave = false
 		arrows.clear()
 		if wave > 1:
 			restore_charges = mini(RESTORE_CHARGES, restore_charges + 1)
@@ -95,51 +100,27 @@ func start_wave() -> void:
 
 # --- Elites ------------------------------------------------------------------
 
-## How many elites a wave has: one from ELITE_FIRST_WAVE, one more every two waves.
-func elites_in_wave(w: int) -> int:
-	if w < ELITE_FIRST_WAVE:
-		return 0
-	return 1 + (w - ELITE_FIRST_WAVE) / 2
-
-
-## Spawn positions (1-based) of the elites, spread evenly through the wave.
-func elite_slots(w: int) -> Array[int]:
-	var out: Array[int] = []
-	var n := elites_in_wave(w)
-	var total := creeps_in_wave(w)
-	for k in n:
-		out.append(int(roundf(float(total) * (k + 1) / (n + 1))))
-	return out
-
-
-## Which kind the k-th elite of a wave is: Jammers first, Archers from wave 4,
-## then alternating.
-func elite_kind(w: int, k: int) -> String:
-	if w <= 3:
-		return "jammer"
-	if w == 4:
-		return "archer"
-	return "jammer" if k % 2 == 0 else "archer"
-
-
-func _spawn_creep() -> void:
-	super._spawn_creep()
-	var index := creeps_in_wave(wave) - _to_spawn  # 1-based spawn order (this one).
-	var slots := elite_slots(wave)
-	if slots.has(index):
-		var c: Dictionary = creeps[creeps.size() - 1]
-		c["elite"] = true
-		c["kind"] = elite_kind(wave, slots.find(index))
-		c["hp"] *= ELITE_HP_MULT
-		c["max_hp"] = c["hp"]
-		c["speed"] *= ELITE_SPEED_MULT
-		c["base_speed"] = c["speed"]
-		c["pulse_at"] = -1.0  # Song time its next pulse lands, or -1.
-		c["pulse_from"] = -1.0  # Song time the projectile left the elite.
-		c["pulse_targets"] = [] as Array[Vector2i]
-		c["told"] = false
-		c["ticked"] = -1  # Last wind-up beat that ticked.
-		c["cooldown_until"] = 0.0
+## Elites come from the wave script (D-0033) as kinds of their own. They are
+## grunts with 4x health, a bit slower, and a pulse or an arrow.
+func _spawn_creep(kind := "grunt") -> Dictionary:
+	if not ELITE_KINDS.has(kind):
+		return super._spawn_creep(kind)
+	var c := super._spawn_creep("grunt")
+	c["kind"] = kind
+	c["elite"] = true
+	c["hp"] *= ELITE_HP_MULT
+	c["max_hp"] = c["hp"]
+	c["speed"] *= ELITE_SPEED_MULT
+	c["base_speed"] = c["speed"]
+	c["pulse_at"] = -1.0  # Song time its next pulse lands, or -1.
+	c["pulse_from"] = -1.0  # Song time the projectile left the elite.
+	c["pulse_targets"] = [] as Array[Vector2i]
+	c["told"] = false
+	c["ticked"] = -1  # Last wind-up beat that ticked.
+	c["cooldown_until"] = 0.0
+	if kind == "warden":
+		c["covering"] = true  # Takes every hit aimed at creeps within WARDEN_COVER until parried.
+	return c
 
 
 func tower_ready(cell: Vector2i) -> bool:
@@ -155,7 +136,7 @@ func _adjust_mix(active: Dictionary) -> void:
 func armed_elites() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for c in creeps:
-		if c.get("elite", false) and c.get("kind", "jammer") == "jammer" and c["hp"] > 0.0 and not _towers_in_reach(c["pos"]).is_empty():
+		if c.get("elite", false) and THROWERS.has(c.get("kind", "jammer")) and c["hp"] > 0.0 and not _towers_in_reach(c["pos"]).is_empty():
 			out.append(c)
 	return out
 
@@ -169,7 +150,7 @@ func _path_left(c: Dictionary) -> float:
 func _move_creeps(delta: float) -> void:
 	for c in creeps:
 		if c.get("elite", false) and c.has("base_speed"):
-			c["speed"] = 0.0 if (c["kind"] == "jammer" and c["pulse_at"] >= 0.0) else c["base_speed"]
+			c["speed"] = 0.0 if (THROWERS.has(c["kind"]) and c["pulse_at"] >= 0.0) else c["base_speed"]
 	super._move_creeps(delta)
 
 
@@ -347,7 +328,7 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 		var archer: Dictionary = a["ref"]
 		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
 		if creeps.has(archer):
-			archer["hp"] -= dmg
+			damage(archer, dmg)
 			shots.append({"from": Vector2(GOAL), "to": archer["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 3.0})
 			_popup(archer["pos"], ("%d!" if perfect else "%d") % roundi(dmg), Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, 20 if perfect else 15)
 		_shockwaves.append({"pos": Vector2(GOAL), "ttl": 0.4, "color": Color(1.0, 0.9, 0.3)})
@@ -366,10 +347,22 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 			base = maxf(PARRY_DAMAGE, tower_spec(targets[0])["damage"] * 3.0)
 			_flashes[targets[0]] = 0.3
 		var dmg := base * (2.0 if perfect else 1.0)
-		c["hp"] -= dmg
+		var broke_cover: bool = c.get("covering", false)
+		c["covering"] = false  # A parried Warden drops its cover for good.
+		damage(c, dmg)
 		shots.append({"from": from, "to": c["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 3.0})
+		if mods.get("rally", false):
+			# Rally: every other tower near the elite fires back too.
+			for cell in _towers_in_reach(c["pos"]):
+				if Vector2(cell) == from or suppressed.has(cell):
+					continue
+				var extra: float = tower_spec(cell)["damage"] * 3.0 * (2.0 if perfect else 1.0)
+				dmg += extra
+				damage(c, extra)
+				_flashes[cell] = 0.3
+				shots.append({"from": Vector2(cell), "to": c["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 2.0})
 		_popup(c["pos"], ("%d!" if perfect else "%d") % roundi(dmg), Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, 20 if perfect else 15)
-		_show_feedback("%sPARRY  %+.0f ms" % ["PERFECT " if perfect else "", offset_ms], Color(1.0, 0.9, 0.3) if perfect else Color.WHITE)
+		_show_feedback("%sPARRY  %+.0f ms%s" % ["PERFECT " if perfect else "", offset_ms, "   cover broken" if broke_cover else ""], Color(1.0, 0.9, 0.3) if perfect else Color.WHITE)
 
 
 func on_step(s: int) -> void:
@@ -472,7 +465,11 @@ func _press_restore() -> void:
 	if restore_charges <= 0:
 		_show_feedback("No Restore charges left", Color(1, 0.5, 0.4))
 		return
-	restore_charges -= 1
+	if mods.get("refund", false) and not _refunded_this_wave:
+		_refunded_this_wave = true
+		_show_feedback("RESTORE   charge refunded", Color(1.0, 0.9, 0.3))
+	else:
+		restore_charges -= 1
 	m4_stats["restores"] += 1
 	if RESTORE_GRID_STEPS <= 0:
 		_restore()
@@ -513,8 +510,7 @@ func _relight_tower(cell: Vector2i) -> void:
 	var dealt := 0.0
 	for c in creeps:
 		if c["pos"].distance_to(target["pos"]) <= 1.0:
-			dealt += minf(dmg, maxf(c["hp"], 0.0))
-			c["hp"] -= dmg
+			dealt += damage(c, dmg)
 	shots.append({"from": Vector2(cell), "to": target["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.3, "splash": 1.0})
 	_popup(target["pos"], "%d!" % roundi(dealt), Color(1.0, 0.9, 0.3), 20)
 
@@ -546,6 +542,14 @@ func _draw() -> void:
 		var p := _to_screen(c["pos"])
 		draw_circle(p, TILE * 0.4, Color(0.55, 0.1, 0.2))
 		draw_arc(p, TILE * 0.4, 0, TAU, 32, Color(1, 0.3, 0.4), 2.0)
+		if c.get("kind", "jammer") == "warden":
+			# A shield on its arm; while the cover holds, a faint dome over the pack.
+			var held: bool = c.get("covering", false)
+			if held:
+				draw_circle(p, WARDEN_COVER * TILE, Color(0.4, 0.6, 1.0, 0.08))
+				draw_arc(p, WARDEN_COVER * TILE, 0, TAU, 48, Color(0.5, 0.7, 1.0, 0.45), 1.5)
+			var sp := p + Vector2(-TILE * 0.42, 0)
+			draw_arc(sp, TILE * 0.22, PI * 0.5, PI * 1.5, 12, Color(0.6, 0.8, 1.0) if held else Color(0.5, 0.5, 0.55), 4.0)
 		if c.get("kind", "jammer") == "archer":
 			# A bow: an arc on its back, red while an arrow of its is in the air.
 			var shooting := false
@@ -675,5 +679,5 @@ func status_lines() -> Array[String]:
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
 	lines.insert(5, "F  Restore locked towers (%d/%d charges)" % [restore_charges, RESTORE_CHARGES])
-	lines.insert(6, "Space  parry pulses (on towers) and arrows (at the Conductor, %d/%d shields)" % [shields, SHIELDS])
+	lines.insert(6, "Space  parry pulses (on towers) and arrows (at the Conductor, %d/%d shields); a parried Warden drops its cover" % [shields, SHIELDS])
 	return lines

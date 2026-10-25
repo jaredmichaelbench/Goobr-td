@@ -4,9 +4,31 @@ Greybox build of the game, made in milestones. The plan is in `../docs/prototype
 
 Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are needed, because all audio is generated in code.
 
-Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore, **5** = M5 first boss. **Esc** returns to the menu.
+Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore, **5** = M5 first boss, **6** = M6 the run. **Esc** returns to the menu.
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
+
+## M6: the run (v1)
+
+The question: is a 10-wave run with picks and two bosses fun from start to finish?
+
+Everything from M5, plus:
+
+- **Ten hand-written waves.** The "Next wave" line says what is coming. Five creep kinds, each with an answer: **Runner** (yellow, fast, half health, pairs: slow tower, long corridors), **Brute** (big, armour plate: ignores the first 4 damage of every hit, so heavy snipes win), **Swarm** (packs of six small pink ones: splash), **Shade** (dark, in a pale halo: towers can't touch it until a landed Q or E cracks every veil on the board for 3 beats). Runners from wave 2, Swarm 3, Brute 4, Shade 6.
+- **Warden** (elite with a shield, from wave 7): a faint blue dome around it. Every hit aimed at a creep under the dome goes to the Warden instead, until its pulse is parried; then the cover is gone for good. Same throw as a Jammer, so the parry read is the same.
+- **Bosses at 5 and 10.** The wave's creeps are the escorts, half with the boss and half 10 s later. The wave 10 boss wears a violet crown and plays differently: a **Volley** of three bolts on 8th notes (parry each), and a **Stomp**: a ring grows on the tile under it over a bar with beat pips, towers in its reach glow. Space on the downbeat and those towers fire back; miss and they lock. After two posture breaks it goes double-time.
+- **The draft.** After every cleared wave but the last, three cards. **1, 2 or 3** picks one; N waits until you do. Grey cards are small and immediate. Orange cards change a tower or a parry for the rest of the run, once each. Blue cards are **locked picks**: they name a condition for the next wave (6 Perfects, no attack lands, no shield lost); meet it and the card unlocks, fail and it is gone.
+- **Win and lose screens** with the run's numbers. R runs again.
+- The wave script is `scripts/wave_script.gd`: a list per wave of kind, count and seconds between. Change numbers there, no code.
+
+### What to report back
+
+- Which creep made you change the maze or the towers, and which one you ignored?
+- Did the Shade make you want the notes? Did the Warden parry feel worth going for?
+- The draft: did a card ever change how you played the next wave? Did a locked pick make you play for it, or was the condition unfair?
+- Boss 2: can you read a Stomp from a Volley? Is double-time at two breaks a thrill or a wall?
+- Where did health go: creeps leaking, arrows, boss hits? Which wave is too easy or too hard?
+- Is 10 waves the right length for one sitting?
 
 ## M5: first boss (v6)
 

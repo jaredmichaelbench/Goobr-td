@@ -42,3 +42,13 @@ Headless: wave 4 with two towers at the Conductor end, Archer first arrow in the
 ## Playtest 5 (2026-10-25, after D-0029 to D-0032)
 
 Jared: "the game itself feels great right now as a core loop." Archers now seen; one press parries a pulse and an arrow on the same beat. Sounds: HALFTONE pack is in but "still not where I want them"; parked behind the swap system until Jared makes time. Next: M6b, proposed in `notes/m6b-proposal-2026-10-25.md`.
+
+## M6b built in one go (2026-10-25, D-0033 to D-0035)
+
+Jared picked enemies first, then asked for the draft and the second boss in the same build to test all three together.
+
+- M6b-1: wave script, Runner / Brute / Swarm / Shade, Warden elite, bosses at 5 and 10 with script escorts.
+- M6b-2: the M6 scene (menu 6): draft 1-of-3 after each wave (plain, altering, locked picks), win and lose screens.
+- M6b-3: the wave 10 boss: Volley (three bolts on 8ths) and Stomp (a slam at the maze, parry or the towers in reach lock), double-time after two breaks.
+
+Headless (M5 scene, 1x, perfect notes and parries, a bot that spends every coin on heavy / splash / slow towers): the kinds arrive as scripted, veils crack on every landed note, the Warden's cover drops on the parry, boss at 5 dies with escorts. Full run result and the M6 run result (draft picks, boss 2) are below once the bots finish. Screenshots in the shared folder `screens/rework/m6b1-wave7-warden-shades.png`, `m6b-draft.png`, `m6b-stomp.png`.

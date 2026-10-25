@@ -2,7 +2,7 @@ extends "res://scripts/m4_restore.gd"
 ## M5: the first boss (model D, D-0020). Answers P-05: does it feel like
 ## learning a souls boss rather than reading a chart?
 ##
-## On the boss wave (BOSS_WAVE, or O to summon it now) one boss walks the maze
+## On a boss wave (BOSS_WAVES, or O to summon it now) one boss walks the maze
 ## slowly. Its walk is quiet; its attacks are the event. It throws bolts down
 ## the path at the Conductor (the goal) in short strings. Every bolt leaves
 ## the boss on the beat grid and arrives on it, but there is no timing UI: the
@@ -21,7 +21,7 @@ extends "res://scripts/m4_restore.gd"
 ## burst of notes sweeps across your towers from the farthest to the nearest,
 ## one per beat. Kill the boss to clear the wave.
 
-const BOSS_WAVE := 5
+const BOSS_WAVES := [5, 10]  # Mid boss and the final exam (D-0033). Wave 10 reuses the same strings until M6b-3.
 const BOSS_HP_MULT := 40.0  # x creep HP of that wave.
 const BOSS_SPEED := 0.4  # Tiles per second.
 const BOLT_SPEED := 10.0  # Tiles per second along the path.
@@ -35,10 +35,10 @@ const POSTURE_PERFECT := 25.0  # Four Perfect parries, one full string, break it
 const POSTURE_MAX := 100.0
 const CRESCENDO_SECONDS := 6.0
 const CRESCENDO_MULT := 1.3
-const ESCORT_FRACTION := 0.34  # Each escort pack is this share of a normal wave.
 const ESCORT_DELAY := 10.0  # Seconds after the boss appears the second pack comes.
 
 var boss: Dictionary = {}  # The boss creep, or empty.
+var crescendo_seconds := CRESCENDO_SECONDS  # A draft pick can lengthen it.
 var bolts: Array[Dictionary] = []  # launch, arrive, from (Vector2), state: flying/parried/hit
 var posture := 0.0
 var crescendo := 0.0  # Seconds of Crescendo left.
@@ -47,6 +47,7 @@ var _string_index := 0
 var m5_stats := {"bolts": 0, "parries": 0, "perfect": 0, "hits": 0, "breaks": 0}
 var _conductor_flash := {"color": Color.WHITE, "ttl": 0.0}
 var _escort_at := -1.0  # Song time the second escort pack is released, or -1.
+var _escort_queue: Array[Dictionary] = []  # The second pack, held until _escort_at.
 
 
 func _ready() -> void:
@@ -67,6 +68,7 @@ func reset() -> void:
 	crescendo = 0.0
 	_next_string_bar = -1
 	_escort_at = -1.0
+	_escort_queue.clear()
 	m5_stats = {"bolts": 0, "parries": 0, "perfect": 0, "hits": 0, "breaks": 0}
 
 
@@ -85,9 +87,12 @@ func chart_allowed() -> bool:
 func start_wave() -> void:
 	var was_active := wave_active
 	super.start_wave()
-	if wave_active and not was_active and wave == BOSS_WAVE:
-		# The boss brings two small packs: one now, one ESCORT_DELAY later.
-		_to_spawn = _escort_size()
+	if wave_active and not was_active and BOSS_WAVES.has(wave):
+		# The boss brings the wave's script as escorts: the first half now, the rest ESCORT_DELAY later.
+		var half := spawn_queue.size() / 2
+		_escort_queue = spawn_queue.slice(half)
+		spawn_queue = spawn_queue.slice(0, half)
+		_to_spawn = spawn_queue.size()
 		_escort_at = beat_time() + ESCORT_DELAY
 		_summon_boss()
 
@@ -97,15 +102,11 @@ func _summon_boss() -> void:
 	if boss_alive():
 		return
 	var hp := creep_hp_at(maxi(wave, 1)) * BOSS_HP_MULT
-	boss = {"pos": Vector2(SPAWN), "target": SPAWN, "hp": hp, "max_hp": hp, "speed": BOSS_SPEED, "boss": true}
+	boss = {"pos": Vector2(SPAWN), "target": SPAWN, "hp": hp, "max_hp": hp, "speed": BOSS_SPEED, "boss": true, "kind": "boss"}
 	creeps.append(boss)
 	posture = 0.0
 	_next_string_bar = floori(beat_time() / clock.bar_length()) + 1
 	_show_feedback("THE BOSS   parry its bolts with Space", Color(1, 0.4, 0.5))
-
-
-func _escort_size() -> int:
-	return maxi(3, int(roundf(creeps_in_wave(wave) * ESCORT_FRACTION)))
 
 
 func boss_alive() -> bool:
@@ -148,8 +149,10 @@ func step(delta: float) -> void:
 	if _escort_at >= 0.0 and beat_time() >= _escort_at:
 		_escort_at = -1.0
 		if boss_alive():
-			_to_spawn += _escort_size()
+			spawn_queue.append_array(_escort_queue)
+			_to_spawn = spawn_queue.size()
 			_show_feedback("ESCORTS", Color(1, 0.4, 0.5))
+		_escort_queue.clear()
 	# Bolts that reached the Conductor without a parry.
 	for b in bolts:
 		if b["state"] == "flying" and press_time() > b["arrive"] + Timing.PARRY_GOOD_MS / 1000.0:
@@ -273,14 +276,14 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 
 func _posture_break() -> void:
 	posture = 0.0
-	crescendo = CRESCENDO_SECONDS
+	crescendo = crescendo_seconds
 	m5_stats["breaks"] += 1
 	bolts.clear()
 	_sfx["break"].play()
-	_lead_timer = CRESCENDO_SECONDS
+	_lead_timer = crescendo_seconds
 	_restore_flash = 0.5
-	_show_feedback("POSTURE BREAK   CRESCENDO  +30%% for %.0f s   play!" % CRESCENDO_SECONDS, Color(1.0, 0.9, 0.3))
-	_next_string_bar = floori((beat_time() + CRESCENDO_SECONDS) / clock.bar_length()) + 1
+	_show_feedback("POSTURE BREAK   CRESCENDO  +30%% for %.0f s   play!" % crescendo_seconds, Color(1.0, 0.9, 0.3))
+	_next_string_bar = floori((beat_time() + crescendo_seconds) / clock.bar_length()) + 1
 	# The burst: a note on every beat of the Crescendo, Q and E alternating,
 	# starting two beats out so the first ring has time to close. It sweeps
 	# across the towers from the farthest from the boss to the nearest, one
@@ -296,7 +299,7 @@ func _posture_break() -> void:
 	var beat := clock.beat_length()
 	var first := (floorf(beat_time() / beat) + 2.0) * beat
 	var i := 0
-	while first + i * beat < beat_time() + CRESCENDO_SECONDS - 0.2:
+	while first + i * beat < beat_time() + crescendo_seconds - 0.2:
 		add_note(first + i * beat, "kick" if i % 2 == 0 else "bass", towers[i % towers.size()])
 		i += 1
 
@@ -388,5 +391,5 @@ func status_lines() -> Array[String]:
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
 	lines.insert(7, "Space  also parries boss bolts as they reach the Conductor")
-	lines.append("TEST  O summon the boss now (boss wave is %d)" % BOSS_WAVE)
+	lines.append("TEST  O summon the boss now (boss waves: 5 and 10)")
 	return lines

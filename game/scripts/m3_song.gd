@@ -97,6 +97,11 @@ const SONG_STEP_DB := 2.0  # The real track gains this per step below full.
 const PULSE_STEP_DB := 4.0  # The low pulse layer gains this per step.
 const SONG_CFG := "res://audio/songs.cfg"  # [bpm] "file.wav" = 130; [sfx] "file.wav" = packname
 var sfx_pack := ""  # Folder under audio/sfx/ holding this song's sound effects, or "".
+var mods := {}  # Run modifiers from draft picks (M6b-2): chain, slow_wave, shatter, rally, refund.
+var snipe_perfect_mult := SNIPE_PERFECT  # A draft pick can raise it.
+const CHAIN_RANGE := 3.0  # Chain snipe: second creep within this of the target, half damage.
+const SLOW_WAVE_SECONDS := 1.0
+const SHATTER_MULT := 3.0
 const DEFAULT_BPM := 120.0
 
 var clock: BeatClock
@@ -247,7 +252,16 @@ func start_wave() -> void:
 
 
 func creeps_in_wave(w: int) -> int:
-	return 14 + 3 * w
+	return WaveScript.plan(w).size()
+
+
+## M3 and up send the hand-written waves (D-0033).
+func wave_plan(w: int) -> Array[Dictionary]:
+	return WaveScript.plan(w)
+
+
+func wave_summary(w: int) -> String:
+	return WaveScript.summary(w)
 
 
 ## Wave 1 = level 0, wave 2 = level 1, waves 3-4 = level 2 (E joins), wave 5+ = level 3.
@@ -523,13 +537,13 @@ func damage_scale() -> float:
 	return 1.0
 
 
-func _hit(target: Dictionary, spec: Dictionary, damage: float) -> void:
+func _hit(target: Dictionary, spec: Dictionary, amount: float) -> void:
 	if spec["splash"] > 0.0:
 		for c in creeps:
 			if c["pos"].distance_to(target["pos"]) <= spec["splash"]:
-				c["hp"] -= damage
+				damage(c, amount)
 	else:
-		target["hp"] -= damage
+		damage(target, amount)
 
 
 ## How many towers have this spot in range.
@@ -638,19 +652,37 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	elif is_wave:
 		mult = WAVE_PERFECT if crit else WAVE_GOOD
 	else:
-		mult = SNIPE_PERFECT if crit else SNIPE_GOOD
+		mult = snipe_perfect_mult if crit else SNIPE_GOOD
 	var bonus: float = spec["damage"] * damage_scale() * crossfire * mult
 	var radius: float = WAVE_RADIUS if is_wave else 0.0
 	var freeze_for: float = (FREEZE_BEATS_PERFECT if crit else FREEZE_BEATS_GOOD) * clock.beat_length()
 	var dealt := 0.0
 	var struck := 0
+	# A landed note cracks every Shade's veil first, so the bolt itself lands.
+	var cracked := crack_veils(VEIL_CRACK_BEATS * clock.beat_length())
 	for c in creeps:
 		if c == target or (radius > 0.0 and c["pos"].distance_to(target["pos"]) <= radius):
-			dealt += minf(bonus, maxf(c["hp"], 0.0))
-			c["hp"] -= bonus
+			var amount := bonus
+			if is_freeze and mods.get("shatter", false) and c.get("frozen_until", 0.0) > sim_time:
+				amount *= SHATTER_MULT  # Shatter: a freeze on a frozen creep.
+			dealt += damage(c, amount)
 			struck += 1
 			if is_freeze:
 				c["frozen_until"] = sim_time + freeze_for
+			elif is_wave and mods.get("slow_wave", false):
+				c["slow_until"] = maxf(c.get("slow_until", 0.0), sim_time + SLOW_WAVE_SECONDS)
+	if not is_wave and mods.get("chain", false):
+		# Chain snipe: the bolt jumps to the next creep near the target for half.
+		var second := {}
+		var best_d := CHAIN_RANGE
+		for c in creeps:
+			if c != target and c["hp"] > 0.0 and c["pos"].distance_to(target["pos"]) <= best_d:
+				second = c
+				best_d = c["pos"].distance_to(target["pos"])
+		if not second.is_empty():
+			dealt += damage(second, bonus * 0.5)
+			struck += 1
+			shots.append({"from": target["pos"], "to": second["pos"], "color": Color.WHITE, "ttl": 0.4, "splash": 0.0, "width": 2.5})
 	_flashes[cell] = 0.3
 	if is_wave:
 		shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.4, "splash": radius, "width": 3.0})
@@ -664,7 +696,7 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	_popup(target["pos"], ("%d!" if crit else "%d") % roundi(dealt), Color(1.0, 0.9, 0.3) if crit else Color.WHITE, 24 if crit else 16)
 	_flash_line(Color(1.0, 0.9, 0.3) if crit else Color.WHITE)
 	var what := ("FREEZE  %d held" % struck) if is_freeze else (("WAVE  %d hit" % struck) if is_wave else "SNIPE")
-	_show_feedback("%s%s  %s  %+.0f ms   %d damage%s" % ["CRIT  " if crit else "", what, g, offset_ms, roundi(dealt), "   x%.2f crossfire" % crossfire if crossfire > 1.0 else ""], Color(1.0, 0.9, 0.3) if crit else color)
+	_show_feedback("%s%s  %s  %+.0f ms   %d damage%s%s" % ["CRIT  " if crit else "", what, g, offset_ms, roundi(dealt), "   x%.2f crossfire" % crossfire if crossfire > 1.0 else "", ("   %d veil%s cracked" % [cracked, "" if cracked == 1 else "s"]) if cracked > 0 else ""], Color(1.0, 0.9, 0.3) if crit else color)
 
 
 ## Streak bookkeeping: hits climb the intensity, a miss drops one step.
