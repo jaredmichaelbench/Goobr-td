@@ -1,4 +1,4 @@
-# Elite pressure after the rhythm rework (proposal, 2026-10-25)
+# Elite pressure after the rhythm rework (proposal, 2026-10-25; agreed and built the same day, D-0024)
 
 Jared's second-pass feedback (see `prototypes/M5-results.md`): too many elites too soon, the pulse is unreadable, locks last too long, Restore needs immunity, snipes feel great.
 

@@ -42,3 +42,14 @@ Jared, two runs (first died at wave 3 with 10 elite pulses, 0 parried, 10 locks;
 - Restore should grant a period of immunity: towers came back and an elite's charged pulse locked them straight away.
 - Boss, Crescendo burst: the notes come fast (maybe too fast, probably fine late game) but the real problem is they all land on the single closest tower, so the timing isn't readable. Not sure spreading them helps. First boss a bit slower post-stagger, not much, until it's clear whether it's a clarity problem. The Crescendo length felt good.
 - Boss bolts don't come from the boss: they spawn part-way down the path. That telegraphs parry differently from elites (you watch the path and the target, not a circle on the enemy), which he finds better than the circle, but eyes get split between towers on the left (elite rings) and the Conductor on the right. Review wrapped; discuss and put together the next package.
+
+## Third pass: elite pressure and one parry language (2026-10-25, D-0024)
+
+Built the whole package from `notes/elite-pressure-2026-10-25.md`. Headless bots:
+
+- M3, perfect bot: unchanged note counts (2 / 5 / 6 per wave), snipes land with a tracer and punch, waves hit 2 tiles.
+- M4, two towers, wave 3, no parries: one elite, one pulse, one tower locked for 5 s; Restore relit it and it stayed immune for 2 bars. The dense test maze kills elites before they throw, so the 8-tower bots saw only 2 pulses across waves 3-5.
+- M5, perfect parry bot: 4 bolts, 4 parries, one break, boss dead in about 25 s; bolts now leave the boss (flight 5.25 s from the far third). No-parry bot still loses in about 35 s with 3 single-tower locks.
+- Crescendo sweep: one ring at a time, starting at the tower farthest from the boss.
+
+Waiting on Jared's playtest.

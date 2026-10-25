@@ -4,11 +4,13 @@ extends "res://scripts/m4_restore.gd"
 ##
 ## On the boss wave (BOSS_WAVE, or O to summon it now) one boss walks the maze
 ## slowly. Its walk is quiet; its attacks are the event. It throws bolts down
-## the path at the Conductor (the goal) in short strings. Every bolt arrives
-## on the beat grid, but there is no timing UI: the tell is the bolt itself,
-## launched with a low tone and flying along your maze. Far away, bolts travel
-## for seconds and strings are half-time. Close in, they arrive in a blink and
-## strings tighten to 8th notes. A long maze buys you time to read it.
+## the path at the Conductor (the goal) in short strings. Every bolt leaves
+## the boss on the beat grid and arrives on it, but there is no timing UI: the
+## tell is the bolt itself, launched with a swell and a low tone and flying
+## along your maze. Far away, bolts travel for seconds and strings are
+## half-time. Close in, they arrive in a blink and strings tighten to 8th
+## notes. A long maze buys you time to read it. The parry reads the same as
+## an elite's pulse: watch the projectile land (D-0024).
 ##
 ## Space parries the bolt as it reaches the Conductor. A parry deflects it
 ## back into the boss (damage + posture, Perfect = double). A hit costs
@@ -16,15 +18,16 @@ extends "res://scripts/m4_restore.gd"
 ## The chart is silent while the boss is up (D-0023): parries are the fight.
 ## When the posture bar fills the boss staggers: it stops, and for
 ## CRESCENDO_SECONDS every tower does +30%, the full mix slams in, and a short
-## burst of notes comes, one per beat. Kill the boss to clear the wave.
+## burst of notes sweeps across your towers from the farthest to the nearest,
+## one per beat. Kill the boss to clear the wave.
 
 const BOSS_WAVE := 5
 const BOSS_HP_MULT := 40.0  # x creep HP of that wave.
 const BOSS_SPEED := 0.4  # Tiles per second.
 const BOLT_SPEED := 6.0  # Tiles per second along the path.
 const BOLT_MIN_TRAVEL := 0.5
-const STRINGS := [[0.0, 1.0, 2.0, 3.5], [0.0, 0.5, 2.0, 3.0]]  # Arrival offsets in beats.
-const STRING_LEAD_BEATS := 2.0  # First arrival this long after the string is called.
+const STRINGS := [[0.0, 1.0, 2.0, 3.5], [0.0, 0.5, 2.0, 3.0]]  # Launch offsets in beats.
+const STRING_LEAD_BEATS := 2.0  # First launch this long after the string is called.
 const HIT_HEALTH := 2
 const POSTURE_GOOD := 15.0
 const POSTURE_PERFECT := 25.0  # Four Perfect parries, one full string, break it.
@@ -177,10 +180,14 @@ func _call_string(bar: int) -> void:
 	var offsets: Array = STRINGS[_string_index % STRINGS.size()]
 	_string_index += 1
 	var last := start
+	# Bolts leave the boss on the string's beats and arrive after a real flight
+	# along the path, snapped up to the next 8th so every landing is on grid.
+	var grid_len := step_length()
 	for off in offsets:
-		var arrive: float = start + off * mult * beat
+		var launch: float = start + off * mult * beat
 		var travel := clampf(boss_path_left() / BOLT_SPEED, BOLT_MIN_TRAVEL, 8.0)
-		bolts.append({"launch": arrive - travel, "arrive": arrive, "from": boss["pos"], "state": "flying", "told": false})
+		var arrive := ceilf((launch + travel) / grid_len - 0.001) * grid_len
+		bolts.append({"launch": launch, "arrive": arrive, "from": boss["pos"], "state": "flying", "told": false})
 		m5_stats["bolts"] += 1
 		last = arrive
 	# Rest after the string: longer when far, so there is room to breathe.
@@ -194,15 +201,9 @@ func _bolt_hit() -> void:
 	_sfx["miss"].play()
 	_conductor_flash = {"color": Color(1, 0.3, 0.3), "ttl": 0.4}
 	_show_feedback("HIT   -%d health" % HIT_HEALTH, Color(1, 0.3, 0.3))
-	# The boss presses its advantage: towers in its reach lock.
+	# The boss presses its advantage: the nearest tower(s) in its reach lock.
 	if boss_alive():
-		var fresh := 0
-		for cell in _towers_in_reach(boss["pos"]):
-			if not suppressed.has(cell):
-				fresh += 1
-			suppressed[cell] = SUPPRESS_SECONDS
-		if fresh > 0:
-			m4_stats["suppressed"] += fresh
+		if _lock_towers(_pulse_targets_for(boss["pos"])) > 0:
 			_shockwaves.append({"pos": boss["pos"], "ttl": 0.5, "color": Color(0.9, 0.2, 0.3)})
 	if health <= 0:
 		health = 0
@@ -259,12 +260,22 @@ func _posture_break() -> void:
 	_show_feedback("POSTURE BREAK   CRESCENDO  +30%% for %.0f s   play!" % CRESCENDO_SECONDS, Color(1.0, 0.9, 0.3))
 	_next_string_bar = floori((beat_time() + CRESCENDO_SECONDS) / clock.bar_length()) + 1
 	# The burst: a note on every beat of the Crescendo, Q and E alternating,
-	# starting two beats out so the first ring has time to close.
+	# starting two beats out so the first ring has time to close. It sweeps
+	# across the towers from the farthest from the boss to the nearest, one
+	# ring per tower, wrapping if there are more beats than towers.
+	var towers: Array[Vector2i] = []
+	for cell in structures:
+		if KEYS.has(structures[cell]["type"]):
+			towers.append(cell)
+	if towers.is_empty():
+		return
+	var bp: Vector2 = boss["pos"]
+	towers.sort_custom(func(a, b): return Vector2(a).distance_to(bp) > Vector2(b).distance_to(bp))
 	var beat := clock.beat_length()
 	var first := (floorf(beat_time() / beat) + 2.0) * beat
 	var i := 0
 	while first + i * beat < beat_time() + CRESCENDO_SECONDS - 0.2:
-		add_note(first + i * beat, "kick" if i % 2 == 0 else "bass")
+		add_note(first + i * beat, "kick" if i % 2 == 0 else "bass", towers[i % towers.size()])
 		i += 1
 
 

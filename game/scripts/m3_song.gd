@@ -40,8 +40,12 @@ const CHARTS: Array = [
 ]
 const NOTE_COLORS := {"kick": Color(1.0, 0.55, 0.3), "bass": Color(0.7, 0.45, 1.0)}
 const NOTE_NAMES := {"kick": "Q", "bass": "E"}
-const RESONANCE_GOOD := 2.5  # Bolt damage = the tower's damage x this x crossfire.
-const RESONANCE_PERFECT := 5.0
+const SNIPE_GOOD := 4.0  # Heavy tower note: single-target snipe = tower damage x this x crossfire.
+const SNIPE_PERFECT := 8.0
+const WAVE_GOOD := 2.0  # Splash tower note: a wave that hits everything near the target.
+const WAVE_PERFECT := 4.0
+const WAVE_RADIUS := 2.0
+const PUNCH_SECONDS := 0.18  # Screen punch on a landed snipe.
 const CROSSFIRE_BONUS := 0.25  # Per extra tower that also covers the target.
 const RESONANCE_RADIUS := 1.0
 const LEAD_HOLD_BARS := 2.0
@@ -108,6 +112,7 @@ var _feedback_time := 0.0
 var _bursts: Array[Dictionary] = []
 var _popups: Array[Dictionary] = []  # Floating damage numbers: pos, text, color, size, ttl.
 var _line_flash := {"color": Color.WHITE, "ttl": 0.0}
+var _punch := 0.0  # Seconds of screen punch left.
 var _sfx := {}  # name -> AudioStreamPlayer
 
 
@@ -396,8 +401,8 @@ func chart_allowed() -> bool:
 	return true
 
 
-func add_note(time: float, type: String) -> void:
-	notes.append({"time": time, "type": type, "tower": null, "state": "open"})
+func add_note(time: float, type: String, tower = null) -> void:
+	notes.append({"time": time, "type": type, "tower": tower, "state": "open"})
 	stats[type]["notes"] += 1
 	_wave_notes += 1
 
@@ -409,16 +414,22 @@ func _assign_note(n: Dictionary) -> void:
 	var best := Vector2i(-1, -1)
 	var best_score := -INF
 	var lead_creep := _lead_creep()
+	# One ring per tower: a tower already holding an open note is skipped
+	# unless every tower is busy.
+	var busy := {}
+	for other in notes:
+		if other != n and other["state"] == "open" and other["tower"] is Vector2i:
+			busy[other["tower"]] = true
 	for cell in structures:
 		var type: String = structures[cell]["type"]
 		if not builds[type].has("range") or not tower_ready(cell):
 			continue
-		var score := 0.0
+		var score := 0.0 if not busy.has(cell) else -1000.0
 		for c in creeps:
 			if c["hp"] > 0.0 and c["pos"].distance_to(Vector2(cell)) <= builds[type]["range"] + 1.0:
 				score += 1.0 + 0.25 * _coverage(c["pos"])
-		if score == 0.0 and not lead_creep.is_empty():
-			score = -lead_creep["pos"].distance_to(Vector2(cell)) * 0.01
+		if score <= 0.0 and not lead_creep.is_empty():
+			score -= lead_creep["pos"].distance_to(Vector2(cell)) * 0.01
 		if score > best_score:
 			best_score = score
 			best = cell
@@ -540,8 +551,10 @@ func _play(key: Key) -> void:
 	_resonance(best, g, offset_ms)
 
 
-## The note's tower fires a bolt across the whole board at the creep nearest
-## the Conductor. Crossfire on that creep multiplies it; Perfect doubles it.
+## The note's tower fires across the whole board at the creep nearest the
+## Conductor. A heavy tower snipes it (big single-target hit, screen punch);
+## a splash tower lobs a wave that hits everything near it. Crossfire on that
+## creep multiplies it; Perfect doubles it.
 func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	var type: String = n["type"]
 	var color: Color = NOTE_COLORS[type]
@@ -562,19 +575,35 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 		return
 	var spec: Dictionary = builds[structures[cell]["type"]]
 	var crossfire := 1.0 + CROSSFIRE_BONUS * maxi(0, _coverage(target["pos"]) - 1)
-	var bonus: float = spec["damage"] * damage_scale() * crossfire * (RESONANCE_PERFECT if crit else RESONANCE_GOOD)
-	var radius: float = maxf(spec["splash"], 0.0)
+	var is_wave: bool = spec["splash"] > 0.0
+	var mult: float
+	if is_wave:
+		mult = WAVE_PERFECT if crit else WAVE_GOOD
+	else:
+		mult = SNIPE_PERFECT if crit else SNIPE_GOOD
+	var bonus: float = spec["damage"] * damage_scale() * crossfire * mult
+	var radius: float = WAVE_RADIUS if is_wave else 0.0
 	var dealt := 0.0
+	var struck := 0
 	for c in creeps:
 		if c == target or (radius > 0.0 and c["pos"].distance_to(target["pos"]) <= radius):
 			dealt += minf(bonus, maxf(c["hp"], 0.0))
 			c["hp"] -= bonus
+			struck += 1
 	_flashes[cell] = 0.3
-	shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.4, "splash": radius})
-	_bursts.append({"pos": target["pos"], "color": color, "ttl": 0.35, "crit": crit})
-	_popup(target["pos"], ("%d!" if crit else "%d") % roundi(dealt), Color(1.0, 0.9, 0.3) if crit else Color.WHITE, 22 if crit else 15)
+	if is_wave:
+		shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.4, "splash": radius, "width": 3.0})
+		_bursts.append({"pos": target["pos"], "color": color, "ttl": 0.5, "crit": crit, "radius": radius})
+	else:
+		# A snipe: a bright tracer that lingers, and the screen punches.
+		shots.append({"from": Vector2(cell), "to": target["pos"], "color": Color.WHITE, "ttl": 0.5, "splash": 0.0, "width": 5.0 if crit else 3.5})
+		shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.7, "splash": 0.0, "width": 1.5})
+		_bursts.append({"pos": target["pos"], "color": color, "ttl": 0.35, "crit": crit})
+		_punch = PUNCH_SECONDS * (1.5 if crit else 1.0)
+	_popup(target["pos"], ("%d!" if crit else "%d") % roundi(dealt), Color(1.0, 0.9, 0.3) if crit else Color.WHITE, 24 if crit else 16)
 	_flash_line(Color(1.0, 0.9, 0.3) if crit else Color.WHITE)
-	_show_feedback("%s%s  %+.0f ms   %d damage%s" % ["CRIT  " if crit else "", g, offset_ms, roundi(dealt), "   x%.2f crossfire" % crossfire if crossfire > 1.0 else ""], Color(1.0, 0.9, 0.3) if crit else color)
+	var what := ("WAVE  %d hit" % struck) if is_wave else "SNIPE"
+	_show_feedback("%s%s  %s  %+.0f ms   %d damage%s" % ["CRIT  " if crit else "", what, g, offset_ms, roundi(dealt), "   x%.2f crossfire" % crossfire if crossfire > 1.0 else ""], Color(1.0, 0.9, 0.3) if crit else color)
 
 
 ## A note slid past its ring. It costs the bonus and nothing else.
@@ -650,6 +679,12 @@ func _tick_effects(delta: float) -> void:
 			popups.append(p)
 	_popups = popups
 	_line_flash["ttl"] = maxf(0.0, _line_flash["ttl"] - delta)
+	_punch = maxf(0.0, _punch - delta)
+	if _punch > 0.0:
+		var k := _punch / PUNCH_SECONDS
+		position = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 5.0 * k
+	else:
+		position = Vector2.ZERO
 
 
 # --- Drawing -------------------------------------------------------------------
@@ -673,6 +708,8 @@ func _draw() -> void:
 	for n in notes:
 		if n["state"] != "open" or not (n["tower"] is Vector2i) or not structures.has(n["tower"]):
 			continue
+		if n["time"] - beat_time() > lead:
+			continue  # Pre-assigned (Crescendo sweep) but not yet in its two-beat window.
 		var p := _to_screen(Vector2(n["tower"]))
 		var color: Color = NOTE_COLORS[n["type"]]
 		var left := clampf((n["time"] - beat_time()) / lead, 0.0, 1.0)
@@ -682,6 +719,11 @@ func _draw() -> void:
 		draw_string(font, p + Vector2(-20, 6), NOTE_NAMES[n["type"]], HORIZONTAL_ALIGNMENT_CENTER, 40, 16, Color.WHITE)
 
 	for b in _bursts:
+		if b.has("radius"):
+			# A splash wave: a ring that grows out to the wave's reach.
+			var a: float = b["ttl"] / 0.5
+			draw_arc(_to_screen(b["pos"]), TILE * b["radius"] * (1.0 - a), 0, TAU, 64, b["color"] * Color(1, 1, 1, a), 8.0 if b["crit"] else 5.0)
+			continue
 		var a: float = b["ttl"] / 0.35
 		draw_arc(_to_screen(b["pos"]), TILE * (0.6 + 0.8 * (1.0 - a)), 0, TAU, 48, b["color"] * Color(1, 1, 1, a), 6.0 if b["crit"] else 3.0)
 
@@ -778,8 +820,8 @@ func help_lines() -> Array[String]:
 		keys[build_keys[k]] = OS.get_keycode_string(k)
 	return [
 		"%s  Wall       4g" % keys["wall"],
-		"%s  Heavy tower   20g  single target, on the beat" % keys["kick"],
-		"%s  Splash tower  25g  off-beat" % keys["bass"],
+		"%s  Heavy tower   20g  single target; its note is a snipe" % keys["kick"],
+		"%s  Splash tower  25g  splash; its note is a wave" % keys["bass"],
 		"Q / E  press the key shown on a tower as its ring lands",
 		"K  one-key mode (any key plays any note)",
 		"L  timeline %s" % ("on" if show_timeline else "off"),

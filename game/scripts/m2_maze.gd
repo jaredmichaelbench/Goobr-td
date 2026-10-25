@@ -404,7 +404,7 @@ func _draw() -> void:
 		draw_rect(Rect2(p + Vector2(-12, -16), Vector2(24 * frac, 3)), Color(0.4, 1.0, 0.4))
 	for s in shots:
 		var a := clampf(s["ttl"] / 0.12, 0.0, 1.0)
-		draw_line(_to_screen(s["from"]), _to_screen(s["to"]), s["color"] * Color(1, 1, 1, a), 2.0)
+		draw_line(_to_screen(s["from"]), _to_screen(s["to"]), s["color"] * Color(1, 1, 1, a), s.get("width", 2.0))
 		if s["splash"] > 0.0:
 			draw_arc(_to_screen(s["to"]), s["splash"] * TILE, 0, TAU, 32, s["color"] * Color(1, 1, 1, a * 0.6), 2.0)
 
