@@ -38,3 +38,7 @@ Jared, full run, wave 10 cleared at 2 health (Q 84%, E 72%; 15 pulses, 4 arrows,
 Archers shoot within 16 tiles as the crow flies, every 4 bars, arrows straight over the maze; streak ball beside the Conductor shields; musical synth voices for hit, miss, parry, Restore, lock, tell and posture break.
 
 Headless: wave 4 with two towers at the Conductor end, Archer first arrow in the air 13 s into the wave (it used to die first); three arrows over the wave, all three parried by the bot, no shields lost. M3, M4 and M5 bots unchanged (M5 boss dead after 3 breaks, 12 of 12 parried). Screenshot in the shared folder `screens/rework/m6a-followup-archer-arrow.png`. Waiting on Jared's playtest.
+
+## Playtest 5 (2026-10-25, after D-0029 to D-0032)
+
+Jared: "the game itself feels great right now as a core loop." Archers now seen; one press parries a pulse and an arrow on the same beat. Sounds: HALFTONE pack is in but "still not where I want them"; parked behind the swap system until Jared makes time. Next: M6b, proposed in `notes/m6b-proposal-2026-10-25.md`.
