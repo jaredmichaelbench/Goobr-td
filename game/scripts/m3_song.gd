@@ -260,12 +260,12 @@ func chart_for_wave(w: int) -> Array:
 ## Lists the WAVs in audio/. BPM comes from audio/songs.cfg, else from a
 ## leading number in the filename if it looks like a tempo (60-220), else 120.
 func _scan_songs() -> void:
-	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM, "sfx": ""}]
+	var cfg := ConfigFile.new()
+	cfg.load(SONG_CFG)
+	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM, "sfx": str(cfg.get_value("sfx", "default", ""))}]
 	var dir := DirAccess.open(SONG_DIR)
 	if dir == null:
 		return
-	var cfg := ConfigFile.new()
-	cfg.load(SONG_CFG)
 	var re := RegEx.new()
 	re.compile("^\\s*(\\d+(?:\\.\\d+)?)[\\s_.-]*(.*)$")
 	var names := Array(dir.get_files())

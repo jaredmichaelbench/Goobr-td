@@ -32,6 +32,26 @@ Volume is in dB relative to the song. "Trigger" is the game event; "Why" is the 
 
 Bed loops for reference (also in the preview folder, 2 s at 120 BPM): `bed-kick-loop`, `bed-sub-loop` (E1 pulse on each beat), `bed-pulse-loop` (E2 8th notes). These only play on "synth stems"; the VOiD1 tracks replace them. `old-chime` is the bell everything used before D-0029.
 
+## HALFTONE pack mapping (D-0032)
+
+The default pack is VOiD1's HALFTONE LITE, picked by category and by measured attack, brightness and length (I can't listen, so the picks are informed guesses; swap any you dislike). The pack is on your Mac at `game/audio/sfx/halftone/`; two alternates per slot are in `game/audio/sfx-preview/halftone-alts/`, named `slot--altN--Original.wav`. To swap: copy an alternate over the slot file and rename it to the slot name. Copies are normalised to -7 dB peak and trimmed, nothing else.
+
+| Slot | Pick | Why | Alternates |
+|---|---|---|---|
+| `note-perfect` | Collectibles_8 | Shortest, brightest pitched pickup (107 ms, ~1.2 kHz): reads as "got it" | Blip_1, Collectibles_7 |
+| `note-good` | Blip_4 | Same family, duller and shorter (57 ms) | Pop_1, Blop_2 |
+| `note-miss` | Blop_4 | Dull, low, 72 ms: small and unmusical | Hit_5, Cancel_4 |
+| `wave-clear` | Win_1 | Short win jingle (420 ms), the one slot allowed to be melodic | Win_3, Powerup_4 |
+| `parry` | Hit_3 | Low-mid punch, 150 ms, clean attack | Hit_4, Slash_1 |
+| `parry-perfect` | Slash_1 | Bright noisy slash, 165 ms: sword-on-shield | Hit_1, Bullet_10 |
+| `restore` | Powerup_4 | Rising power-up, 380 ms, sits under the ripple | Powerup_5, Powerup_10 |
+| `tower-locked` | Loose_4 | Low, tonal, falling, 220 ms: "power down" | Loose_20, Loose_30 |
+| `tell` | Hit_5 | Lowest, most tonal hit (150 ms): a thump that counts the last beat | Button_25, Click_15 |
+| `beat-tick` | Click_4 | 25 ms click, quiet count-in | Click_2, Steps_2 |
+| `posture-break` | Blast_14 | The boomiest blast under 600 ms | Blast_3, Blast_11 |
+
+Not used yet but worth knowing about: Powerup_1 to Powerup_3 and Powerup_11 to Powerup_14 (long risers, future draft-pick or Crescendo start), Ambient_1 to Ambient_8 (build-phase bed candidates), Transition_1 to Transition_3 (wave start or menu), Blast_1 to Blast_13 (boss death).
+
 ## Attack layers: where to start
 
 Six raw transients are in the preview folder next to the voices. Each is one ingredient, not a finished sound. Stack one on top of your GarageBand tone (two tracks, export together) and you have the "contact" the current set lacks:

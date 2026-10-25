@@ -16,6 +16,7 @@ Active work. Each task has an id, status, and a link to the decision or prototyp
 |---|---|---|---|
 | T-014 | M2: maze, grid, flow-field pathing | done | Passed 2026-10-24 (`docs/prototypes/M2-results.md`) |
 | T-015 | M3: the maze plays the song | done | Four passes, 2026-10-24 to 25. Song chart + timeline (D-0014), rock map (D-0015). Tuning notes in `prototypes/M3-results.md` |
+| T-020 | Contact VOiD1 Gaming: tell them about the use of the SynthWave music and HALFTONE SFX packs, ask about full packs and credit wording | todo | Jared, 2026-10-25: more emphasis on reaching out. Their licence asks to be told; credit appreciated. Handles in `notes/asset-licenses.md` (void1gaming.com, itch.io, Instagram, Twitter, Facebook). Before any public build |
 | T-019 | Economy and relative tower power pass | doing | First pass in M6a slice 3 (D-0028): upgrade sink, wave bonus 12 + 3w. Jared: balance at wave 9 "almost perfect" before it; re-check after |
 | T-016 | M4: suppress and Restore | done | Three passes 2026-10-25 (D-0016 to D-0019). Keep: Restore feels great, silence is recoverable tension |
 | T-017 | M5: first boss | doing | Three passes 2026-10-25 (D-0020 to D-0024): "genuinely fun". Polish pass D-0025 built; one more playtest then done |
