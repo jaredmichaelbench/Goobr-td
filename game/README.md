@@ -4,7 +4,26 @@ Greybox build of the game, made in milestones. The plan is in `../docs/prototype
 
 Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are needed, because all audio is generated in code.
 
-Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song. **Esc** returns to the menu.
+Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore. **Esc** returns to the menu.
+
+## M4: suppress and Restore
+
+The question: does silence create tension, and does restoring on the beat feel great?
+
+Everything from M3, plus:
+
+- From wave 2, every 6th creep is an **elite**: big, dark red, 4x health, a bit slower. A faint ring shows its reach.
+- On a downbeat, if an elite has towers in reach, it **pulses**: those towers are suppressed for 10 seconds. They go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. The groove drops out too while anything is suppressed. The same elite can pulse again after 4 bars.
+- **F = Restore.** Press it on a downbeat (the bar line; while suppressed, a white **F** marker on the timeline shows the next one). On the beat: every suppressed tower comes back at once, fires an **Overcharge salvo** (2.5x damage, splash) at its target, the screen flashes, and the melody joins for 2 bars. Off the beat: the charge is still spent, the towers come back one bar later, and there's no salvo.
+- You have **3 Restore charges**, shown as yellow bars under the meters. Each wave cleared gives one back (cap 3). Suppression wears off on its own if you don't Restore, so a missed Restore costs time, not the run.
+- The HUD counts suppressions, Restores (on beat vs late), and how many wore off.
+
+### What to report back
+
+- Does the mix thinning out make you want to press F? Can you hear which towers went down?
+- Does a Restore on the beat feel like a payoff? Is the late version punishing enough, or too much?
+- Are 3 charges and +1 per wave about right? Did you ever run dry?
+- Are elites readable? Did you reroute or rebuild to keep them away from towers?
 
 ## M3: the maze plays the song (v4)
 

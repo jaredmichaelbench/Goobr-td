@@ -102,3 +102,9 @@ Risk: a visible chart moves toward chart reading, which D-0005 avoids for bosses
 Context: On a flat 20x20 board, unlimited cheap walls let you draw any maze you like, which felt "a little broken." Jared suggested blocked terrain like Warcraft 3 or StarCraft cliffs.
 Decision: M3 uses a hand-made map with rock: two ridges split the board into three fields, joined by two gaps in the first ridge (top and bottom) and one wide gap in the second. Rock blocks walking and building. Walls are capped at 20 per run. The map lives as an ASCII grid in `m3_song.gd` (`MAP`), so it's easy to edit. M2 keeps its flat map.
 Alternatives: Terrain only, unlimited walls (weaker: walls still beat the map). Rising wall cost (possible later, harder to read than a cap).
+
+## D-0016: Suppression comes from elite creeps, Restore is timed to the downbeat
+2026-10-25 · proposed (testing in M4)
+Context: M4 needs a source of suppression before the boss exists (M5), and the Restore rules from the pitch notes needed numbers.
+Decision: Elites (every 6th creep from wave 2, 4x health, 0.8x speed) pulse on a downbeat when towers are within 2.2 tiles, suppressing them for 10 seconds; the same elite waits 4 bars before pulsing again. Suppressed towers don't fire, don't answer notes, and their stem drops out, and the groove drops out while anything is suppressed. F Restores: on a downbeat (Good window or better) all suppressed towers return with an Overcharge salvo (2.5x damage, splash 1); off the beat the charge is still spent, the towers return one bar later, no salvo. 3 charges, +1 per wave cleared, capped at 3. Suppression also expires on its own, so Restore is about tempo, not survival.
+Alternatives: Suppression only from boss attacks (rejected: nothing to test until M5). Permanent until Restored (rejected: running out of charges would end the run on its own).

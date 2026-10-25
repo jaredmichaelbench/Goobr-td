@@ -255,7 +255,7 @@ func _schedule_bar(bar: int) -> void:
 func _fire_towers_on(pattern_step: int) -> void:
 	for cell in structures:
 		var type: String = structures[cell]["type"]
-		if not PATTERNS.has(type) or not PATTERNS[type].has(pattern_step):
+		if not PATTERNS.has(type) or not PATTERNS[type].has(pattern_step) or not tower_ready(cell):
 			continue
 		var spec: Dictionary = builds[type]
 		var target := _pick_target(Vector2(cell), spec["range"])
@@ -285,11 +285,21 @@ func _coverage(pos: Vector2) -> int:
 	return n
 
 
+## Can this tower act right now? M4 overrides this for suppressed towers.
+func tower_ready(_cell: Vector2i) -> bool:
+	return true
+
+
+## A ready tower with something in range.
+func tower_engaged(cell: Vector2i) -> bool:
+	return tower_ready(cell) and not _pick_target(Vector2(cell), builds[structures[cell]["type"]]["range"]).is_empty()
+
+
 ## Towers of this type with something in range right now.
 func engaged_towers(type: String) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	for cell in structures:
-		if structures[cell]["type"] == type and not _pick_target(Vector2(cell), builds[type]["range"]).is_empty():
+		if structures[cell]["type"] == type and tower_engaged(cell):
 			cells.append(cell)
 	return cells
 
@@ -408,9 +418,10 @@ func _update_stems(delta: float, speed: int) -> void:
 	var active := {"kick": false, "hat": false, "bass": false, "lead": _lead_timer > 0.0}
 	for cell in structures:
 		var type: String = structures[cell]["type"]
-		if active.has(type) and not active[type] and not _pick_target(Vector2(cell), builds[type]["range"]).is_empty():
+		if active.has(type) and not active[type] and tower_engaged(cell):
 			active[type] = true
 	active["hat"] = active["kick"] or active["bass"]  # Background groove while fighting.
+	_adjust_mix(active)
 	for k in stem_db:
 		var target_db: float = ACTIVE_DB[k] if active[k] else IDLE_DB[k]
 		if speed > 1:
@@ -422,6 +433,12 @@ func _update_stems(delta: float, speed: int) -> void:
 		if cur != stem_db[k]:
 			stem_db[k] = cur
 			clock.set_stem_volume_db(stem_index[k], cur)
+
+
+## Hook for later milestones to change which stems play. M4 drops the groove
+## while any tower is suppressed.
+func _adjust_mix(_active: Dictionary) -> void:
+	pass
 
 
 func _tick_effects(delta: float) -> void:
@@ -476,7 +493,7 @@ func _draw() -> void:
 			var to_go: float = next_note[type]["time"] - beat_time()
 			if to_go <= lead:
 				var left := clampf(to_go / lead, 0.0, 1.0)
-				if not _pick_target(Vector2(cell), builds[type]["range"]).is_empty():
+				if tower_engaged(cell):
 					ringed = true
 					draw_arc(p, TILE * (0.5 + 2.0 * left), 0, TAU, 48, color * Color(1, 1, 1, 0.4 + 0.6 * (1.0 - left)), 3.0)
 					draw_arc(p, TILE * 0.5, 0, TAU, 48, color, 2.0)
