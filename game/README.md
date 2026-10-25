@@ -8,23 +8,23 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git) with the BPM at the start of the filename, like `130 Space Invaders.wav`. In M3 or M4, **[** and **]** switch songs. See `game/audio/README.md`.
 
-## M4: suppress and Restore (v2)
+## M4: suppress and Restore (v3)
 
-The question: does silence create tension, and does restoring on the beat feel great?
+The question: does silence create tension, and does restoring feel great?
 
 Everything from M3, plus:
 
 - From wave 2, every 6th creep is an **elite**: big, dark red, 4x health, a bit slower. While it has towers within reach, its ring pulses and it says "miss = lock".
 - **Miss a note while an elite is armed** and it locks every tower in its reach for 10 seconds. Locked towers go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. The groove drops out too. Clean play never gets locked. The same elite can lock again after 2 bars.
-- **F = Restore.** It lands on **any beat** (4 per bar), so you pick the moment, but it can't be used off the beat: an off-beat press does nothing and keeps the charge. While locked, white marks on the timeline show every beat you could press on. On the beat, every locked tower comes back at once with an **Overcharge salvo** (2.5x damage, splash), the screen flashes, and the melody joins for 2 bars.
-- **3 Restore charges**, yellow bars under the meters, one back per wave cleared (cap 3). Locks wear off on their own if you don't Restore.
-- The HUD counts locks, Restores, off-beat presses, and locks that wore off.
+- **F = Restore, any time.** No timing, nothing wasted. It lands on the next 8th note (at most 250 ms later; a yellow mark on the timeline shows where), so the sound and the effect sit on the music. A refresh ripple sweeps the board from the goal outward, and every locked tower relights as it passes with an **Overcharge salvo** (2.5x damage, splash). The melody joins for 2 bars.
+- **3 Restore charges**, yellow bars under the meters, one back per wave cleared (cap 3). Locks also wear off on their own after 10 seconds (the red bar under the tower drains).
+- The HUD counts locks, Restores, and locks that wore off.
 
 ### What to report back
 
-- Does the lock feel like a fair consequence of the miss, and does the thin mix make you want to press F?
-- Is Restore on any beat the right amount of freedom? Would every 8th note be better, or only downbeats?
-- Are 3 charges and +1 per wave about right?
+- Does the Restore feel like a payoff now? Does the 8th-note delay read as "on the music" or as lag?
+- Are 3 charges and +1 per wave about right, or should Restore be a cooldown instead?
+- Does the 10 s self-recovery register? Would 6 s be better?
 - Are elites readable? Did you reroute or rebuild to keep them away from towers?
 
 ## M3: the maze plays the song (v4)

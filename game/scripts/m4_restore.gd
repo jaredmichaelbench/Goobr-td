@@ -8,11 +8,12 @@ extends "res://scripts/m3_song.gd"
 ## notes, and their part drops out of the music. The groove drops too, so the
 ## mix goes thin. Clean play never gets locked (Jared, 2026-10-25).
 ##
-## F = Restore. It only lands on a beat (RESTORE_GRID_STEPS), but any beat, so
-## you choose when. On the beat every locked tower comes back at once with an
-## Overcharge salvo. Off the beat nothing happens and no charge is spent.
-## Charges are limited: 3 to start, one back per wave cleared. Locks also wear
-## off on their own after SUPPRESS_SECONDS.
+## F = Restore, any time. It lands on the next 8th note (at most 250 ms later)
+## so the ripple, salvo and sound sit on the grid without you timing anything
+## (D-0019). A refresh ripple sweeps the board from the goal outward and every
+## locked tower relights as it passes, firing an Overcharge salvo. Charges are
+## limited: 3 to start, one back per wave cleared. Locks also wear off on their
+## own after SUPPRESS_SECONDS.
 
 const SUPPRESS_SECONDS := 10.0
 const SUPPRESS_RADIUS := 2.2
@@ -20,7 +21,8 @@ const ELITE_EVERY := 6  # One elite per this many creeps, from wave 2.
 const ELITE_HP_MULT := 4.0
 const ELITE_SPEED_MULT := 0.8
 const ELITE_PULSE_BARS := 2  # Bars before the same elite can lock again.
-const RESTORE_GRID_STEPS := 4  # Restore lands on every beat (8th-note steps per bar = 8).
+const RESTORE_GRID_STEPS := 1  # Restore lands on the next 8th note. 0 = instant.
+const RIPPLE_SPEED := 28.0  # Tiles per second the refresh ripple travels.
 const RESTORE_CHARGES := 3
 const OVERCHARGE_MULT := 2.5  # Salvo damage = tower damage x this, splash radius 1.
 
@@ -28,7 +30,10 @@ var suppressed := {}  # tower cell -> seconds left
 var restore_charges := RESTORE_CHARGES
 var _shockwaves: Array[Dictionary] = []
 var _restore_flash := 0.0
-var m4_stats := {"suppressed": 0, "restores": 0, "off_beat": 0, "expired": 0}
+var _restore_at := -1.0  # Song time a pressed Restore lands, or -1.
+var _relight := {}  # cell -> distance from the goal, waiting for the ripple
+var _ripple := -1.0  # Ripple radius in tiles, or -1 when idle.
+var m4_stats := {"suppressed": 0, "restores": 0, "expired": 0}
 
 
 func _ready() -> void:
@@ -50,7 +55,10 @@ func reset() -> void:
 	super.reset()
 	suppressed.clear()
 	restore_charges = RESTORE_CHARGES
-	m4_stats = {"suppressed": 0, "restores": 0, "off_beat": 0, "expired": 0}
+	_restore_at = -1.0
+	_relight.clear()
+	_ripple = -1.0
+	m4_stats = {"suppressed": 0, "restores": 0, "expired": 0}
 
 
 func start_wave() -> void:
@@ -119,15 +127,28 @@ func _on_miss(type: String) -> void:
 	if fresh > 0:
 		m4_stats["suppressed"] += fresh
 		_sfx["suppress"].play()
-		_show_feedback("MISS   %d tower%s LOCKED   F on a beat to Restore" % [fresh, "" if fresh == 1 else "s"], Color(1, 0.3, 0.3))
+		_show_feedback("MISS   %d tower%s LOCKED   F to Restore" % [fresh, "" if fresh == 1 else "s"], Color(1, 0.3, 0.3))
 
 
 func step(delta: float) -> void:
 	super.step(delta)
+	if _restore_at >= 0.0 and beat_time() >= _restore_at:
+		_restore_at = -1.0
+		_restore()
+	if _ripple >= 0.0:
+		_ripple += RIPPLE_SPEED * delta
+		for cell in _relight.keys():
+			if _relight[cell] <= _ripple:
+				_relight.erase(cell)
+				_relight_tower(cell)
+		if _ripple > GRID_SIZE.x + GRID_SIZE.y:
+			_ripple = -1.0
 	for cell in suppressed.keys():
 		if not structures.has(cell):
 			suppressed.erase(cell)
 			continue
+		if _relight.has(cell):
+			continue  # The ripple is on its way.
 		suppressed[cell] -= delta
 		if suppressed[cell] <= 0.0:
 			suppressed.erase(cell)
@@ -154,45 +175,51 @@ func _press_restore() -> void:
 	if suppressed.is_empty():
 		_show_feedback("Nothing to Restore", Color(1, 1, 1, 0.5))
 		return
+	if _restore_at >= 0.0 or not _relight.is_empty():
+		return  # Already on its way.
 	if restore_charges <= 0:
 		_show_feedback("No Restore charges left", Color(1, 0.5, 0.4))
 		return
-	var grid := step_length() * RESTORE_GRID_STEPS
-	var phase := fposmod(press_time(), grid)
-	var offset_ms := (phase if phase < grid * 0.5 else phase - grid) * 1000.0
-	var g := Timing.grade(offset_ms)
-	if g == "Miss":
-		m4_stats["off_beat"] += 1
-		_show_feedback("Off the beat (%+.0f ms)   Restore only lands on a beat" % offset_ms, Color(1, 0.6, 0.4))
-		return
 	restore_charges -= 1
 	m4_stats["restores"] += 1
-	_show_feedback("%s RESTORE  %+.0f ms   Overcharge salvo!" % [g.to_upper(), offset_ms], Color(1.0, 0.9, 0.3))
-	_restore()
+	if RESTORE_GRID_STEPS <= 0:
+		_restore()
+		return
+	var grid := step_length() * RESTORE_GRID_STEPS
+	_restore_at = (floorf(beat_time() / grid) + 1.0) * grid
+	if _restore_at - beat_time() < 0.03:
+		_restore_at += grid
 
 
+## The ripple starts at the goal. Towers relight as it reaches them.
 func _restore() -> void:
-	var cells := suppressed.keys()
-	suppressed.clear()
+	_relight.clear()
+	for cell in suppressed:
+		_relight[cell] = Vector2(cell).distance_to(Vector2(GOAL))
+	_ripple = 0.0
+	_restore_flash = 0.5
 	_lead_timer = clock.bar_length() * LEAD_HOLD_BARS
-	_restore_flash = 0.4
 	_sfx["restore"].play()
-	for cell in cells:
-		if not structures.has(cell):
-			continue
-		_flashes[cell] = 0.3
-		var spec: Dictionary = builds[structures[cell]["type"]]
-		var target := _pick_target(Vector2(cell), spec["range"])
-		if target.is_empty():
-			continue
-		var dmg: float = spec["damage"] * OVERCHARGE_MULT
-		var dealt := 0.0
-		for c in creeps:
-			if c["pos"].distance_to(target["pos"]) <= 1.0:
-				dealt += minf(dmg, maxf(c["hp"], 0.0))
-				c["hp"] -= dmg
-		shots.append({"from": Vector2(cell), "to": target["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.3, "splash": 1.0})
-		_popup(target["pos"], "%d!" % roundi(dealt), Color(1.0, 0.9, 0.3), 20)
+	_show_feedback("RESTORE   Overcharge salvo!", Color(1.0, 0.9, 0.3))
+
+
+func _relight_tower(cell: Vector2i) -> void:
+	suppressed.erase(cell)
+	if not structures.has(cell):
+		return
+	_flashes[cell] = 0.3
+	var spec: Dictionary = builds[structures[cell]["type"]]
+	var target := _pick_target(Vector2(cell), spec["range"])
+	if target.is_empty():
+		return
+	var dmg: float = spec["damage"] * OVERCHARGE_MULT
+	var dealt := 0.0
+	for c in creeps:
+		if c["pos"].distance_to(target["pos"]) <= 1.0:
+			dealt += minf(dmg, maxf(c["hp"], 0.0))
+			c["hp"] -= dmg
+	shots.append({"from": Vector2(cell), "to": target["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.3, "splash": 1.0})
+	_popup(target["pos"], "%d!" % roundi(dealt), Color(1.0, 0.9, 0.3), 20)
 
 
 # --- Drawing -----------------------------------------------------------------
@@ -240,23 +267,24 @@ func _draw() -> void:
 		draw_arc(_to_screen(w["pos"]), SUPPRESS_RADIUS * TILE * (1.0 - a * 0.7), 0, TAU, 48, w["color"] * Color(1, 1, 1, a), 4.0)
 
 	if _restore_flash > 0.0:
-		draw_rect(Rect2(_origin, Vector2(board_w, GRID_SIZE.y * TILE)), Color(1.0, 0.9, 0.3, 0.25 * _restore_flash / 0.4))
+		draw_rect(Rect2(_origin, Vector2(board_w, GRID_SIZE.y * TILE)), Color(1.0, 0.9, 0.3, 0.12 * _restore_flash / 0.5))
+	if _ripple >= 0.0:
+		# The refresh ripple: a bright ring with a soft band behind it.
+		var center := _to_screen(Vector2(GOAL))
+		for i in 4:
+			var r: float = (_ripple - i * 0.8) * TILE
+			if r > 0.0:
+				draw_arc(center, r, 0, TAU, 96, Color(1.0, 0.95, 0.6, 0.8 - i * 0.18), 6.0 - i * 1.2)
 
-	# While locked: small white marks on every beat you could Restore on.
-	if show_timeline and not suppressed.is_empty():
-		var grid := step_length() * RESTORE_GRID_STEPS
+	# A pressed Restore shows where it lands on the timeline.
+	if show_timeline and _restore_at >= 0.0:
 		var now := beat_time()
 		var left := _origin.x + TILE * 1.5
 		var width := board_w - TILE * 3.0
 		var line_x := left + width * (TIMELINE_BEHIND / (TIMELINE_AHEAD + TIMELINE_BEHIND))
-		var px_per_s := width / (TIMELINE_AHEAD + TIMELINE_BEHIND)
+		var x := line_x + (_restore_at - now) * width / (TIMELINE_AHEAD + TIMELINE_BEHIND)
 		var top := _origin.y + 8.0
-		var first := ceili(now / grid)
-		var last := floori((now + TIMELINE_AHEAD) / grid)
-		for i in range(first, last + 1):
-			var x := line_x + (i * grid - now) * px_per_s
-			draw_line(Vector2(x, top - 3), Vector2(x, top + 35), Color(1, 1, 1, 0.7), 2.0)
-		draw_string(font, Vector2(line_x + 6, top + 48), "F on any beat", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.8))
+		draw_line(Vector2(x, top - 3), Vector2(x, top + 35), Color(1.0, 0.9, 0.3, 0.9), 3.0)
 
 	# Restore charges under the meters.
 	var x := _origin.x + board_w + 20
@@ -271,11 +299,11 @@ func _draw() -> void:
 
 func status_lines() -> Array[String]:
 	var lines := super.status_lines()
-	lines.append("Locked %d   Restores %d   Off-beat presses %d   Wore off %d" % [m4_stats["suppressed"], m4_stats["restores"], m4_stats["off_beat"], m4_stats["expired"]])
+	lines.append("Locked %d   Restores %d   Wore off %d" % [m4_stats["suppressed"], m4_stats["restores"], m4_stats["expired"]])
 	return lines
 
 
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
-	lines.insert(5, "F  Restore locked towers, on any beat (%d/%d charges)" % [restore_charges, RESTORE_CHARGES])
+	lines.insert(5, "F  Restore locked towers (%d/%d charges)" % [restore_charges, RESTORE_CHARGES])
 	return lines

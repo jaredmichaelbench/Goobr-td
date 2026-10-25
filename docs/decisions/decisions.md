@@ -119,3 +119,9 @@ Alternatives: Restore on every 8th note (rejected for now: at 120 BPM with a 90 
 2026-10-25 · accepted
 Context: F1-F12 are media keys on Jared's Mac keyboard and didn't reach the game.
 Decision: T speed, Y auto-send, G +100 gold, H skip a wave, K one-key mode, L timeline toggle.
+
+## D-0019: Restore is pressed any time and lands on the next 8th note
+2026-10-25 · accepted (Jared, after the M4 v2 playtest)
+Context: Timing Restore to the beat (D-0016, D-0017) collided with Q notes on the same beats, and a wasted charge punished a player who was already locked. Jared wanted Restore independent of the music with a refreshing full-map effect, and the sound aligned to the beat for satisfaction.
+Decision: F works any time with no timing check and nothing wasted. The Restore lands on the next 8th note (`RESTORE_GRID_STEPS`, 0 = instant) so the ripple, salvo and sound sit on the grid. A refresh ripple sweeps the board from the goal outward and each locked tower relights as it passes, firing an Overcharge salvo. Charges stay at 3, +1 per wave cleared. Locks still wear off on their own after 10 s.
+Alternatives: Fully detached from the music (rejected: the on-grid landing is free and keeps the music honest). A cooldown instead of charges (open, ask after the playtest).

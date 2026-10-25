@@ -21,3 +21,9 @@ Jared: "much harder now but want to test it more." F-keys didn't work on the Mac
 
 - Restore and charges aren't working for Jared. Having to hit F on a beat while Q notes also sit on the beat is hard ("which is good") but charges + on-beat + wasted presses don't go together. He wants Restore usable any time, independent of the music, with a refreshing screen-wide effect that implies a full map restore, towers also recovering over time, and the sound effect aligned to the beat for satisfaction.
 - Workflow: collect all feedback from a stage before changing anything, agree first, and push back where a feature may have been meant differently than it played (now rule 6 in `docs/INDEX.md`).
+
+## Third pass (2026-10-25, D-0019)
+
+Built from the agreed plan: F any time, lands on the next 8th note, refresh ripple from the goal that relights towers as it passes, salvo per relit tower, charges unchanged. Headless: bot pressing F whenever locked gets every lock cleared by the ripple; no presses, locks wear off at 10 s.
+
+Waiting on Jared's playtest.
