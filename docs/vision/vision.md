@@ -14,7 +14,7 @@ Modern TDs fall into the "screensaver" rut: the build phase is the game and the 
 
 Use these to settle arguments. If a feature doesn't serve at least one, it goes to the backlog.
 
-1. **The maze is the instrument.** Mazing and routing are the core skill. Every active mechanic must reward a good layout (crossfire, corners, long corridors), never replace it. In practice the maze is a **sequencer**. Each tower type is an instrument with its own beat pattern and stem, the path decides the order of the phrase, and crossfire (2+ towers on the same target on the same beat) creates the accents you press, on that instrument's key (Q/W/E). See `notes/maze-rhythm.md` and `notes/controls.md`.
+1. **The maze is the instrument.** Mazing and routing are the core skill. Every active mechanic must reward a good layout (crossfire, corners, long corridors), never replace it. In practice the maze is a **sequencer**. Each tower type is an instrument with its own beat pattern and stem, the path decides which towers are in the fight when the song's notes come, and crossfire (2+ towers on the same target) makes those notes hit harder. The song has two playable rhythms, Q (on the beat) and E (off-beat), shown on a scrolling timeline; a note fires every engaged tower of that key (D-0014). See `notes/maze-rhythm.md` and `notes/controls.md`.
 2. **Played, not watched.** The wave phase asks for real inputs, landed on the music's beat. Inputs are punctuation, not constant drumming: high-stakes moments, not APM tax.
 3. **The music tells the truth.** Game state is audible. Healthy towers = full mix. Suppressed towers = stems drop out. Restoring on the beat slams them back in.
 4. **Light, fair chance.** Each wave has a small roll or draft that changes your plan. Randomness shapes options; your maze decides the outcome.
@@ -24,7 +24,7 @@ Use these to settle arguments. If a feature doesn't serve at least one, it goes 
 
 1. **Build**: place walls and towers on a grid; creeps reroute live.
 2. **Draft**: a light per-wave roll (pick 1 of 3 modifiers or tower mods).
-3. **Wave**: towers auto-fire on their instrument patterns, and your maze plays the song. Crossfire makes accents, and hitting the matching instrument key (Q/W/E) fires a Resonance burst. Threats (elite hits, boss telegraphs) suppress towers and their stems drop out.
+3. **Wave**: towers auto-fire on their instrument patterns, and your maze plays the song. Notes from the song's chart scroll along a timeline, and hitting Q or E on a note fires a Resonance burst from every tower of that key in the fight. Threats (elite hits, boss telegraphs) suppress towers and their stems drop out.
 4. **Restore**: spend a limited Restore charge, timed on the downbeat, to snap towers back with an Overcharge salvo. Off-beat still works but late and without the salvo.
 5. Repeat; every few waves, a boss tests all of it.
 
@@ -62,6 +62,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 ## Changelog
 
+- 2026-10-25: v0.7 the song chart decides the notes, shown on a timeline; two rhythms (Q, E), hats become background (D-0014).
 - 2026-10-24: v0.6 first full review: global beat settled, stems clarified, moving to Demo 0 (D-0010). Engine: Godot 4 (D-0011).
 - 2026-10-23: v0.5 damage philosophy: towers are the main source, perfects crit, Crescendo is about +30% (D-0009).
 - 2026-10-23: v0.4 controls set to Jared's League-style layout (D-0008); boss pillar loosened to match D-0007.
