@@ -73,8 +73,9 @@ const IDLE_DB := {"kick": -16.0, "hat": -80.0, "bass": -80.0, "lead": -80.0}
 const ACTIVE_DB := {"kick": 0.0, "hat": -8.0, "bass": 0.0, "lead": -1.0}
 ## A real song (test only, see audio/README.md) takes the groove slot.
 const SONG_DIR := "res://audio"
-const SONG_IDLE_DB := -16.0
-const SONG_ACTIVE_DB := -3.0
+const SONG_IDLE_DB := -9.0
+const SONG_ACTIVE_DB := -1.0
+const SONG_CFG := "res://audio/songs.cfg"  # [bpm] "file.wav" = 130
 const DEFAULT_BPM := 120.0
 
 var clock: BeatClock
@@ -195,12 +196,15 @@ func chart_for_wave(w: int) -> Array:
 
 # --- Test songs ----------------------------------------------------------------
 
-## Lists the WAVs in audio/. A leading number in the filename is the BPM.
+## Lists the WAVs in audio/. BPM comes from audio/songs.cfg, else from a
+## leading number in the filename if it looks like a tempo (60-220), else 120.
 func _scan_songs() -> void:
 	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM}]
 	var dir := DirAccess.open(SONG_DIR)
 	if dir == null:
 		return
+	var cfg := ConfigFile.new()
+	cfg.load(SONG_CFG)
 	var re := RegEx.new()
 	re.compile("^\\s*(\\d+(?:\\.\\d+)?)[\\s_.-]*(.*)$")
 	var names := Array(dir.get_files())
@@ -209,16 +213,24 @@ func _scan_songs() -> void:
 		if not f.to_lower().ends_with(".wav"):
 			continue
 		var base: String = f.substr(0, f.length() - 4)
-		var bpm := DEFAULT_BPM
+		var bpm: float = float(cfg.get_value("bpm", "default", DEFAULT_BPM))
 		var m := re.search(base)
 		if m != null and m.get_string(2) != "":
-			bpm = float(m.get_string(1))
 			base = m.get_string(2)
+			var lead := float(m.get_string(1))
+			if lead >= 60.0 and lead <= 220.0:
+				bpm = lead
+		if cfg.has_section_key("bpm", f):
+			bpm = float(cfg.get_value("bpm", f))
+		elif cfg.has_section_key("bpm", base):
+			bpm = float(cfg.get_value("bpm", base))
 		songs.append({"name": base, "path": SONG_DIR + "/" + f, "bpm": bpm})
 	var want := _load_song_choice()
 	for i in songs.size():
 		if songs[i]["name"] == want:
 			song_index = i
+	if song_index > 0:
+		_say("Song %d/%d: %s (%.0f BPM)   [ ] to switch" % [song_index + 1, songs.size(), songs[song_index]["name"], songs[song_index]["bpm"]])
 
 
 ## Loads a WAV at runtime (no import step) and loops it on a whole bar.
