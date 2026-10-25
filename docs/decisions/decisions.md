@@ -96,3 +96,9 @@ Context: D-0013's cues were enemy-driven: picked from whichever towers had targe
 Decision: A fixed chart is part of the song and scrolls along a timeline under the board. Only two playable rhythms: Q (on the beat) and E (off-beat). Hats are background music, not a tower. Pressing a note fires a Resonance from every tower of that key that has a target (Perfect = crit, crossfire multiplies); no engaged tower means the note is wasted. So the maze question becomes "how many of my Q and E towers are in the fight when the notes come?" The chart starts with one Q note per bar and builds up every two waves. Waves are longer (14 + 3 per wave creeps). Build keys are 1 wall, 2 Q tower, 3 E tower (supersedes the key list in D-0012).
 Alternatives: Keep enemy-driven cues and tune them (rejected: can't be telegraphed or trained). Three rhythms with hats (rejected by Jared: too much).
 Risk: a visible chart moves toward chart reading, which D-0005 avoids for bosses. Bosses can hide the timeline later.
+
+## D-0015: M3 map gets rock terrain and a wall limit
+2026-10-25 · proposed (testing in M3, Jared asked for it)
+Context: On a flat 20x20 board, unlimited cheap walls let you draw any maze you like, which felt "a little broken." Jared suggested blocked terrain like Warcraft 3 or StarCraft cliffs.
+Decision: M3 uses a hand-made map with rock: two ridges split the board into three fields, joined by two gaps in the first ridge (top and bottom) and one wide gap in the second. Rock blocks walking and building. Walls are capped at 20 per run. The map lives as an ASCII grid in `m3_song.gd` (`MAP`), so it's easy to edit. M2 keeps its flat map.
+Alternatives: Terrain only, unlimited walls (weaker: walls still beat the map). Rising wall cost (possible later, harder to read than a cap).

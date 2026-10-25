@@ -6,27 +6,26 @@ Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are neede
 
 Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song. **Esc** returns to the menu.
 
-## M3: the maze plays the song (v3, song chart)
+## M3: the maze plays the song (v4)
 
 The question: can you hear your maze, and do you build it so your towers are in the fight when the song calls for them?
 
 - Calibrate in M1 first (press **C** there). M3 uses the same calibration.
-- Build keys: **1** wall, **2** Q tower (on the beat, heavy), **3** E tower (off-beat, splash). Hats are gone as a tower; they're just background groove now.
-- Towers fire on their own and play their part of the music while they have a target.
-- During a wave, notes scroll right to left along the **timeline** under the board (Q lane on top, E lane below). Press the key as a note reaches the white line. The song decides the notes, not the enemies, so you always see what's coming.
-- Two beats before a note, a ring starts closing on every tower of that key. Bright ring = that tower has a target and will fire. Faint ring = it has nothing in range and adds nothing.
-- A hit fires a Resonance from **every** engaged tower of that key. Perfect is a crit. Crossfire hits harder. If none of that key's towers have a target, the hit is wasted (the HUD counts these as "No tower").
-- The chart builds up: waves 1-2 are one Q note per bar, waves 3-4 add a few more Q notes, waves 5-6 bring in E, and wave 7+ mixes both. Waves are longer than before (17 creeps on wave 1).
-- Missing costs nothing. **F5** toggles one-key mode, where any key plays any note.
-- Speeding up (F1) mutes the music and turns notes off.
+- Build keys: **1** wall, **2** Q tower (on the beat, heavy), **3** E tower (off-beat, splash). Hats are background groove only.
+- **The map has rock** (brown). Creeps can't walk on it and you can't build on it. Two ridges split the board into three fields joined by gaps. **Walls are limited to 20**, so use the terrain.
+- During a wave, notes scroll right to left along a faint **timeline across the top of the board** (Q lane on top, E below). Press the key as a note reaches the line. **F6** hides the timeline so you can try playing from the rings and music alone.
+- Two beats before a note, a ring closes on every tower of that key **that has a target**. Towers with nothing in range only glow softly.
+- A hit fires a Resonance from every engaged tower of that key. You get a chime, damage numbers over the targets (yellow with "!" for a Perfect crit), and a flash on the timeline line. A note that passes with towers ready and no press is a **MISS**: low tone, red flash, "miss" over those towers. Pressing with nothing to hit says "Too early" or "No note".
+- The chart builds up: one Q per bar in waves 1-2, more Q in waves 3-4, E joins at wave 5, both mixed from wave 7.
+- Balance: 100 starting gold, 1g per kill, creeps get 30% tougher each wave. In bot runs, 4 starter towers alone fall at wave 4, and spending everything on towers with no walls and no notes falls around wave 9. Walls and notes should carry you to 10.
+- Missing costs nothing. **F5** toggles one-key mode. Speeding up (F1) mutes the music and turns notes off.
 
 ### What to report back
 
-- Can you read the timeline at a glance, and does it feel telegraphed now?
-- Enough attempts per wave to get into it? Does the build-up from wave 1 teach you?
-- Did you change your maze so more Q or E towers are in the fight when notes come?
-- Is the timeline too much like reading a chart (we'd hide it for bosses later)?
-- Two keys vs one-key mode (F5)?
+- Timeline at the top: readable without stealing your eyes? Better with it on or off (F6)?
+- Do hits feel good now, and can you tell when you miss?
+- Does the rock map make mazing more interesting? Is 20 walls too few or too many?
+- Difficulty: where did it get hard, and did gold feel tight?
 
 ## M2: the maze
 

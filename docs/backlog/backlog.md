@@ -48,3 +48,5 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 | Music | parked | Core to the game, so it starts early: need stem-friendly tracks, fixed BPM, loopable. Likely the first "later area" to open. |
 | Revenue and Steam strategy | parked | Pricing, Steam page timing, Next Fest demo, wishlists. |
 | Steam Input / controller support | parked | Use Steam Input API. |
+
+- **Timeline: keep, fade, or remove?** (2026-10-25, from M3 playtest) Jared worries players will just watch the timeline. Options: fade it out after the first waves, show only the next 1-2 notes, or drop it once the rhythm is learned. F6 in M3 lets us test with and without.

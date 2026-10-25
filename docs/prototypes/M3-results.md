@@ -43,3 +43,16 @@ Changed:
 Headless test (dense test maze, so waves end fast): waves 1-2 had 6-8 notes, wave 3 had 14. All scenes load and the 8x speed tool still works.
 
 Waiting on Jared's playtest.
+
+## Third pass playtest and fourth pass (2026-10-25)
+
+Jared's notes on v3: put the timeline at the top as a faint overlay (and he's unsure about having one at all, since eyes go there); balance is off (he reached wave 6 on starter gold); the flat map with unlimited walls feels broken, so try WC3/StarCraft-style blocked terrain; rings on towers out of range are still too loud; hits need to feel exciting, and you can't tell when you fail.
+
+Changed in v4:
+- Timeline moved to a faint overlay across the top of the board. F6 toggles it.
+- Rock map with two ridges and gaps, plus a 20-wall cap (D-0015).
+- Balance: start 100g (was 150), 1g per kill (was 2), creep HP 24 growing 30% per wave (was 18, 20%). Bot runs: starter towers only fall at wave 4; all-in towers with no walls and no notes fall at wave 9.
+- Out-of-range towers get a soft glow instead of a ring.
+- Hit feedback: chime (higher on Perfect), damage numbers per target (yellow "!" for crits), damage total in the banner, and a flash on the timeline line. Misses (note passes while towers had targets) play a low tone, flash red, and show "miss" over those towers. They're counted in the HUD.
+
+Waiting on Jared's playtest.

@@ -50,6 +50,13 @@ var _message := ""
 var _message_time := 0.0
 var _origin := Vector2.ZERO
 var endless := false
+# Map and balance knobs. M2 uses a flat map with unlimited walls; later
+# milestones override these before _ready().
+var terrain := {}  # Vector2i -> true. Rock: no walking, no building.
+var wall_limit := 0  # 0 = unlimited.
+var creep_hp := 18.0
+var creep_hp_growth := 1.2
+var kill_gold := 2
 var title := "M2 Maze"
 var build_keys := {KEY_1: "wall", KEY_Q: "kick", KEY_W: "hat", KEY_E: "bass"}
 
@@ -66,6 +73,9 @@ func _ready() -> void:
 
 func reset() -> void:
 	grid = MazeGrid.new(GRID_SIZE, SPAWN, GOAL)
+	for c in terrain:
+		grid.blocked[c] = true
+	grid.rebuild()
 	gold = START_GOLD
 	health = START_HEALTH
 	wave = 0
@@ -119,6 +129,12 @@ func try_place(cell: Vector2i, type: String) -> bool:
 	var cost: int = builds[type]["cost"]
 	if not grid.in_bounds(cell):
 		return false
+	if terrain.has(cell):
+		_say("Can't build on rock")
+		return false
+	if type == "wall" and wall_limit > 0 and wall_count() >= wall_limit:
+		_say("Out of walls (%d max)" % wall_limit)
+		return false
 	if gold < cost:
 		_say("Not enough gold")
 		return false
@@ -141,6 +157,14 @@ func sell(cell: Vector2i) -> void:
 	grid.rebuild()
 
 
+func wall_count() -> int:
+	var n := 0
+	for cell in structures:
+		if structures[cell]["type"] == "wall":
+			n += 1
+	return n
+
+
 ## Cells creeps occupy or are walking into; building there is not allowed.
 func _creep_cells() -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
@@ -160,12 +184,20 @@ func start_wave() -> void:
 		return
 	wave += 1
 	wave_active = true
-	_to_spawn = 8 + 2 * wave
+	_to_spawn = creeps_in_wave(wave)
 	_spawn_timer = 0.0
 
 
+func creep_hp_at(w: int) -> float:
+	return creep_hp * pow(creep_hp_growth, w - 1)
+
+
+func creeps_in_wave(w: int) -> int:
+	return 8 + 2 * w
+
+
 func _spawn_creep() -> void:
-	var hp := 18.0 * pow(1.2, wave - 1)
+	var hp := creep_hp_at(wave)
 	creeps.append({
 		"pos": Vector2(SPAWN),
 		"target": SPAWN,
@@ -215,7 +247,7 @@ func step(delta: float) -> void:
 	var alive: Array[Dictionary] = []
 	for c in creeps:
 		if c["hp"] <= 0.0:
-			gold += 2
+			gold += kill_gold
 		elif c.get("leaked", false):
 			health -= 1
 		else:
@@ -303,13 +335,16 @@ func _say(text: String) -> void:
 
 func status_lines() -> Array[String]:
 	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > LAST_WAVE else ("Wave %d/%d" % [wave, LAST_WAVE])
-	return [
+	var lines: Array[String] = [
 		"Gold %d    Health %d" % [gold, health],
 		(wave_label + " in progress") if wave_active else ("Press N to start wave %d" % (wave + 1)),
 		"",
 		"Build mode: %s (B)" % ("ON" if build_mode else "off"),
 		"Selected: %s (%dg)" % [selected, builds[selected]["cost"]],
 	]
+	if wall_limit > 0:
+		lines.append("Walls %d/%d" % [wall_count(), wall_limit])
+	return lines
 
 
 func help_lines() -> Array[String]:
@@ -326,7 +361,7 @@ func help_lines() -> Array[String]:
 		"",
 		"TEST  F1 speed %dx   F2 auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
 		"TEST  F3 +100g   F4 skip a wave",
-		"Next wave: %d creeps, %.0f HP each" % [8 + 2 * (wave + 1), 18.0 * pow(1.2, wave)],
+		"Next wave: %d creeps, %.0f HP each" % [creeps_in_wave(wave + 1), creep_hp_at(wave + 1)],
 	]
 
 
@@ -344,6 +379,10 @@ func _draw() -> void:
 	var route := grid.route()
 	for i in route.size() - 1:
 		draw_line(_to_screen(Vector2(route[i])), _to_screen(Vector2(route[i + 1])), Color(1, 1, 1, 0.12), 3.0)
+	for c in terrain:
+		var rock := Rect2(_origin + Vector2(c) * TILE, Vector2(TILE, TILE))
+		draw_rect(rock, Color(0.29, 0.25, 0.22))
+		draw_rect(Rect2(rock.position, Vector2(TILE, 4)), Color(0.38, 0.33, 0.29))
 	draw_rect(Rect2(_origin + Vector2(SPAWN) * TILE, Vector2(TILE, TILE)), Color(0.3, 0.8, 0.4, 0.5))
 	draw_rect(Rect2(_origin + Vector2(GOAL) * TILE, Vector2(TILE, TILE)), Color(1.0, 0.85, 0.3, 0.6))
 
@@ -373,6 +412,8 @@ func _draw() -> void:
 	var hover := cell_at(get_local_mouse_position())
 	if build_mode and grid.in_bounds(hover) and state == "playing":
 		var ok: bool = gold >= builds[selected]["cost"] and grid.can_block([hover], _creep_cells())
+		if selected == "wall" and wall_limit > 0 and wall_count() >= wall_limit:
+			ok = false
 		draw_rect(Rect2(_origin + Vector2(hover) * TILE, Vector2(TILE, TILE)), Color(0.3, 1.0, 0.4, 0.3) if ok else Color(1.0, 0.3, 0.3, 0.3))
 		if builds[selected].has("range"):
 			draw_arc(_to_screen(Vector2(hover)), builds[selected]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.3), 1.5)
