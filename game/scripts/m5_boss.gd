@@ -52,12 +52,11 @@ var _escort_at := -1.0  # Song time the second escort pack is released, or -1.
 func _ready() -> void:
 	super._ready()
 	title = "M5 First boss"
-	for sfx in [["break", 82.0, 4.0]]:
-		var player := AudioStreamPlayer.new()
-		player.stream = StemSynth.chime(sfx[1])
-		player.volume_db = sfx[2]
-		add_child(player)
-		_sfx[sfx[0]] = player
+	var player := AudioStreamPlayer.new()
+	player.stream = StemSynth.stab(41.2, true)  # Posture break: the deepest stab.
+	player.volume_db = 4.0
+	add_child(player)
+	_sfx["break"] = player
 
 
 func reset() -> void:

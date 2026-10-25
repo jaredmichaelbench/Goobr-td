@@ -67,7 +67,62 @@ static func _render(bar_seconds: float, voice: Callable) -> AudioStreamWAV:
 	return BeatClock.make_loop(data)
 
 
-## A short bell for the "call" half of a phrase. Not looped.
+## One-shot voices for hits, parries and locks: short synth sounds in E, the
+## bed's key, so feedback is half effect, half music (D-0029).
+
+## Plucked pad: a note landed. Brighter and higher for a Perfect.
+static func pluck(freq: float, bright := false) -> AudioStreamWAV:
+	return _one_shot(0.28, func(t: float) -> float:
+		var env := minf(t * 600.0, 1.0) * exp(-t * 9.0)
+		var v := sin(TAU * freq * t) + 0.5 * sin(TAU * freq * 2.0 * t) * exp(-t * 14.0)
+		if bright:
+			v += 0.35 * sin(TAU * freq * 3.0 * t) * exp(-t * 20.0) + 0.2 * sin(TAU * freq * 4.0 * t) * exp(-t * 30.0)
+		return v * env * 0.35)
+
+
+## Filtered bass stab: a parry. A click on top for a Perfect.
+static func stab(freq: float, click := false) -> AudioStreamWAV:
+	return _one_shot(0.3, func(t: float) -> float:
+		var env := minf(t * 900.0, 1.0) * exp(-t * 8.0)
+		var cutoff := 1.0 + 6.0 * exp(-t * 18.0)  # Filter sweep down, as a few harmonics fading.
+		var v := sin(TAU * freq * t)
+		v += 0.5 * sin(TAU * freq * 2.0 * t) * minf(cutoff / 2.0, 1.0)
+		v += 0.33 * sin(TAU * freq * 3.0 * t) * minf(cutoff / 3.0, 1.0)
+		v += 0.25 * sin(TAU * freq * 4.0 * t) * minf(cutoff / 4.0, 1.0)
+		if click and t < 0.02:
+			v += sin(TAU * 2200.0 * t) * (1.0 - t / 0.02) * 0.8
+		return v * env * 0.4)
+
+
+## Low detuned thud: a tower locked, a shield broken.
+static func thud() -> AudioStreamWAV:
+	return _one_shot(0.35, func(t: float) -> float:
+		var env := minf(t * 400.0, 1.0) * exp(-t * 7.0)
+		var freq := 55.0 + 40.0 * exp(-t * 25.0)
+		return (sin(TAU * freq * t) + 0.6 * sin(TAU * freq * 1.03 * t)) * env * 0.5)
+
+
+## Muted tick: a miss or an off-beat press. Short and dry.
+static func tick(freq := 330.0) -> AudioStreamWAV:
+	return _one_shot(0.08, func(t: float) -> float:
+		var env := minf(t * 2000.0, 1.0) * exp(-t * 60.0)
+		return sin(TAU * freq * t) * env * 0.25)
+
+
+static func _one_shot(seconds: float, voice: Callable) -> AudioStreamWAV:
+	var frames := int(seconds * MIX_RATE)
+	var data := PackedByteArray()
+	data.resize(frames * 2)
+	for i in frames:
+		var t := float(i) / MIX_RATE
+		var v: float = voice.call(t)
+		data.encode_s16(i * 2, int(clampf(v, -1.0, 1.0) * 32767.0))
+	var stream := BeatClock.make_loop(data)
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	return stream
+
+
+## A short bell. Kept for M1 and the menu.
 static func chime(freq: float) -> AudioStreamWAV:
 	var frames := int(0.5 * MIX_RATE)
 	var data := PackedByteArray()

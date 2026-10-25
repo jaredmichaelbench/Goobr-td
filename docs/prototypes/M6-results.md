@@ -32,3 +32,9 @@ Jared, full run, wave 10 cleared at 2 health (Q 84%, E 72%; 15 pulses, 4 arrows,
 - Wants a streak tracker: a small Guitar Hero style "on fire" indicator (a little ball), maybe with a tiny gold multiplier (1-3%, nothing that breaks the economy) or some other small bonus. Nothing decided except that visible streak feedback is needed, subtle, paired with the music.
 - Music still awkward: the note-hit and parry sounds feel out of place. Wants custom electronic synth or bass sounds that are half FX, half musical, for attack, block and parry.
 - "Lots of attack and enemy variation is going to be key."
+
+## M6a follow-up (2026-10-25, D-0029)
+
+Archers shoot within 16 tiles as the crow flies, every 4 bars, arrows straight over the maze; streak ball beside the Conductor shields; musical synth voices for hit, miss, parry, Restore, lock, tell and posture break.
+
+Headless: wave 4 with two towers at the Conductor end, Archer first arrow in the air 13 s into the wave (it used to die first); three arrows over the wave, all three parried by the bot, no shields lost. M3, M4 and M5 bots unchanged (M5 boss dead after 3 breaks, 12 of 12 parried). Screenshot in the shared folder `screens/rework/m6a-followup-archer-arrow.png`. Waiting on Jared's playtest.

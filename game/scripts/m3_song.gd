@@ -127,6 +127,7 @@ var _line_flash := {"color": Color.WHITE, "ttl": 0.0}
 var _punch := 0.0  # Seconds of screen punch left.
 var streak := 0  # Landed notes and parries in a row.
 var intensity := 0  # 0..INTENSITY_STEPS, from the streak.
+var _ball_pulse := 0.0  # Streak ball: seconds of pulse left (positive = hit, negative = miss).
 var _sting_at := -1.0  # Song time the wave-clear sting lands, or -1.
 var _sfx := {}  # name -> AudioStreamPlayer
 
@@ -177,9 +178,10 @@ func _ready() -> void:
 	stem_index["lead"] = clock.add_stem(StemSynth.lead(bar), idle_db["lead"])
 	for k in idle_db:
 		stem_db[k] = idle_db[k]
-	for sfx in [["perfect", 1320.0, -4.0], ["good", 880.0, -8.0], ["miss", 140.0, -6.0], ["clear", 1760.0, -3.0]]:
+	# Feedback voices in E: half effect, half music (D-0029).
+	for sfx in [["perfect", StemSynth.pluck(329.6, true), -3.0], ["good", StemSynth.pluck(164.8), -6.0], ["miss", StemSynth.tick(), -4.0], ["clear", StemSynth.pluck(659.3, true), -2.0]]:
 		var player := AudioStreamPlayer.new()
-		player.stream = StemSynth.chime(sfx[1])
+		player.stream = sfx[1]
 		player.volume_db = sfx[2]
 		add_child(player)
 		_sfx[sfx[0]] = player
@@ -661,6 +663,7 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 ## Streak bookkeeping: hits climb the intensity, a miss drops one step.
 func on_streak_hit() -> void:
 	streak += 1
+	_ball_pulse = 0.25
 	if streak % STREAK_PER_STEP == 0:
 		intensity = mini(INTENSITY_STEPS, intensity + 1)
 
@@ -668,6 +671,7 @@ func on_streak_hit() -> void:
 func on_streak_miss() -> void:
 	streak = 0
 	intensity = maxi(0, intensity - 1)
+	_ball_pulse = -0.35
 
 
 ## A note slid past its ring. It costs the bonus and nothing else.
@@ -750,6 +754,7 @@ func _tick_effects(delta: float) -> void:
 	_popups = popups
 	_line_flash["ttl"] = maxf(0.0, _line_flash["ttl"] - delta)
 	_punch = maxf(0.0, _punch - delta)
+	_ball_pulse = move_toward(_ball_pulse, 0.0, delta)
 	if _punch > 0.0:
 		var k := _punch / PUNCH_SECONDS
 		position = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 5.0 * k
@@ -811,6 +816,25 @@ func _draw() -> void:
 	if show_timeline:
 		_draw_timeline(font, board_w)
 	_draw_meters(font, board_w)
+	_draw_streak_ball()
+
+
+## The streak ball: beside the Conductor, filling toward the next intensity
+## step, coloured by the step, pulsing on a hit and dropping on a miss.
+func _draw_streak_ball() -> void:
+	var p := _to_screen(Vector2(GOAL)) + Vector2(TILE * 0.95, -TILE * 0.55)
+	var colors := [Color(0.5, 0.5, 0.55), Color(0.9, 0.9, 0.95), Color(1.0, 0.85, 0.35), Color(1.0, 0.6, 0.2)]
+	var color: Color = colors[clampi(intensity, 0, colors.size() - 1)]
+	var r := 7.0 + 3.0 * intensity + (10.0 * _ball_pulse if _ball_pulse > 0.0 else 0.0)
+	if _ball_pulse < 0.0:
+		draw_circle(p, r + 4.0 * (-_ball_pulse / 0.35), Color(1, 0.3, 0.3, 0.5 * (-_ball_pulse / 0.35)))
+	if intensity >= INTENSITY_STEPS:
+		draw_circle(p, r + 5.0 + 2.0 * sin(beat_time() * TAU * 2.0), color * Color(1, 1, 1, 0.25))
+	draw_circle(p, r, Color(0, 0, 0, 0.5))
+	var fill: float = 1.0 if intensity >= INTENSITY_STEPS else float(streak % STREAK_PER_STEP) / STREAK_PER_STEP
+	if fill > 0.0:
+		draw_arc(p, r - 2.0, -PI / 2, -PI / 2 + TAU * fill, 32, color, 3.0)
+	draw_circle(p, r * 0.45, color)
 
 
 ## Boss-mod style strip, drawn faintly over the top of the board: notes

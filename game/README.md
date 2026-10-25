@@ -32,7 +32,7 @@ Everything from M4, plus:
 - Is a posture break satisfying, and does the note burst feel like a reward rather than a test?
 - Too hard or too easy, and where: the parry window, the bolt damage, the boss health?
 
-## M4: suppress and Restore (v8)
+## M4: suppress and Restore (v9)
 
 The question: does silence create tension, and does restoring feel great?
 
@@ -40,7 +40,7 @@ Everything from M3, plus:
 
 - **Elites** are big, dark red, 4x health, a bit slower. One from wave 3, two from wave 5, three from wave 7, spread through the wave. Missing a note never locks anything. Two kinds, one rule: **a projectile leaves the elite, you watch it land, Space as it arrives.** The parry window is a touch wider than a note's.
 - **Jammer** (sword). When it has a tower within reach it stops walking, raises its sword, and throws a **pulse** at the nearest tower. Watch the tower: a red ring closes on it over the bar, four pips above it fill one per beat (tick, tick, tick, low tone), the pulse crawls in. Parry it and the attacked tower fires back (three times its damage, double on a Perfect). Miss it and that tower locks for 5 seconds.
-- **Archer** (bow), from wave 4. Once it is within 10 tiles of the Conductor it shoots an **arrow** down your path that lands on the next downbeat, then again every 6 bars. Watch the Conductor: the same closing ring and pips. Parry it and the Conductor deflects it back into the Archer. Miss it and it breaks one of the Conductor's **3 shields** (the diamonds under the goal, refilled every wave); with no shields left it costs 1 health. Creeps walking in always cost health; shields don't help there. Miss the parry and that one tower (two from wave 6) locks for 5 seconds. The same elite throws again after 8 bars.
+- **Archer** (bow), from wave 4. Once it is within 16 tiles of the Conductor as the crow flies it shoots an **arrow straight over the maze** that lands on the next downbeat, then again every 4 bars. (The boss's energy ball is the one that follows your path.) Watch the Conductor: the same closing ring and pips. Parry it and the Conductor deflects it back into the Archer. Miss it and it breaks one of the Conductor's **3 shields** (the diamonds under the goal, refilled every wave); with no shields left it costs 1 health. Creeps walking in always cost health; shields don't help there. Miss the parry and that one tower (two from wave 6) locks for 5 seconds. The same elite throws again after 8 bars.
 - Locked towers go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. A locked tower can't be locked again.
 - **F = Restore, any time.** It lands on the next 8th note so the sound sits on the music. A refresh ripple sweeps the board from the goal outward, and every locked tower relights as it passes with an **Overcharge salvo** (2.5x damage, splash). The melody joins for 2 bars. Relit towers get a **shield for 2 bars** (pale ring): they can't be locked, and any pulse in the air is knocked out of it.
 - **3 Restore charges**, one back per wave cleared (cap 3). Locks also wear off on their own after 5 seconds.
@@ -49,13 +49,13 @@ Everything from M3, plus:
 ### What to report back
 
 - Is the pulse readable now that the Jammer stands still to throw? Did you ever get locked without seeing it coming?
-- Do Jammer and Archer feel like two different problems to maze for? Do the shields make the Archer fair?
+- Do Jammer and Archer feel like two different problems to maze for? Do the shields make the Archer fair? Does the straight arrow read as a different attack from the boss's ball?
 - Is one elite per wave at wave 3 the right start, and does a 5 s single-tower lock feel like a bruise rather than a wipe?
 - Does Space feel like one clear job (defence), separate from Q/E (offence)?
 - Did you reroute or rebuild to keep elites away from towers, now that a pulse means a parry?
 - Are 3 charges and +1 per wave about right?
 
-## M3: the maze plays the song (v9)
+## M3: the maze plays the song (v10)
 
 The question: can you hear your maze, and do you build it so your towers are in the fight when the song calls for them?
 
@@ -68,7 +68,8 @@ The question: can you hear your maze, and do you build it so your towers are in 
 - **A miss costs only the bonus.** Nothing locks, nothing else happens. If you have no towers, the note is skipped.
 - **The timeline is off by default.** Press **L** to show the faint scrolling strip at the top if you want to compare. Play from the rings and the music.
 - The chart grows: one note per bar in wave 1, two in wave 2, Q and E mixed from wave 3, four from wave 4.
-- **The music bed is bass and rhythm only** now: a soft kick, a sub pulse on every beat, and a low pulse layer. Nothing melodic, so when the real track ducks on a miss what's left is plain, not bad. **Intensity**: every 4 landed notes or parries in a row opens the mix one step (the track and the pulse layer get louder); any miss closes one. The HUD shows streak and intensity.
+- **The music bed is bass and rhythm only** now: a soft kick, a sub pulse on every beat, and a low pulse layer. Nothing melodic, so when the real track ducks on a miss what's left is plain, not bad. **Intensity**: every 4 landed notes or parries in a row opens the mix one step (the track and the pulse layer get louder); any miss closes one. The HUD shows streak and intensity, and a small **streak ball** beside the Conductor shields fills a quarter per hit and changes colour per step (grey, white, yellow, orange), swelling on a hit and dipping on a miss.
+- **Feedback sounds are musical now**: short synth plucks and bass stabs in E instead of bell chimes. Bright pluck = Perfect, lower pluck = Good, dull tick = miss, bass stab = parry (brighter on a Perfect), clicked stab = Restore, thud = a tower locking.
 - Build phase: the "Press N" line shows gold left unspent when you can afford a tower.
 - **Wave clear**: when the last creep dies, pending notes vanish, the melody drops, a sting lands on the next beat and the groove fades out. The build phase is quiet.
 - Balance: 100 starting gold, 1g per kill, 12 + 3 x wave on a clear, creeps get 30% tougher each wave.
@@ -80,6 +81,7 @@ The question: can you hear your maze, and do you build it so your towers are in 
 - Do the notes pull your eyes to the maze rather than to the top of the screen?
 - Did tower choice (heavy, splash, slow) and when to upgrade feel like TD decisions? Did the build phase feel worth stopping for?
 - Does the bed sit under the real tracks now, and can you hear the mix open up on a streak?
+- Do the new hit, miss and parry sounds belong to the music? Is the streak ball visible enough without pulling your eyes?
 
 ## M2: the maze
 

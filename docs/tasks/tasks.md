@@ -19,7 +19,7 @@ Active work. Each task has an id, status, and a link to the decision or prototyp
 | T-019 | Economy and relative tower power pass | doing | First pass in M6a slice 3 (D-0028): upgrade sink, wave bonus 12 + 3w. Jared: balance at wave 9 "almost perfect" before it; re-check after |
 | T-016 | M4: suppress and Restore | done | Three passes 2026-10-25 (D-0016 to D-0019). Keep: Restore feels great, silence is recoverable tension |
 | T-017 | M5: first boss | doing | Three passes 2026-10-25 (D-0020 to D-0024): "genuinely fun". Polish pass D-0025 built; one more playtest then done |
-| T-018 | M6: Demo 0 wrap-up | doing | Agreed 2026-10-25: three slices, M6a TD depth (third tower, upgrades, economy = T-019), M6b the run (10 waves, draft, boss at 10, win/lose), M6c UI layer. See `notes/path-ahead-2026-10-25.md` |
+| T-018 | M6: Demo 0 wrap-up | doing | M6a built incl. follow-up D-0029 (straight arrows, streak ball, musical voices), awaiting playtest. Agreed 2026-10-25: three slices, M6a TD depth (third tower, upgrades, economy = T-019), M6b the run (10 waves, draft, boss at 10, win/lose), M6c UI layer. See `notes/path-ahead-2026-10-25.md` |
 | T-009 | Apple Developer account ($99/yr) for signing and notarization | todo | Only needed before sharing Mac builds |
 
 ## Done

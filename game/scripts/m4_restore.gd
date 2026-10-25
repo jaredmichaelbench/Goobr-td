@@ -12,8 +12,8 @@ extends "res://scripts/m3_song.gd"
 ## miss it and that tower is locked (suppressed) for SUPPRESS_SECONDS. Locked
 ## towers don't fire, don't answer notes, and their part drops out of the music.
 ##
-## Archer: once within ARCHER_RANGE of the Conductor it shoots an arrow down
-## the path that lands on the next downbeat. Parry it and the Conductor
+## Archer: once within ARCHER_RANGE of the Conductor it shoots an arrow
+## straight over the maze that lands on the next downbeat. Parry it and the Conductor
 ## deflects it back; miss it and it breaks one of the Conductor's SHIELDS
 ## (SHIELDS per wave), then costs health. Creeps walking in still cost health.
 ## Notes never lock anything (D-0023): Space is the one defensive input.
@@ -35,8 +35,8 @@ const PULSE_TARGETS_WAVE_6 := 2  # From wave 6 a pulse threatens the two nearest
 const PARRY_DAMAGE := 40.0
 const PULSE_TELL_BEATS := 1.0
 const IMMUNE_BARS := 2.0  # Towers relit by Restore can't be locked for this long.
-const ARCHER_RANGE := 10.0  # Path tiles from the Conductor an Archer shoots from.
-const ARCHER_BARS := 6  # Bars between one Archer's shots.
+const ARCHER_RANGE := 16.0  # Tiles from the Conductor, straight line, an Archer shoots from.
+const ARCHER_BARS := 4  # Bars between one Archer's shots.
 const SHIELDS := 3  # Conductor shields per wave; each absorbs one ranged hit.
 const RESTORE_GRID_STEPS := 1  # Restore lands on the next 8th note. 0 = instant.
 const RIPPLE_SPEED := 28.0  # Tiles per second the refresh ripple travels.
@@ -59,21 +59,12 @@ var m4_stats := {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "par
 func _ready() -> void:
 	super._ready()
 	title = "M4 Suppress and Restore"
-	var boom := AudioStreamPlayer.new()
-	boom.stream = StemSynth.chime(110.0)
-	boom.volume_db = 2.0
-	add_child(boom)
-	_sfx["restore"] = boom
-	var zap := AudioStreamPlayer.new()
-	zap.stream = StemSynth.chime(220.0)
-	zap.volume_db = -6.0
-	add_child(zap)
-	_sfx["suppress"] = zap
-	for sfx in [["tell", 165.0, -4.0], ["parry", 1760.0, -2.0], ["tick", 660.0, -14.0]]:
+	# Defence voices, also in E (D-0029).
+	for sfx in [["restore", StemSynth.stab(82.4, true), 2.0], ["suppress", StemSynth.thud(), -2.0], ["tell", StemSynth.stab(41.2), -6.0], ["parry", StemSynth.stab(82.4), -1.0], ["parry_perfect", StemSynth.stab(164.8, true), 0.0], ["tick", StemSynth.tick(660.0), -14.0]]:
 		if _sfx.has(sfx[0]):
 			continue
 		var player := AudioStreamPlayer.new()
-		player.stream = StemSynth.chime(sfx[1])
+		player.stream = sfx[1]
 		player.volume_db = sfx[2]
 		add_child(player)
 		_sfx[sfx[0]] = player
@@ -213,7 +204,7 @@ func _arm_elites(s: int) -> void:
 	for c in creeps:
 		if not c.get("elite", false) or c.get("kind", "") != "archer" or c["hp"] <= 0.0:
 			continue
-		if beat_time() < c["cooldown_until"] or _path_left(c) > ARCHER_RANGE:
+		if beat_time() < c["cooldown_until"] or c["pos"].distance_to(Vector2(GOAL)) > ARCHER_RANGE:
 			continue
 		c["cooldown_until"] = beat_time() + ARCHER_BARS * clock.bar_length()
 		arrows.append({"launch": bar_time, "arrive": bar_time + clock.bar_length(), "from": c["pos"], "state": "flying", "ref": c, "ticked": -1, "told": false})
@@ -331,7 +322,7 @@ func _parry() -> void:
 		_show_feedback("Too early (%+.0f ms)" % offset_ms, Color(1, 1, 1, 0.5))
 		return
 	on_streak_hit()
-	_sfx["parry"].play()
+	_sfx["parry_perfect" if g == "Perfect" else "parry"].play()
 	_lead_timer = clock.bar_length()
 	_resolve_parry(best, g, offset_ms)
 
@@ -598,9 +589,14 @@ func _draw() -> void:
 		var frac: float = clampf((beat_time() - a["launch"]) / maxf(a["arrive"] - a["launch"], 0.01), 0.0, 1.0)
 		var last: bool = a["told"]
 		var beats_gone := clampi(floori((beat_time() - a["launch"]) / beat), 0, 4)
-		var ap := _to_screen(_path_pos(a))
-		draw_circle(ap, TILE * (0.2 if not last else 0.26), Color(1, 0.5, 0.6))
-		draw_circle(ap, TILE * 0.09, Color.WHITE)
+		# A straight arrow over the maze: shaft, head, faint line of flight.
+		var from: Vector2 = a["from"]
+		var ap := _to_screen(from.lerp(Vector2(GOAL), frac))
+		var dir := (gp - _to_screen(from)).normalized()
+		draw_line(_to_screen(from), gp, Color(1, 0.3, 0.4, 0.12), 1.0)
+		draw_line(ap - dir * TILE * 0.5, ap, Color(1, 0.5, 0.6) if not last else Color(1, 0.3, 0.4), 3.0)
+		var side := Vector2(-dir.y, dir.x)
+		draw_colored_polygon(PackedVector2Array([ap + dir * 6.0, ap - side * 4.0, ap + side * 4.0]), Color.WHITE)
 		draw_arc(gp, TILE * (0.6 + 1.3 * (1.0 - frac)), 0, TAU, 48, Color(1, 0.3, 0.4, 0.35 + 0.65 * frac), 2.0 + 2.5 * frac)
 		for i in 4:
 			var pip := gp + Vector2(-15 + i * 10, -TILE * 0.95)
