@@ -4,6 +4,7 @@ extends RefCounted
 
 const PERFECT_MS := 35.0
 const GOOD_MS := 90.0
+const PARRY_GOOD_MS := 110.0  # Parries (elite pulses, boss bolts) are a touch wider than notes.
 const SETTINGS_PATH := "user://settings.cfg"
 
 
@@ -12,6 +13,15 @@ static func grade(offset_ms: float) -> String:
 	if a <= PERFECT_MS:
 		return "Perfect"
 	if a <= GOOD_MS:
+		return "Good"
+	return "Miss"
+
+
+static func grade_parry(offset_ms: float) -> String:
+	var a := absf(offset_ms)
+	if a <= PERFECT_MS:
+		return "Perfect"
+	if a <= PARRY_GOOD_MS:
 		return "Good"
 	return "Miss"
 

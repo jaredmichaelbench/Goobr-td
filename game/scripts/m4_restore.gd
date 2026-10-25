@@ -238,10 +238,11 @@ func _parry() -> void:
 		_show_feedback("Nothing to parry", Color(1, 1, 1, 0.4))
 		return
 	var offset_ms: float = (press_time() - best["time"]) * 1000.0
-	var g := Timing.grade(offset_ms)
+	var g := Timing.grade_parry(offset_ms)
 	if g == "Miss":
 		_show_feedback("Too early (%+.0f ms)" % offset_ms, Color(1, 1, 1, 0.5))
 		return
+	on_streak_hit()
 	_sfx["parry"].play()
 	_lead_timer = clock.bar_length()
 	_resolve_parry(best, g, offset_ms)
@@ -252,11 +253,19 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	var perfect := g == "Perfect"
 	if cand["kind"] == "elite":
 		var c: Dictionary = cand["ref"]
+		var targets: Array = c.get("pulse_targets", [])
 		_cancel_pulse(c)
 		m4_stats["parried"] += 1
-		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
+		# The attacked tower fires back: its own damage x3, at least PARRY_DAMAGE.
+		var from := Vector2(GOAL)
+		var base := PARRY_DAMAGE
+		if not targets.is_empty() and structures.has(targets[0]):
+			from = Vector2(targets[0])
+			base = maxf(PARRY_DAMAGE, builds[structures[targets[0]]["type"]]["damage"] * 3.0)
+			_flashes[targets[0]] = 0.3
+		var dmg := base * (2.0 if perfect else 1.0)
 		c["hp"] -= dmg
-		shots.append({"from": Vector2(GOAL), "to": c["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.3, "splash": 0.0})
+		shots.append({"from": from, "to": c["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 3.0})
 		_popup(c["pos"], ("%d!" if perfect else "%d") % roundi(dmg), Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, 20 if perfect else 15)
 		_show_feedback("%sPARRY  %+.0f ms" % ["PERFECT " if perfect else "", offset_ms], Color(1.0, 0.9, 0.3) if perfect else Color.WHITE)
 
@@ -281,8 +290,9 @@ func step(delta: float) -> void:
 			if not c["told"] and beat_time() >= c["pulse_at"] - PULSE_TELL_BEATS * beat:
 				c["told"] = true
 				_sfx["tell"].play()
-			if press_time() > c["pulse_at"] + Timing.GOOD_MS / 1000.0:
+			if press_time() > c["pulse_at"] + Timing.PARRY_GOOD_MS / 1000.0:
 				_pulse_lands(c)
+				on_streak_miss()
 	for cell in immune.keys():
 		immune[cell] -= delta
 		if immune[cell] <= 0.0 or not structures.has(cell):

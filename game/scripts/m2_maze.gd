@@ -396,11 +396,22 @@ func _say(text: String) -> void:
 	_message_time = 1.5
 
 
+## Nudge: gold sitting unspent in the build phase.
+func _unspent_hint() -> String:
+	var cheapest := INF
+	for type in builds:
+		if type != "wall":
+			cheapest = minf(cheapest, builds[type]["cost"])
+	if gold >= cheapest:
+		return "   (%d gold unspent)" % gold
+	return ""
+
+
 func status_lines() -> Array[String]:
 	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > LAST_WAVE else ("Wave %d/%d" % [wave, LAST_WAVE])
 	var lines: Array[String] = [
 		"Gold %d    Health %d" % [gold, health],
-		(wave_label + " in progress") if wave_active else ("Press N to start wave %d" % (wave + 1)),
+		(wave_label + " in progress") if wave_active else ("Press N to start wave %d%s" % [wave + 1, _unspent_hint()]),
 		"",
 		"Build mode: %s (B)" % ("ON" if build_mode else "off"),
 		"Selected: %s (%dg)" % [selected, builds[selected]["cost"]],

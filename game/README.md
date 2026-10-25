@@ -8,13 +8,13 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
-## M5: first boss (v4)
+## M5: first boss (v5)
 
 The question: does the boss feel like learning a souls boss, not reading a chart?
 
 Everything from M4, plus:
 
-- **Wave 5 is the boss**, alone. Press **O** to summon it any time instead. It walks your maze slowly (0.4 tiles a second) with a big health bar over the board and a thin yellow **posture** bar under it. Towers, parries and Restore salvos all damage it.
+- **Wave 5 is the boss**, with a small escort pack at the start and another 10 seconds later. Press **O** to summon it any time instead. It walks your maze slowly (0.4 tiles a second) with a big health bar over the board and a thin yellow **posture** bar under it. Towers, parries and Restore salvos all damage it.
 - **No chart notes during the boss.** The fight is Space. Your towers keep firing on their own.
 - Its attacks are the event. It throws **bolts down your path at the Conductor** (the goal, marked with a ring) in short strings of four. The tell is the boss swelling for a beat, a low tone, then the bolt leaving the boss and flying along your maze. Bolts launch on the beat and land on the 8th-note grid. Same read as an elite's pulse: watch the projectile land, press Space.
 - Far away, bolts take up to 3 seconds to arrive and strings are half-time. In the middle third they're on the beat. In the last third, or once it reaches the Conductor, they come on 8th notes with half a second of warning. A long maze buys you time to read it.
@@ -32,14 +32,14 @@ Everything from M4, plus:
 - Is a posture break satisfying, and does the note burst feel like a reward rather than a test?
 - Too hard or too easy, and where: the parry window, the bolt damage, the boss health?
 
-## M4: suppress and Restore (v6)
+## M4: suppress and Restore (v7)
 
 The question: does silence create tension, and does restoring feel great?
 
 Everything from M3, plus:
 
 - **Elites** are big, dark red, 4x health, a bit slower. One from wave 3, two from wave 5, three from wave 7, spread through the wave. Missing a note never locks anything.
-- **Elites throw pulses at your towers.** When an elite has a tower within reach, on the next bar it **raises a sword** and throws a **pulse** at the nearest tower. Watch the tower, not the elite: a red ring closes on it over the bar, four pips above it fill one per beat (tick, tick, tick, low tone), and the pulse crawls in. **Press Space as the ring closes and the pulse lands to parry it**: the pulse is cancelled and the elite takes damage (Perfect counts double). Miss the parry and that one tower (two from wave 6) locks for 5 seconds. The same elite throws again after 8 bars.
+- **Elites throw pulses at your towers.** When an elite has a tower within reach, on the next bar it **raises a sword** and throws a **pulse** at the nearest tower. Watch the tower, not the elite: a red ring closes on it over the bar, four pips above it fill one per beat (tick, tick, tick, low tone), and the pulse crawls in. **Press Space as the ring closes and the pulse lands to parry it**: the pulse is cancelled and the attacked tower fires back at the elite (three times its damage, double on a Perfect). The parry window is a touch wider than a note's. Miss the parry and that one tower (two from wave 6) locks for 5 seconds. The same elite throws again after 8 bars.
 - Locked towers go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. A locked tower can't be locked again.
 - **F = Restore, any time.** It lands on the next 8th note so the sound sits on the music. A refresh ripple sweeps the board from the goal outward, and every locked tower relights as it passes with an **Overcharge salvo** (2.5x damage, splash). The melody joins for 2 bars. Relit towers get a **shield for 2 bars** (pale ring): they can't be locked, and any pulse in the air is knocked out of it.
 - **3 Restore charges**, one back per wave cleared (cap 3). Locks also wear off on their own after 5 seconds.
@@ -53,7 +53,7 @@ Everything from M3, plus:
 - Did you reroute or rebuild to keep elites away from towers, now that a pulse means a parry?
 - Are 3 charges and +1 per wave about right?
 
-## M3: the maze plays the song (v7)
+## M3: the maze plays the song (v8)
 
 The question: can you hear your maze, and do you build it so your towers are in the fight when the song calls for them?
 
@@ -65,6 +65,8 @@ The question: can you hear your maze, and do you build it so your towers are in 
 - **A miss costs only the bonus.** Nothing locks, nothing else happens. If you have no towers, the note is skipped.
 - **The timeline is off by default.** Press **L** to show the faint scrolling strip at the top if you want to compare. Play from the rings and the music.
 - The chart grows: one note per bar in wave 1, two in wave 2, Q and E mixed from wave 3, four from wave 4.
+- **The music bed is bass and rhythm only** now: a soft kick, a sub pulse on every beat, and a low pulse layer. Nothing melodic, so when the real track ducks on a miss what's left is plain, not bad. **Intensity**: every 4 landed notes or parries in a row opens the mix one step (the track and the pulse layer get louder); any miss closes one. The HUD shows streak and intensity.
+- Build phase: the "Press N" line shows gold left unspent when you can afford a tower.
 - **Wave clear**: when the last creep dies, pending notes vanish, the melody drops, a sting lands on the next beat and the groove fades out. The build phase is quiet.
 - Balance: 100 starting gold, 1g per kill, creeps get 30% tougher each wave.
 
@@ -74,6 +76,7 @@ The question: can you hear your maze, and do you build it so your towers are in 
 - Does a snipe or a wave feel like a payoff, and does the miss feel fair (just a lost bonus)?
 - Do the notes pull your eyes to the maze rather than to the top of the screen?
 - Did tower choice (heavy vs splash) feel like a TD decision?
+- Does the bed sit under the real tracks now, and can you hear the mix open up on a streak?
 
 ## M2: the maze
 

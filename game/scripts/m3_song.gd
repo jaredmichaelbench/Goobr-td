@@ -78,11 +78,17 @@ const START_GOLD_M3 := 100
 const WALL_LIMIT := 20
 
 const IDLE_DB := {"kick": -16.0, "hat": -80.0, "bass": -80.0, "lead": -80.0}
-const ACTIVE_DB := {"kick": 0.0, "hat": -8.0, "bass": 0.0, "lead": -1.0}
+const ACTIVE_DB := {"kick": 0.0, "hat": -8.0, "bass": 0.0, "lead": -6.0}
 ## A real song (test only, see audio/README.md) takes the groove slot.
 const SONG_DIR := "res://audio"
 const SONG_IDLE_DB := -9.0
 const SONG_ACTIVE_DB := -1.0
+## Intensity: the streak of landed notes and parries opens the mix one step
+## per STREAK_PER_STEP hits; any miss drops a step. Step 0 is the plain bed.
+const INTENSITY_STEPS := 3
+const STREAK_PER_STEP := 4
+const SONG_STEP_DB := 2.0  # The real track gains this per step below full.
+const PULSE_STEP_DB := 4.0  # The low pulse layer gains this per step.
 const SONG_CFG := "res://audio/songs.cfg"  # [bpm] "file.wav" = 130
 const DEFAULT_BPM := 120.0
 
@@ -113,6 +119,8 @@ var _bursts: Array[Dictionary] = []
 var _popups: Array[Dictionary] = []  # Floating damage numbers: pos, text, color, size, ttl.
 var _line_flash := {"color": Color.WHITE, "ttl": 0.0}
 var _punch := 0.0  # Seconds of screen punch left.
+var streak := 0  # Landed notes and parries in a row.
+var intensity := 0  # 0..INTENSITY_STEPS, from the streak.
 var _sting_at := -1.0  # Song time the wave-clear sting lands, or -1.
 var _sfx := {}  # name -> AudioStreamPlayer
 
@@ -177,6 +185,8 @@ func reset() -> void:
 	notes.clear()
 	_reset_stats()
 	_wave_notes = 0
+	streak = 0
+	intensity = 0
 
 
 func _reset_stats() -> void:
@@ -588,6 +598,7 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	stats[type]["hits"] += 1
 	if crit:
 		stats[type]["perfects"] += 1
+	on_streak_hit()
 	_lead_timer = clock.bar_length() * LEAD_HOLD_BARS
 	_sfx["perfect" if crit else "good"].play()
 	var cell: Vector2i = n["tower"]
@@ -632,9 +643,22 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	_show_feedback("%s%s  %s  %+.0f ms   %d damage%s" % ["CRIT  " if crit else "", what, g, offset_ms, roundi(dealt), "   x%.2f crossfire" % crossfire if crossfire > 1.0 else ""], Color(1.0, 0.9, 0.3) if crit else color)
 
 
+## Streak bookkeeping: hits climb the intensity, a miss drops one step.
+func on_streak_hit() -> void:
+	streak += 1
+	if streak % STREAK_PER_STEP == 0:
+		intensity = mini(INTENSITY_STEPS, intensity + 1)
+
+
+func on_streak_miss() -> void:
+	streak = 0
+	intensity = maxi(0, intensity - 1)
+
+
 ## A note slid past its ring. It costs the bonus and nothing else.
 func _on_miss(n: Dictionary) -> void:
 	stats[n["type"]]["missed"] += 1
+	on_streak_miss()
 	_sfx["miss"].play()
 	_flash_line(Color(1, 0.3, 0.3))
 	_show_feedback("MISS", Color(1, 0.3, 0.3))
@@ -659,7 +683,7 @@ func _show_feedback(text: String, color: Color) -> void:
 # --- Music ---------------------------------------------------------------------
 
 func _update_stems(delta: float, speed: int) -> void:
-	var active := {"kick": false, "hat": false, "bass": false, "lead": _lead_timer > 0.0}
+	var active := {"kick": false, "hat": false, "bass": false, "lead": _lead_timer > 0.0 or intensity > 0}
 	for cell in structures:
 		var type: String = structures[cell]["type"]
 		if active.has(type) and not active[type] and tower_engaged(cell):
@@ -668,6 +692,11 @@ func _update_stems(delta: float, speed: int) -> void:
 	_adjust_mix(active)
 	for k in stem_db:
 		var target_db: float = active_db[k] if active[k] else idle_db[k]
+		# Intensity: the track and the pulse layer open up with the streak.
+		if active[k] and k == "hat" and song_index > 0:
+			target_db -= SONG_STEP_DB * (INTENSITY_STEPS - intensity)
+		if active[k] and k == "lead" and _lead_timer <= 0.0:
+			target_db -= PULSE_STEP_DB * (INTENSITY_STEPS - intensity)
 		if speed > 1:
 			target_db = -80.0
 		var cur: float = stem_db[k]
@@ -836,7 +865,7 @@ func status_lines() -> Array[String]:
 		var rate: float = 0.0 if st["notes"] == 0 else 100.0 * st["hits"] / st["notes"]
 		lines.append("%s  notes %d   hits %d (%.0f%%)   crits %d   missed %d" % [OS.get_keycode_string(KEYS[type]), st["notes"], st["hits"], rate, st["perfects"], st["missed"]])
 	lines.append("Calibration %+.0f ms (set in M1)%s" % [calibration_ms, "   ONE-KEY MODE" if one_key_mode else ""])
-	lines.append("Song: %s (%.0f BPM)   [ ] switch (%d/%d)" % [songs[song_index]["name"], clock.bpm, song_index + 1, songs.size()])
+	lines.append("Song: %s (%.0f BPM)   [ ] switch (%d/%d)   streak %d   intensity %d/%d" % [songs[song_index]["name"], clock.bpm, song_index + 1, songs.size(), streak, intensity, INTENSITY_STEPS])
 	return lines
 
 

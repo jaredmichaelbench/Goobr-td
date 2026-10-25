@@ -35,6 +35,8 @@ const POSTURE_PERFECT := 25.0  # Four Perfect parries, one full string, break it
 const POSTURE_MAX := 100.0
 const CRESCENDO_SECONDS := 6.0
 const CRESCENDO_MULT := 1.3
+const ESCORT_FRACTION := 0.34  # Each escort pack is this share of a normal wave.
+const ESCORT_DELAY := 10.0  # Seconds after the boss appears the second pack comes.
 
 var boss: Dictionary = {}  # The boss creep, or empty.
 var bolts: Array[Dictionary] = []  # launch, arrive, from (Vector2), state: flying/parried/hit
@@ -44,6 +46,7 @@ var _next_string_bar := -1
 var _string_index := 0
 var m5_stats := {"bolts": 0, "parries": 0, "perfect": 0, "hits": 0, "breaks": 0}
 var _conductor_flash := {"color": Color.WHITE, "ttl": 0.0}
+var _escort_at := -1.0  # Song time the second escort pack is released, or -1.
 
 
 func _ready() -> void:
@@ -64,6 +67,7 @@ func reset() -> void:
 	posture = 0.0
 	crescendo = 0.0
 	_next_string_bar = -1
+	_escort_at = -1.0
 	m5_stats = {"bolts": 0, "parries": 0, "perfect": 0, "hits": 0, "breaks": 0}
 
 
@@ -83,7 +87,9 @@ func start_wave() -> void:
 	var was_active := wave_active
 	super.start_wave()
 	if wave_active and not was_active and wave == BOSS_WAVE:
-		_to_spawn = 0  # The boss comes alone.
+		# The boss brings two small packs: one now, one ESCORT_DELAY later.
+		_to_spawn = _escort_size()
+		_escort_at = beat_time() + ESCORT_DELAY
 		_summon_boss()
 
 
@@ -97,6 +103,10 @@ func _summon_boss() -> void:
 	posture = 0.0
 	_next_string_bar = floori(beat_time() / clock.bar_length()) + 1
 	_show_feedback("THE BOSS   parry its bolts with Space", Color(1, 0.4, 0.5))
+
+
+func _escort_size() -> int:
+	return maxi(3, int(roundf(creeps_in_wave(wave) * ESCORT_FRACTION)))
 
 
 func boss_alive() -> bool:
@@ -136,11 +146,17 @@ func step(delta: float) -> void:
 		boss = {}
 		bolts.clear()
 		crescendo = 0.0
+	if _escort_at >= 0.0 and beat_time() >= _escort_at:
+		_escort_at = -1.0
+		if boss_alive():
+			_to_spawn += _escort_size()
+			_show_feedback("ESCORTS", Color(1, 0.4, 0.5))
 	# Bolts that reached the Conductor without a parry.
 	for b in bolts:
-		if b["state"] == "flying" and press_time() > b["arrive"] + Timing.GOOD_MS / 1000.0:
+		if b["state"] == "flying" and press_time() > b["arrive"] + Timing.PARRY_GOOD_MS / 1000.0:
 			b["state"] = "hit"
 			_bolt_hit()
+			on_streak_miss()
 	var keep: Array[Dictionary] = []
 	for b in bolts:
 		if b["arrive"] > beat_time() - 0.5:
