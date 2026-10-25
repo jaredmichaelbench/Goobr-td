@@ -12,7 +12,7 @@ extends "res://scripts/m3_song.gd"
 ## miss it and that tower is locked (suppressed) for SUPPRESS_SECONDS. Locked
 ## towers don't fire, don't answer notes, and their part drops out of the music.
 ##
-## Archer: once within ARCHER_RANGE of the Conductor it shoots an arrow
+## Archer: once within ARCHER_RANGE of the Conductor (any distance now) it shoots an arrow
 ## straight over the maze that lands on the next downbeat. Parry it and the Conductor
 ## deflects it back; miss it and it breaks one of the Conductor's SHIELDS
 ## (SHIELDS per wave), then costs health. Creeps walking in still cost health.
@@ -35,7 +35,7 @@ const PULSE_TARGETS_WAVE_6 := 2  # From wave 6 a pulse threatens the two nearest
 const PARRY_DAMAGE := 40.0
 const PULSE_TELL_BEATS := 1.0
 const IMMUNE_BARS := 2.0  # Towers relit by Restore can't be locked for this long.
-const ARCHER_RANGE := 16.0  # Tiles from the Conductor, straight line, an Archer shoots from.
+const ARCHER_RANGE := INF  # Archers shoot from anywhere on the board (Jared, playtest 5). Was 16 tiles.
 const ARCHER_BARS := 4  # Bars between one Archer's shots.
 const SHIELDS := 3  # Conductor shields per wave; each absorbs one ranged hit.
 const RESTORE_GRID_STEPS := 1  # Restore lands on the next 8th note. 0 = instant.
@@ -64,7 +64,7 @@ func _ready() -> void:
 		if _sfx.has(sfx[0]):
 			continue
 		var player := AudioStreamPlayer.new()
-		player.stream = sfx[1]
+		player.stream = StemSynth.with_override(sfx[0], sfx[1])
 		player.volume_db = sfx[2]
 		add_child(player)
 		_sfx[sfx[0]] = player

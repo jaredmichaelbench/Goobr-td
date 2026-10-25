@@ -181,7 +181,7 @@ func _ready() -> void:
 	# Feedback voices in E: half effect, half music (D-0029).
 	for sfx in [["perfect", StemSynth.pluck(329.6, true), -3.0], ["good", StemSynth.pluck(164.8), -6.0], ["miss", StemSynth.tick(), -4.0], ["clear", StemSynth.pluck(659.3, true), -2.0]]:
 		var player := AudioStreamPlayer.new()
-		player.stream = sfx[1]
+		player.stream = StemSynth.with_override(sfx[0], sfx[1])
 		player.volume_db = sfx[2]
 		add_child(player)
 		_sfx[sfx[0]] = player

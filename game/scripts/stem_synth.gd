@@ -109,6 +109,29 @@ static func tick(freq := 330.0) -> AudioStreamWAV:
 		return sin(TAU * freq * t) * env * 0.25)
 
 
+## Feedback sounds can be replaced by dropping a WAV in game/audio/sfx/ named
+## after the sheet in docs/notes/sound-sheet-2026-10-25.md (for example
+## note-perfect.wav). Missing files fall back to the synth voice.
+const SFX_FILES := {
+	"perfect": "note-perfect", "good": "note-good", "miss": "note-miss", "clear": "wave-clear",
+	"parry": "parry", "parry_perfect": "parry-perfect", "restore": "restore", "suppress": "tower-locked",
+	"tell": "tell", "tick": "beat-tick", "break": "posture-break",
+}
+
+
+static func with_override(key: String, synth: AudioStreamWAV) -> AudioStreamWAV:
+	var path := "res://audio/sfx/%s.wav" % SFX_FILES.get(key, key)
+	if not FileAccess.file_exists(path):
+		return synth
+	var stream := AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(path))
+	if stream == null:
+		push_warning("Could not read %s, using the synth voice" % path)
+		return synth
+	stream.loop_mode = AudioStreamWAV.LOOP_DISABLED
+	print("sfx override: ", path)
+	return stream
+
+
 static func _one_shot(seconds: float, voice: Callable) -> AudioStreamWAV:
 	var frames := int(seconds * MIX_RATE)
 	var data := PackedByteArray()

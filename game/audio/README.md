@@ -2,6 +2,10 @@
 
 Drop WAV files in this folder to play them in M3 and M4. The WAVs stay out of the repo (see `.gitignore`), because the packs we buy don't allow redistributing the source files (`docs/notes/asset-licenses.md`). Only this README and `songs.cfg` are committed.
 
+## Your own sound effects
+
+Drop WAVs in `sfx/` named after `docs/notes/sound-sheet-2026-10-25.md` (`note-perfect.wav`, `parry.wav`, ...) and the game plays them instead of the built-in synth voices. `sfx-preview/` holds a render of the built-in voices to listen to. Both folders stay out of git.
+
 ## Switching songs
 
 1. Open M3 or M4 from the menu.
