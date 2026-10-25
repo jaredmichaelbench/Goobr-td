@@ -55,29 +55,30 @@ Everything from M3, plus:
 - Did you reroute or rebuild to keep elites away from towers, now that a pulse means a parry?
 - Are 3 charges and +1 per wave about right?
 
-## M3: the maze plays the song (v8)
+## M3: the maze plays the song (v9)
 
 The question: can you hear your maze, and do you build it so your towers are in the fight when the song calls for them?
 
 - Calibrate in M1 first (press **C** there). M3 uses the same calibration.
-- Build keys: **1** wall, **2** heavy tower (sand), **3** splash tower (teal). Tower type no longer decides which notes you get; it is a role, like any TD.
+- Build keys: **1** wall, **2** heavy tower (sand), **3** splash tower (teal), **4** slow tower (ice blue: taps every beat, slows to half speed). Tower type doesn't decide which notes you get; it is a role, like any TD.
+- **U** over a tower upgrades it once for its base cost again: +50% damage, +0.4 range, white chevron. Selling refunds 75% of everything you paid.
 - **The map has rock** (brown). Creeps can't walk on it and you can't build on it. **Walls are limited to 20**, so use the terrain.
 - **Notes are punctuation now.** A wave has a few notes per phrase, not a stream. Two beats before a note, a coloured ring closes on **one tower** (orange = Q, on the beat; purple = E, off the beat) with the key written on it. The ring stays on that tower until the note is gone, even if its target walks off.
-- Press the key as the ring closes and that tower fires across the whole board at the creep closest to the Conductor. A **heavy tower snipes**: 4x its damage, 8x on a Perfect, a bright tracer and a screen punch. A **splash tower lobs a wave**: 2x (4x Perfect) on everything within 2 tiles of the target. Both do more when other towers also have that creep in range (crossfire). A tower never carries two rings at once.
+- Press the key as the ring closes and that tower fires across the whole board at the creep closest to the Conductor. A **heavy tower snipes**: 4x its damage, 8x on a Perfect, a bright tracer and a screen punch. A **splash tower lobs a wave**: 2x (4x Perfect) on everything within 2 tiles of the target. A **slow tower freezes**: 2x (4x Perfect) on everything within 2 tiles and holds them for a beat (two on a Perfect). Both do more when other towers also have that creep in range (crossfire). A tower never carries two rings at once.
 - **A miss costs only the bonus.** Nothing locks, nothing else happens. If you have no towers, the note is skipped.
 - **The timeline is off by default.** Press **L** to show the faint scrolling strip at the top if you want to compare. Play from the rings and the music.
 - The chart grows: one note per bar in wave 1, two in wave 2, Q and E mixed from wave 3, four from wave 4.
 - **The music bed is bass and rhythm only** now: a soft kick, a sub pulse on every beat, and a low pulse layer. Nothing melodic, so when the real track ducks on a miss what's left is plain, not bad. **Intensity**: every 4 landed notes or parries in a row opens the mix one step (the track and the pulse layer get louder); any miss closes one. The HUD shows streak and intensity.
 - Build phase: the "Press N" line shows gold left unspent when you can afford a tower.
 - **Wave clear**: when the last creep dies, pending notes vanish, the melody drops, a sting lands on the next beat and the groove fades out. The build phase is quiet.
-- Balance: 100 starting gold, 1g per kill, creeps get 30% tougher each wave.
+- Balance: 100 starting gold, 1g per kill, 12 + 3 x wave on a clear, creeps get 30% tougher each wave.
 
 ### What to report back
 
 - Do the rings on single towers read clearly, and do you still know a note is coming without the timeline?
 - Does a snipe or a wave feel like a payoff, and does the miss feel fair (just a lost bonus)?
 - Do the notes pull your eyes to the maze rather than to the top of the screen?
-- Did tower choice (heavy vs splash) feel like a TD decision?
+- Did tower choice (heavy, splash, slow) and when to upgrade feel like TD decisions? Did the build phase feel worth stopping for?
 - Does the bed sit under the real tracks now, and can you hear the mix open up on a streak?
 
 ## M2: the maze

@@ -185,7 +185,7 @@ func _move_creeps(delta: float) -> void:
 func _towers_in_reach(pos: Vector2) -> Array[Vector2i]:
 	var hit: Array[Vector2i] = []
 	for cell in structures:
-		if KEYS.has(structures[cell]["type"]) and Vector2(cell).distance_to(pos) <= SUPPRESS_RADIUS:
+		if builds[structures[cell]["type"]].has("range") and Vector2(cell).distance_to(pos) <= SUPPRESS_RADIUS:
 			hit.append(cell)
 	return hit
 
@@ -362,7 +362,7 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 		var base := PARRY_DAMAGE
 		if not targets.is_empty() and structures.has(targets[0]):
 			from = Vector2(targets[0])
-			base = maxf(PARRY_DAMAGE, builds[structures[targets[0]]["type"]]["damage"] * 3.0)
+			base = maxf(PARRY_DAMAGE, tower_spec(targets[0])["damage"] * 3.0)
 			_flashes[targets[0]] = 0.3
 		var dmg := base * (2.0 if perfect else 1.0)
 		c["hp"] -= dmg
@@ -504,7 +504,7 @@ func _relight_tower(cell: Vector2i) -> void:
 		return
 	immune[cell] = IMMUNE_BARS * clock.bar_length()
 	_flashes[cell] = 0.3
-	var spec: Dictionary = builds[structures[cell]["type"]]
+	var spec: Dictionary = tower_spec(cell)
 	var target := _pick_target(Vector2(cell), spec["range"])
 	if target.is_empty():
 		return

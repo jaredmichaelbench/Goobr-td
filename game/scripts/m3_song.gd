@@ -26,7 +26,13 @@ const RING_LEAD_STEPS := 4  # Tower rings start two beats before a note.
 const PATTERNS := {
 	"kick": StemSynth.KICK_STEPS,
 	"bass": StemSynth.BASS_STEPS,
+	"slow": StemSynth.SUB_STEPS,  # Every beat: a tap that slows.
 }
+const SLOW_BUILD := {"cost": 30, "color": Color(0.6, 0.8, 1.0), "range": 2.2, "damage": 3.0, "cooldown": 0.5, "splash": 0.0, "slow": 1.5}
+const FREEZE_GOOD := 2.0  # Slow tower note: a freeze on everything near the target, damage x this.
+const FREEZE_PERFECT := 4.0
+const FREEZE_BEATS_GOOD := 1.0
+const FREEZE_BEATS_PERFECT := 2.0
 const KEYS := {"kick": KEY_Q, "bass": KEY_E}
 const KEY_TYPE := {KEY_Q: "kick", KEY_E: "bass"}
 ## Charts are [bar in phrase, 8th-note step, tower type]. Q notes sit on the
@@ -127,8 +133,9 @@ var _sfx := {}  # name -> AudioStreamPlayer
 
 func _ready() -> void:
 	title = "M3 The maze plays the song"
-	build_keys = {KEY_1: "wall", KEY_2: "kick", KEY_3: "bass"}
+	build_keys = {KEY_1: "wall", KEY_2: "kick", KEY_3: "bass", KEY_4: "slow"}
 	builds.erase("hat")  # Hats are background music now, not a tower (D-0014).
+	builds["slow"] = SLOW_BUILD.duplicate()
 	builds["bass"]["damage"] = 4.5  # Splash fires twice as often, on the off-beats.
 	# Tower colors are roles now; note colors (NOTE_COLORS) are the keys.
 	builds["kick"]["color"] = Color(0.9, 0.78, 0.5)
@@ -462,7 +469,7 @@ func _assign_note(n: Dictionary) -> void:
 			continue
 		var score := 0.0 if not busy.has(cell) else -1000.0
 		for c in creeps:
-			if c["hp"] > 0.0 and c["pos"].distance_to(Vector2(cell)) <= builds[type]["range"] + 1.0:
+			if c["hp"] > 0.0 and c["pos"].distance_to(Vector2(cell)) <= tower_spec(cell)["range"] + 1.0:
 				score += 1.0 + 0.25 * _coverage(c["pos"])
 		if score <= 0.0 and not lead_creep.is_empty():
 			score -= lead_creep["pos"].distance_to(Vector2(cell)) * 0.01
@@ -491,11 +498,13 @@ func _fire_towers_on(pattern_step: int) -> void:
 		var type: String = structures[cell]["type"]
 		if not PATTERNS.has(type) or not PATTERNS[type].has(pattern_step) or not tower_ready(cell):
 			continue
-		var spec: Dictionary = builds[type]
+		var spec: Dictionary = tower_spec(cell)
 		var target := _pick_target(Vector2(cell), spec["range"])
 		if target.is_empty():
 			continue
 		_hit(target, spec, spec["damage"] * damage_scale())
+		if spec.has("slow"):
+			target["slow_until"] = sim_time + spec["slow"]
 		_flashes[cell] = 0.12
 		shots.append({"from": Vector2(cell), "to": target["pos"], "color": spec["color"], "ttl": 0.12, "splash": spec["splash"]})
 
@@ -519,7 +528,7 @@ func _coverage(pos: Vector2) -> int:
 	var n := 0
 	for cell in structures:
 		var type: String = structures[cell]["type"]
-		if PATTERNS.has(type) and pos.distance_to(Vector2(cell)) <= builds[type]["range"]:
+		if PATTERNS.has(type) and pos.distance_to(Vector2(cell)) <= tower_spec(cell)["range"]:
 			n += 1
 	return n
 
@@ -531,7 +540,7 @@ func tower_ready(_cell: Vector2i) -> bool:
 
 ## A ready tower with something in range.
 func tower_engaged(cell: Vector2i) -> bool:
-	return tower_ready(cell) and not _pick_target(Vector2(cell), builds[structures[cell]["type"]]["range"]).is_empty()
+	return tower_ready(cell) and not _pick_target(Vector2(cell), tower_spec(cell)["range"]).is_empty()
 
 
 ## Towers of this type with something in range right now.
@@ -610,16 +619,20 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 		_flash_line(color)
 		_show_feedback("%s   nothing to hit" % g, color)
 		return
-	var spec: Dictionary = builds[structures[cell]["type"]]
+	var spec: Dictionary = tower_spec(cell)
 	var crossfire := 1.0 + CROSSFIRE_BONUS * maxi(0, _coverage(target["pos"]) - 1)
-	var is_wave: bool = spec["splash"] > 0.0
+	var is_freeze: bool = spec.has("slow")
+	var is_wave: bool = spec["splash"] > 0.0 or is_freeze
 	var mult: float
-	if is_wave:
+	if is_freeze:
+		mult = FREEZE_PERFECT if crit else FREEZE_GOOD
+	elif is_wave:
 		mult = WAVE_PERFECT if crit else WAVE_GOOD
 	else:
 		mult = SNIPE_PERFECT if crit else SNIPE_GOOD
 	var bonus: float = spec["damage"] * damage_scale() * crossfire * mult
 	var radius: float = WAVE_RADIUS if is_wave else 0.0
+	var freeze_for: float = (FREEZE_BEATS_PERFECT if crit else FREEZE_BEATS_GOOD) * clock.beat_length()
 	var dealt := 0.0
 	var struck := 0
 	for c in creeps:
@@ -627,6 +640,8 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 			dealt += minf(bonus, maxf(c["hp"], 0.0))
 			c["hp"] -= bonus
 			struck += 1
+			if is_freeze:
+				c["frozen_until"] = sim_time + freeze_for
 	_flashes[cell] = 0.3
 	if is_wave:
 		shots.append({"from": Vector2(cell), "to": target["pos"], "color": color, "ttl": 0.4, "splash": radius, "width": 3.0})
@@ -639,7 +654,7 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 		_punch = PUNCH_SECONDS * (1.5 if crit else 1.0)
 	_popup(target["pos"], ("%d!" if crit else "%d") % roundi(dealt), Color(1.0, 0.9, 0.3) if crit else Color.WHITE, 24 if crit else 16)
 	_flash_line(Color(1.0, 0.9, 0.3) if crit else Color.WHITE)
-	var what := ("WAVE  %d hit" % struck) if is_wave else "SNIPE"
+	var what := ("FREEZE  %d held" % struck) if is_freeze else (("WAVE  %d hit" % struck) if is_wave else "SNIPE")
 	_show_feedback("%s%s  %s  %+.0f ms   %d damage%s" % ["CRIT  " if crit else "", what, g, offset_ms, roundi(dealt), "   x%.2f crossfire" % crossfire if crossfire > 1.0 else ""], Color(1.0, 0.9, 0.3) if crit else color)
 
 
@@ -755,7 +770,7 @@ func _draw() -> void:
 			continue
 		var p := _to_screen(Vector2(cell))
 		var a: float = clampf(_flashes[cell] / 0.12, 0.0, 1.0)
-		draw_circle(p, TILE * (0.32 + 0.15 * a), builds[structures[cell]["type"]]["color"] * Color(1, 1, 1, 0.5 * a))
+		draw_circle(p, TILE * (0.32 + 0.15 * a), tower_spec(cell)["color"] * Color(1, 1, 1, 0.5 * a))
 
 	# Each pending note is one ring on one tower, in the note's color, closing
 	# over two beats and holding at the tower until the note is gone.
@@ -877,6 +892,8 @@ func help_lines() -> Array[String]:
 		"%s  Wall       4g" % keys["wall"],
 		"%s  Heavy tower   20g  single target; its note is a snipe" % keys["kick"],
 		"%s  Splash tower  25g  splash; its note is a wave" % keys["bass"],
+		"%s  Slow tower    30g  taps every beat, slows; its note is a freeze" % keys["slow"],
+		"U  upgrade the tower under the mouse (its cost again: +50% damage, +range)",
 		"Q / E  press the key shown on a tower as its ring lands",
 		"K  one-key mode (any key plays any note)",
 		"L  timeline %s" % ("on" if show_timeline else "off"),

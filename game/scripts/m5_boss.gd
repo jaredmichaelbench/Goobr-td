@@ -288,7 +288,7 @@ func _posture_break() -> void:
 	# ring per tower, wrapping if there are more beats than towers.
 	var towers: Array[Vector2i] = []
 	for cell in structures:
-		if KEYS.has(structures[cell]["type"]):
+		if builds[structures[cell]["type"]].has("range"):
 			towers.append(cell)
 	if towers.is_empty():
 		return

@@ -45,6 +45,7 @@ var structures := {}  # Vector2i -> {"type", "cooldown"}
 var creeps: Array[Dictionary] = []
 var shots: Array[Dictionary] = []
 var _to_spawn := 0
+var sim_time := 0.0  # Seconds of simulation, for slows and freezes.
 var _spawn_timer := 0.0
 var _message := ""
 var _message_time := 0.0
@@ -117,6 +118,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			start_wave()
 		elif event.keycode == KEY_I:
 			iso = not iso
+		elif event.keycode == KEY_U and state == "playing":
+			upgrade(cell_at(get_local_mouse_position()))
 		elif build_mode and build_keys.has(event.keycode):
 			selected = build_keys[event.keycode]
 	elif event is InputEventMouseButton and event.pressed and build_mode and state == "playing":
@@ -152,10 +155,42 @@ func try_place(cell: Vector2i, type: String) -> bool:
 	return true
 
 
+## The spec a tower fires with: its base type, or its upgraded copy.
+func tower_spec(cell: Vector2i) -> Dictionary:
+	var s: Dictionary = structures[cell]
+	return s["spec"] if s.has("spec") else builds[s["type"]]
+
+
+func upgrade_cost(cell: Vector2i) -> int:
+	return int(builds[structures[cell]["type"]]["cost"])
+
+
+## One upgrade tier per tower: +50% damage, +0.4 range, for the tower's base cost.
+func upgrade(cell: Vector2i) -> bool:
+	if not structures.has(cell) or not builds[structures[cell]["type"]].has("range"):
+		return false
+	var s: Dictionary = structures[cell]
+	if s.get("tier", 0) >= 1:
+		_say("Already upgraded")
+		return false
+	var cost := upgrade_cost(cell)
+	if gold < cost:
+		_say("Not enough gold (%dg to upgrade)" % cost)
+		return false
+	gold -= cost
+	var spec: Dictionary = builds[s["type"]].duplicate()
+	spec["damage"] = spec["damage"] * 1.5
+	spec["range"] = spec["range"] + 0.4
+	s["spec"] = spec
+	s["tier"] = 1
+	s["paid"] = int(s.get("paid", builds[s["type"]]["cost"])) + cost
+	return true
+
+
 func sell(cell: Vector2i) -> void:
 	if not structures.has(cell):
 		return
-	gold += int(builds[structures[cell]["type"]]["cost"] * SELL_REFUND)
+	gold += int(structures[cell].get("paid", builds[structures[cell]["type"]]["cost"]) * SELL_REFUND)
 	structures.erase(cell)
 	grid.blocked.erase(cell)
 	grid.rebuild()
@@ -229,6 +264,7 @@ func _process(delta: float) -> void:
 ## One simulation tick. Separate from _process so tests can drive it.
 func step(delta: float) -> void:
 	_message_time = maxf(0.0, _message_time - delta)
+	sim_time += delta
 	var live_shots: Array[Dictionary] = []
 	for s in shots:
 		s["ttl"] -= delta
@@ -263,14 +299,19 @@ func step(delta: float) -> void:
 		state = "lost"
 	elif wave_active and _to_spawn == 0 and creeps.is_empty():
 		wave_active = false
-		gold += 10 + wave * 2
+		gold += 12 + wave * 3
 		if wave == LAST_WAVE and not endless:
 			state = "won"
 
 
 func _move_creeps(delta: float) -> void:
 	for c in creeps:
-		var remaining: float = c["speed"] * delta
+		var factor := 1.0
+		if c.get("frozen_until", 0.0) > sim_time:
+			factor = 0.0
+		elif c.get("slow_until", 0.0) > sim_time:
+			factor = 0.5
+		var remaining: float = c["speed"] * delta * factor
 		while remaining > 0.0:
 			var target := Vector2(c["target"])
 			var to_target: Vector2 = target - c["pos"]
@@ -291,7 +332,7 @@ func _fire_towers(delta: float) -> void:
 		var s: Dictionary = structures[cell]
 		if s["type"] == "wall":
 			continue
-		var spec: Dictionary = builds[s["type"]]
+		var spec: Dictionary = tower_spec(cell)
 		s["cooldown"] = maxf(0.0, s["cooldown"] - delta)
 		if s["cooldown"] > 0.0:
 			continue
@@ -480,12 +521,21 @@ func _draw() -> void:
 			_draw_block(cell, builds[type]["color"] * Color(1.1, 1.1, 1.1), builds[type]["color"], block_h * 0.7, 0.07)
 		else:
 			_draw_block(cell, Color(0.26, 0.26, 0.3), Color(0.2, 0.2, 0.24), block_h * 0.35, 0.07)
-			draw_circle(_to_screen(Vector2(cell)) + Vector2(0, -block_h * 0.35), TILE * 0.32, builds[type]["color"])
+			var tc := _to_screen(Vector2(cell)) + Vector2(0, -block_h * 0.35)
+			draw_circle(tc, TILE * 0.32, builds[type]["color"])
+			if structures[cell].get("tier", 0) >= 1:
+				# Upgraded: a white chevron over the tower.
+				draw_polyline(PackedVector2Array([tc + Vector2(-6, -8), tc + Vector2(0, -13), tc + Vector2(6, -8)]), Color.WHITE, 2.0)
 
 	# Creeps and shots.
 	for c in creeps:
 		var p := _to_screen(c["pos"])
-		draw_circle(p, TILE * 0.28, Color(0.9, 0.3, 0.35))
+		var body := Color(0.9, 0.3, 0.35)
+		if c.get("frozen_until", 0.0) > sim_time:
+			body = Color(0.75, 0.9, 1.0)
+		elif c.get("slow_until", 0.0) > sim_time:
+			body = Color(0.7, 0.5, 0.8)
+		draw_circle(p, TILE * 0.28, body)
 		var frac: float = clampf(c["hp"] / c["max_hp"], 0.0, 1.0)
 		draw_rect(Rect2(p + Vector2(-12, -16), Vector2(24 * frac, 3)), Color(0.4, 1.0, 0.4))
 	for s in shots:
@@ -503,8 +553,8 @@ func _draw() -> void:
 		_draw_cell(hover, Color(0.3, 1.0, 0.4, 0.3) if ok else Color(1.0, 0.3, 0.3, 0.3))
 		if builds[selected].has("range"):
 			draw_arc(_to_screen(Vector2(hover)), builds[selected]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.3), 1.5)
-	if structures.has(hover) and builds[structures[hover]["type"]].has("range"):
-		draw_arc(_to_screen(Vector2(hover)), builds[structures[hover]["type"]]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.4), 1.5)
+	if structures.has(hover) and tower_spec(hover).has("range"):
+		draw_arc(_to_screen(Vector2(hover)), tower_spec(hover)["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.4), 1.5)
 
 	# HUD: bright status lines, then dimmer help lines.
 	var y := 40.0
