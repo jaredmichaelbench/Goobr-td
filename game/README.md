@@ -8,7 +8,7 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
-## M5: first boss (v5)
+## M5: first boss (v6)
 
 The question: does the boss feel like learning a souls boss, not reading a chart?
 
@@ -19,7 +19,7 @@ Everything from M4, plus:
 - Its attacks are the event. It throws **bolts down your path at the Conductor** (the goal, marked with a ring) in short strings of four. The tell is the boss swelling for a beat, a low tone, then the bolt leaving the boss and flying along your maze. Bolts launch on the beat and land on the 8th-note grid. Same read as an elite's pulse: watch the projectile land, press Space.
 - Far away, bolts take up to 3 seconds to arrive and strings are half-time. In the middle third they're on the beat. In the last third, or once it reaches the Conductor, they come on 8th notes with half a second of warning. A long maze buys you time to read it.
 - **Space parries** a bolt as it reaches the Conductor. Perfect or Good deflects it back for damage and posture (Perfect counts double). Four Perfect parries in a row break posture.
-- A **hit** (no parry, or late) costs 2 health and locks the nearest tower to the boss, so Restore applies.
+- A **hit** (no parry, or late) breaks a Conductor shield if one is left, otherwise costs 2 health, and locks the nearest tower to the boss, so Restore applies.
 - **Posture break**: the boss staggers for 6 seconds, every tower does +30%, the full mix slams in, and the board glows. A short **note burst** opens too: one note per beat, sweeping across your towers from the farthest from the boss to the nearest, each a free snipe or wave at the boss. That is the only time notes appear in the boss fight.
 - Kill it to clear the wave. If it reaches the Conductor it doesn't leak; it stands there and attacks at the fastest tempo.
 
@@ -32,14 +32,15 @@ Everything from M4, plus:
 - Is a posture break satisfying, and does the note burst feel like a reward rather than a test?
 - Too hard or too easy, and where: the parry window, the bolt damage, the boss health?
 
-## M4: suppress and Restore (v7)
+## M4: suppress and Restore (v8)
 
 The question: does silence create tension, and does restoring feel great?
 
 Everything from M3, plus:
 
-- **Elites** are big, dark red, 4x health, a bit slower. One from wave 3, two from wave 5, three from wave 7, spread through the wave. Missing a note never locks anything.
-- **Elites throw pulses at your towers.** When an elite has a tower within reach, on the next bar it **raises a sword** and throws a **pulse** at the nearest tower. Watch the tower, not the elite: a red ring closes on it over the bar, four pips above it fill one per beat (tick, tick, tick, low tone), and the pulse crawls in. **Press Space as the ring closes and the pulse lands to parry it**: the pulse is cancelled and the attacked tower fires back at the elite (three times its damage, double on a Perfect). The parry window is a touch wider than a note's. Miss the parry and that one tower (two from wave 6) locks for 5 seconds. The same elite throws again after 8 bars.
+- **Elites** are big, dark red, 4x health, a bit slower. One from wave 3, two from wave 5, three from wave 7, spread through the wave. Missing a note never locks anything. Two kinds, one rule: **a projectile leaves the elite, you watch it land, Space as it arrives.** The parry window is a touch wider than a note's.
+- **Jammer** (sword). When it has a tower within reach it stops walking, raises its sword, and throws a **pulse** at the nearest tower. Watch the tower: a red ring closes on it over the bar, four pips above it fill one per beat (tick, tick, tick, low tone), the pulse crawls in. Parry it and the attacked tower fires back (three times its damage, double on a Perfect). Miss it and that tower locks for 5 seconds.
+- **Archer** (bow), from wave 4. Once it is within 10 tiles of the Conductor it shoots an **arrow** down your path that lands on the next downbeat, then again every 6 bars. Watch the Conductor: the same closing ring and pips. Parry it and the Conductor deflects it back into the Archer. Miss it and it breaks one of the Conductor's **3 shields** (the diamonds under the goal, refilled every wave); with no shields left it costs 1 health. Creeps walking in always cost health; shields don't help there. Miss the parry and that one tower (two from wave 6) locks for 5 seconds. The same elite throws again after 8 bars.
 - Locked towers go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. A locked tower can't be locked again.
 - **F = Restore, any time.** It lands on the next 8th note so the sound sits on the music. A refresh ripple sweeps the board from the goal outward, and every locked tower relights as it passes with an **Overcharge salvo** (2.5x damage, splash). The melody joins for 2 bars. Relit towers get a **shield for 2 bars** (pale ring): they can't be locked, and any pulse in the air is knocked out of it.
 - **3 Restore charges**, one back per wave cleared (cap 3). Locks also wear off on their own after 5 seconds.
@@ -47,7 +48,8 @@ Everything from M3, plus:
 
 ### What to report back
 
-- Is the pulse readable as it crawls to your tower? Did you ever get locked without seeing it coming?
+- Is the pulse readable now that the Jammer stands still to throw? Did you ever get locked without seeing it coming?
+- Do Jammer and Archer feel like two different problems to maze for? Do the shields make the Archer fair?
 - Is one elite per wave at wave 3 the right start, and does a 5 s single-tower lock feel like a bruise rather than a wipe?
 - Does Space feel like one clear job (defence), separate from Q/E (offence)?
 - Did you reroute or rebuild to keep elites away from towers, now that a pulse means a parry?

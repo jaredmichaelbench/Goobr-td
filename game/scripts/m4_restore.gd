@@ -3,15 +3,20 @@ extends "res://scripts/m3_song.gd"
 ## does restoring on the beat feel great?
 ##
 ## Elite creeps (big, dark red) walk the maze with the wave, a few per wave
-## from ELITE_FIRST_WAVE. When an elite has a tower in reach it throws a pulse
-## at the nearest one on the next downbeat: the pulse is a visible projectile
-## that leaves the elite a bar early and crawls to the tower, with a tick on
-## every beat and a low tone on the last. Press Space as it lands to parry
-## (the elite takes damage); miss it and that tower is locked (suppressed) for
-## SUPPRESS_SECONDS. Locked towers don't fire, don't answer notes, and their
-## part drops out of the music. Notes never lock anything (D-0023): Space is
-## the one defensive input, here and on the boss, and it always means "the
-## projectile is landing" (D-0024).
+## from ELITE_FIRST_WAVE. Two kinds, one parry language: a projectile leaves
+## the elite, you watch it land, Space on arrival (D-0024, D-0027).
+##
+## Jammer: when it has a tower in reach it stops, raises a sword, and throws a
+## pulse at the nearest tower that lands on the next downbeat, with a tick on
+## every beat and a low tone on the last. Parry it and the tower fires back;
+## miss it and that tower is locked (suppressed) for SUPPRESS_SECONDS. Locked
+## towers don't fire, don't answer notes, and their part drops out of the music.
+##
+## Archer: once within ARCHER_RANGE of the Conductor it shoots an arrow down
+## the path that lands on the next downbeat. Parry it and the Conductor
+## deflects it back; miss it and it breaks one of the Conductor's SHIELDS
+## (SHIELDS per wave), then costs health. Creeps walking in still cost health.
+## Notes never lock anything (D-0023): Space is the one defensive input.
 ##
 ## F = Restore, any time. It lands on the next 8th note (at most 250 ms later)
 ## so the ripple, salvo and sound sit on the grid without you timing anything
@@ -30,6 +35,9 @@ const PULSE_TARGETS_WAVE_6 := 2  # From wave 6 a pulse threatens the two nearest
 const PARRY_DAMAGE := 40.0
 const PULSE_TELL_BEATS := 1.0
 const IMMUNE_BARS := 2.0  # Towers relit by Restore can't be locked for this long.
+const ARCHER_RANGE := 10.0  # Path tiles from the Conductor an Archer shoots from.
+const ARCHER_BARS := 6  # Bars between one Archer's shots.
+const SHIELDS := 3  # Conductor shields per wave; each absorbs one ranged hit.
 const RESTORE_GRID_STEPS := 1  # Restore lands on the next 8th note. 0 = instant.
 const RIPPLE_SPEED := 28.0  # Tiles per second the refresh ripple travels.
 const RESTORE_CHARGES := 3
@@ -43,7 +51,9 @@ var _restore_at := -1.0  # Song time a pressed Restore lands, or -1.
 var _relight := {}  # cell -> distance from the goal, waiting for the ripple
 var _ripple := -1.0  # Ripple radius in tiles, or -1 when idle.
 var immune := {}  # tower cell -> seconds of lock immunity left (after Restore)
-var m4_stats := {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "parried": 0}
+var shields := SHIELDS
+var arrows: Array[Dictionary] = []  # launch, arrive, from, state (flying/parried/hit), ref (the Archer)
+var m4_stats := {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "parried": 0, "arrows": 0, "shields_lost": 0}
 
 
 func _ready() -> void:
@@ -73,18 +83,23 @@ func reset() -> void:
 	super.reset()
 	suppressed.clear()
 	immune.clear()
+	shields = SHIELDS
+	arrows.clear()
 	restore_charges = RESTORE_CHARGES
 	_restore_at = -1.0
 	_relight.clear()
 	_ripple = -1.0
-	m4_stats = {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "parried": 0}
+	m4_stats = {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "parried": 0, "arrows": 0, "shields_lost": 0}
 
 
 func start_wave() -> void:
 	var was_active := wave_active
 	super.start_wave()
-	if wave_active and not was_active and wave > 1:
-		restore_charges = mini(RESTORE_CHARGES, restore_charges + 1)
+	if wave_active and not was_active:
+		shields = SHIELDS
+		arrows.clear()
+		if wave > 1:
+			restore_charges = mini(RESTORE_CHARGES, restore_charges + 1)
 
 
 # --- Elites ------------------------------------------------------------------
@@ -106,15 +121,28 @@ func elite_slots(w: int) -> Array[int]:
 	return out
 
 
+## Which kind the k-th elite of a wave is: Jammers first, Archers from wave 4,
+## then alternating.
+func elite_kind(w: int, k: int) -> String:
+	if w <= 3:
+		return "jammer"
+	if w == 4:
+		return "archer"
+	return "jammer" if k % 2 == 0 else "archer"
+
+
 func _spawn_creep() -> void:
 	super._spawn_creep()
 	var index := creeps_in_wave(wave) - _to_spawn  # 1-based spawn order (this one).
-	if elite_slots(wave).has(index):
+	var slots := elite_slots(wave)
+	if slots.has(index):
 		var c: Dictionary = creeps[creeps.size() - 1]
 		c["elite"] = true
+		c["kind"] = elite_kind(wave, slots.find(index))
 		c["hp"] *= ELITE_HP_MULT
 		c["max_hp"] = c["hp"]
 		c["speed"] *= ELITE_SPEED_MULT
+		c["base_speed"] = c["speed"]
 		c["pulse_at"] = -1.0  # Song time its next pulse lands, or -1.
 		c["pulse_from"] = -1.0  # Song time the projectile left the elite.
 		c["pulse_targets"] = [] as Array[Vector2i]
@@ -132,13 +160,26 @@ func _adjust_mix(active: Dictionary) -> void:
 		active["hat"] = false
 
 
-## Elites with towers in reach right now.
+## Jammers with towers in reach right now.
 func armed_elites() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for c in creeps:
-		if c.get("elite", false) and c["hp"] > 0.0 and not _towers_in_reach(c["pos"]).is_empty():
+		if c.get("elite", false) and c.get("kind", "jammer") == "jammer" and c["hp"] > 0.0 and not _towers_in_reach(c["pos"]).is_empty():
 			out.append(c)
 	return out
+
+
+func _path_left(c: Dictionary) -> float:
+	return float(grid.dist(c["target"])) + c["pos"].distance_to(Vector2(c["target"]))
+
+
+## A Jammer stands still while its pulse is in the air, so the throw never
+## comes from on top of the tower and the projectile has a path to read.
+func _move_creeps(delta: float) -> void:
+	for c in creeps:
+		if c.get("elite", false) and c.has("base_speed"):
+			c["speed"] = 0.0 if (c["kind"] == "jammer" and c["pulse_at"] >= 0.0) else c["base_speed"]
+	super._move_creeps(delta)
 
 
 func _towers_in_reach(pos: Vector2) -> Array[Vector2i]:
@@ -162,12 +203,21 @@ func _pulse_targets_for(pos: Vector2) -> Array[Vector2i]:
 	return out
 
 
-## Called every step. On a bar start, an armed elite with its cooldown done
-## throws a pulse that lands on the next downbeat: a full bar in the air.
+## Called every step. On a bar start, an armed Jammer with its cooldown done
+## throws a pulse that lands on the next downbeat (a full bar in the air), and
+## an Archer in range shoots an arrow that lands on the same downbeat.
 func _arm_elites(s: int) -> void:
 	if posmod(s, STEPS_PER_BAR) != 0:
 		return
 	var bar_time := floori(float(s) / STEPS_PER_BAR) * clock.bar_length()
+	for c in creeps:
+		if not c.get("elite", false) or c.get("kind", "") != "archer" or c["hp"] <= 0.0:
+			continue
+		if beat_time() < c["cooldown_until"] or _path_left(c) > ARCHER_RANGE:
+			continue
+		c["cooldown_until"] = beat_time() + ARCHER_BARS * clock.bar_length()
+		arrows.append({"launch": bar_time, "arrive": bar_time + clock.bar_length(), "from": c["pos"], "state": "flying", "ref": c, "ticked": -1, "told": false})
+		m4_stats["arrows"] += 1
 	for c in armed_elites():
 		if c["pulse_at"] >= 0.0 or beat_time() < c["cooldown_until"]:
 			continue
@@ -223,7 +273,45 @@ func _parry_candidates() -> Array[Dictionary]:
 	for c in creeps:
 		if c.get("elite", false) and c["hp"] > 0.0 and c["pulse_at"] >= 0.0:
 			out.append({"time": c["pulse_at"], "kind": "elite", "ref": c})
+	for a in arrows:
+		if a["state"] == "flying":
+			out.append({"time": a["arrive"], "kind": "arrow", "ref": a})
 	return out
+
+
+## An arrow reached the Conductor unparried: a shield breaks, or health goes.
+func _arrow_hit(a: Dictionary) -> void:
+	a["state"] = "hit"
+	_shockwaves.append({"pos": Vector2(GOAL), "ttl": 0.5, "color": Color(0.9, 0.2, 0.3)})
+	_sfx["miss"].play()
+	if shields > 0:
+		shields -= 1
+		m4_stats["shields_lost"] += 1
+		_show_feedback("ARROW   shield broken, %d left" % shields, Color(1, 0.5, 0.4))
+	else:
+		health -= 1
+		_show_feedback("ARROW   -1 health", Color(1, 0.3, 0.3))
+		if health <= 0:
+			health = 0
+			state = "lost"
+
+
+## Where a projectile flying the path from `from` is right now.
+func _path_pos(b: Dictionary) -> Vector2:
+	var frac: float = clampf((beat_time() - b["launch"]) / maxf(b["arrive"] - b["launch"], 0.01), 0.0, 1.0)
+	var from: Vector2 = b["from"]
+	var total := float(grid.dist(Vector2i(from.round())))
+	if total <= 0.0:
+		return Vector2(GOAL)
+	var to_go := total * (1.0 - frac)
+	var cell := Vector2i(from.round())
+	var guard := 400
+	while grid.dist(cell) > to_go + 1.0 and guard > 0:
+		cell = grid.next_step(cell)
+		guard -= 1
+	var next := grid.next_step(cell)
+	var t := clampf(float(grid.dist(cell)) - to_go, 0.0, 1.0)
+	return Vector2(cell).lerp(Vector2(next), t)
 
 
 func _parry() -> void:
@@ -251,6 +339,19 @@ func _parry() -> void:
 ## What a parry does, by kind. M5 extends this for bolts.
 func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	var perfect := g == "Perfect"
+	if cand["kind"] == "arrow":
+		var a: Dictionary = cand["ref"]
+		a["state"] = "parried"
+		m4_stats["parried"] += 1
+		var archer: Dictionary = a["ref"]
+		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
+		if creeps.has(archer):
+			archer["hp"] -= dmg
+			shots.append({"from": Vector2(GOAL), "to": archer["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 3.0})
+			_popup(archer["pos"], ("%d!" if perfect else "%d") % roundi(dmg), Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, 20 if perfect else 15)
+		_shockwaves.append({"pos": Vector2(GOAL), "ttl": 0.4, "color": Color(1.0, 0.9, 0.3)})
+		_show_feedback("%sPARRY  %+.0f ms   arrow returned" % ["PERFECT " if perfect else "", offset_ms], Color(1.0, 0.9, 0.3) if perfect else Color.WHITE)
+		return
 	if cand["kind"] == "elite":
 		var c: Dictionary = cand["ref"]
 		var targets: Array = c.get("pulse_targets", [])
@@ -293,6 +394,26 @@ func step(delta: float) -> void:
 			if press_time() > c["pulse_at"] + Timing.PARRY_GOOD_MS / 1000.0:
 				_pulse_lands(c)
 				on_streak_miss()
+	# Arrows in the air: ticks, the tell, and the hit if nobody parried.
+	for a in arrows:
+		if a["state"] != "flying":
+			continue
+		var beat := clock.beat_length()
+		var beat_index := floori((beat_time() - a["launch"]) / beat)
+		if beat_index > a["ticked"] and beat_time() < a["arrive"] - PULSE_TELL_BEATS * beat:
+			a["ticked"] = beat_index
+			_sfx["tick"].play()
+		if not a["told"] and beat_time() >= a["arrive"] - PULSE_TELL_BEATS * beat:
+			a["told"] = true
+			_sfx["tell"].play()
+		if press_time() > a["arrive"] + Timing.PARRY_GOOD_MS / 1000.0:
+			_arrow_hit(a)
+			on_streak_miss()
+	var keep: Array[Dictionary] = []
+	for a in arrows:
+		if a["arrive"] > beat_time() - 0.5:
+			keep.append(a)
+	arrows = keep
 	for cell in immune.keys():
 		immune[cell] -= delta
 		if immune[cell] <= 0.0 or not structures.has(cell):
@@ -424,6 +545,14 @@ func _draw() -> void:
 		var p := _to_screen(c["pos"])
 		draw_circle(p, TILE * 0.4, Color(0.55, 0.1, 0.2))
 		draw_arc(p, TILE * 0.4, 0, TAU, 32, Color(1, 0.3, 0.4), 2.0)
+		if c.get("kind", "jammer") == "archer":
+			# A bow: an arc on its back, red while an arrow of its is in the air.
+			var shooting := false
+			for a in arrows:
+				if a["state"] == "flying" and a["ref"] == c:
+					shooting = true
+			draw_arc(p + Vector2(TILE * 0.3, -TILE * 0.2), TILE * 0.38, -PI * 0.6, PI * 0.6, 16, Color(1, 0.35, 0.4) if shooting else Color(1, 1, 1, 0.85), 3.0)
+			continue
 		if c["pulse_at"] < 0.0:
 			continue
 		var frac: float = clampf((beat_time() - c["pulse_from"]) / maxf(c["pulse_at"] - c["pulse_from"], 0.01), 0.0, 1.0)
@@ -459,6 +588,28 @@ func _draw() -> void:
 		draw_line(poly[1], poly[3], Color(1, 0.3, 0.3, 0.8), 2.0)
 		var frac: float = suppressed[cell] / SUPPRESS_SECONDS
 		draw_line(poly[3], poly[3].lerp(poly[2], frac), Color(1, 0.3, 0.3), 3.0)
+
+	# Arrows: fly the path to the Conductor; the Conductor's ring closes over
+	# the bar with beat pips, the same read as a pulse on a tower.
+	var gp := _to_screen(Vector2(GOAL))
+	for a in arrows:
+		if a["state"] != "flying":
+			continue
+		var frac: float = clampf((beat_time() - a["launch"]) / maxf(a["arrive"] - a["launch"], 0.01), 0.0, 1.0)
+		var last: bool = a["told"]
+		var beats_gone := clampi(floori((beat_time() - a["launch"]) / beat), 0, 4)
+		var ap := _to_screen(_path_pos(a))
+		draw_circle(ap, TILE * (0.2 if not last else 0.26), Color(1, 0.5, 0.6))
+		draw_circle(ap, TILE * 0.09, Color.WHITE)
+		draw_arc(gp, TILE * (0.6 + 1.3 * (1.0 - frac)), 0, TAU, 48, Color(1, 0.3, 0.4, 0.35 + 0.65 * frac), 2.0 + 2.5 * frac)
+		for i in 4:
+			var pip := gp + Vector2(-15 + i * 10, -TILE * 0.95)
+			draw_circle(pip, 3.5, Color(1, 0.35, 0.4) if i < beats_gone else Color(1, 1, 1, 0.25))
+	# Conductor shields: small diamonds under the goal.
+	for i in SHIELDS:
+		var sp := gp + Vector2(-12 + i * 12, TILE * 0.85)
+		var filled := i < shields
+		draw_colored_polygon(PackedVector2Array([sp + Vector2(0, -5), sp + Vector2(4, 0), sp + Vector2(0, 5), sp + Vector2(-4, 0)]), Color(0.6, 0.85, 1.0) if filled else Color(1, 1, 1, 0.15))
 
 	# Immune towers: a soft shield ring.
 	for cell in immune:
@@ -511,12 +662,12 @@ func _draw() -> void:
 
 func status_lines() -> Array[String]:
 	var lines := super.status_lines()
-	lines.append("Elite pulses %d   parried %d   Locked %d   Restores %d   Wore off %d" % [m4_stats["pulses"], m4_stats["parried"], m4_stats["suppressed"], m4_stats["restores"], m4_stats["expired"]])
+	lines.append("Pulses %d   Arrows %d   parried %d   Locked %d   Shields lost %d   Restores %d" % [m4_stats["pulses"], m4_stats["arrows"], m4_stats["parried"], m4_stats["suppressed"], m4_stats["shields_lost"], m4_stats["restores"]])
 	return lines
 
 
 func help_lines() -> Array[String]:
 	var lines := super.help_lines()
 	lines.insert(5, "F  Restore locked towers (%d/%d charges)" % [restore_charges, RESTORE_CHARGES])
-	lines.insert(6, "Space  parry an elite's pulse as it lands on your tower")
+	lines.insert(6, "Space  parry pulses (on towers) and arrows (at the Conductor, %d/%d shields)" % [shields, SHIELDS])
 	return lines

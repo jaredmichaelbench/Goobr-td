@@ -214,10 +214,16 @@ func _call_string(bar: int) -> void:
 
 func _bolt_hit() -> void:
 	m5_stats["hits"] += 1
-	health -= HIT_HEALTH
 	_sfx["miss"].play()
 	_conductor_flash = {"color": Color(1, 0.3, 0.3), "ttl": 0.4}
-	_show_feedback("HIT   -%d health" % HIT_HEALTH, Color(1, 0.3, 0.3))
+	# A shield takes the bolt if one is left; otherwise it costs health.
+	if shields > 0:
+		shields -= 1
+		m4_stats["shields_lost"] += 1
+		_show_feedback("HIT   shield broken, %d left" % shields, Color(1, 0.5, 0.4))
+	else:
+		health -= HIT_HEALTH
+		_show_feedback("HIT   -%d health" % HIT_HEALTH, Color(1, 0.3, 0.3))
 	# The boss presses its advantage: the nearest tower(s) in its reach lock.
 	if boss_alive():
 		if _lock_towers(_pulse_targets_for(boss["pos"])) > 0:
@@ -317,21 +323,7 @@ func _tick_effects(delta: float) -> void:
 
 ## Where along the path a bolt is: from its launch spot to the goal.
 func _bolt_pos(b: Dictionary) -> Vector2:
-	var frac: float = clampf((beat_time() - b["launch"]) / maxf(b["arrive"] - b["launch"], 0.01), 0.0, 1.0)
-	var from: Vector2 = b["from"]
-	var total := float(grid.dist(Vector2i(from.round())))
-	if total <= 0.0:
-		return Vector2(GOAL)
-	var to_go := total * (1.0 - frac)
-	# Walk the flow field from the launch cell until the remaining distance is used up.
-	var cell := Vector2i(from.round())
-	var guard := 400
-	while grid.dist(cell) > to_go + 1.0 and guard > 0:
-		cell = grid.next_step(cell)
-		guard -= 1
-	var next := grid.next_step(cell)
-	var t := clampf(float(grid.dist(cell)) - to_go, 0.0, 1.0)
-	return Vector2(cell).lerp(Vector2(next), t)
+	return _path_pos(b)
 
 
 func _draw() -> void:
