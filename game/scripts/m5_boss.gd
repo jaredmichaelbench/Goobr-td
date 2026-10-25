@@ -356,7 +356,9 @@ func _draw() -> void:
 
 func status_lines() -> Array[String]:
 	var lines := super.status_lines()
-	lines.append("Boss bolts %d   parries %d (perfect %d)   hits taken %d   breaks %d%s" % [m5_stats["bolts"], m5_stats["parries"], m5_stats["perfect"], m5_stats["hits"], m5_stats["breaks"], "   CRESCENDO %.1f" % crescendo if crescendo > 0.0 else ""])
+	lines.append("Boss bolts %d   parries %d (perfect %d)   hits %d   breaks %d" % [m5_stats["bolts"], m5_stats["parries"], m5_stats["perfect"], m5_stats["hits"], m5_stats["breaks"]])
+	if crescendo > 0.0:
+		lines.append("CRESCENDO  %.1f s" % crescendo)
 	return lines
 
 
