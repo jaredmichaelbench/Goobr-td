@@ -64,7 +64,7 @@ func _ready() -> void:
 		if _sfx.has(sfx[0]):
 			continue
 		var player := AudioStreamPlayer.new()
-		player.stream = StemSynth.with_override(sfx[0], sfx[1])
+		player.stream = StemSynth.with_override(sfx[0], sfx[1], sfx_pack)
 		player.volume_db = sfx[2]
 		add_child(player)
 		_sfx[sfx[0]] = player
@@ -308,7 +308,8 @@ func _path_pos(b: Dictionary) -> Vector2:
 func _parry() -> void:
 	var best := {}
 	var best_off := INF
-	for cand in _parry_candidates():
+	var cands := _parry_candidates()
+	for cand in cands:
 		var off: float = absf(press_time() - cand["time"])
 		if off < best_off:
 			best = cand
@@ -325,6 +326,15 @@ func _parry() -> void:
 	_sfx["parry_perfect" if g == "Perfect" else "parry"].play()
 	_lead_timer = clock.bar_length()
 	_resolve_parry(best, g, offset_ms)
+	# One press, every projectile landing in that window (D-0031): a pulse and
+	# an arrow on the same beat both go, each graded off the same press.
+	for cand in cands:
+		if is_same(cand["ref"], best["ref"]):
+			continue
+		var off_ms: float = (press_time() - cand["time"]) * 1000.0
+		var g2 := Timing.grade_parry(off_ms)
+		if g2 != "Miss":
+			_resolve_parry(cand, g2, off_ms)
 
 
 ## What a parry does, by kind. M5 extends this for bolts.

@@ -53,7 +53,7 @@ func _ready() -> void:
 	super._ready()
 	title = "M5 First boss"
 	var player := AudioStreamPlayer.new()
-	player.stream = StemSynth.with_override("break", StemSynth.stab(41.2, true))  # Posture break: the deepest stab.
+	player.stream = StemSynth.with_override("break", StemSynth.stab(41.2, true), sfx_pack)  # Posture break: the deepest stab.
 	player.volume_db = 4.0
 	add_child(player)
 	_sfx["break"] = player

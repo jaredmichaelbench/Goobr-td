@@ -95,7 +95,8 @@ const INTENSITY_STEPS := 3
 const STREAK_PER_STEP := 4
 const SONG_STEP_DB := 2.0  # The real track gains this per step below full.
 const PULSE_STEP_DB := 4.0  # The low pulse layer gains this per step.
-const SONG_CFG := "res://audio/songs.cfg"  # [bpm] "file.wav" = 130
+const SONG_CFG := "res://audio/songs.cfg"  # [bpm] "file.wav" = 130; [sfx] "file.wav" = packname
+var sfx_pack := ""  # Folder under audio/sfx/ holding this song's sound effects, or "".
 const DEFAULT_BPM := 120.0
 
 var clock: BeatClock
@@ -165,6 +166,7 @@ func _ready() -> void:
 		song_index = 0
 		song = songs[0]
 	clock.set_bpm(song["bpm"])
+	sfx_pack = song.get("sfx", "")
 	var bar := clock.bar_length()
 	stem_index["kick"] = clock.add_stem(StemSynth.kick(bar), idle_db["kick"])
 	if song_stream != null:
@@ -181,7 +183,7 @@ func _ready() -> void:
 	# Feedback voices in E: half effect, half music (D-0029).
 	for sfx in [["perfect", StemSynth.pluck(329.6, true), -3.0], ["good", StemSynth.pluck(164.8), -6.0], ["miss", StemSynth.tick(), -4.0], ["clear", StemSynth.pluck(659.3, true), -2.0]]:
 		var player := AudioStreamPlayer.new()
-		player.stream = StemSynth.with_override(sfx[0], sfx[1])
+		player.stream = StemSynth.with_override(sfx[0], sfx[1], sfx_pack)
 		player.volume_db = sfx[2]
 		add_child(player)
 		_sfx[sfx[0]] = player
@@ -258,7 +260,7 @@ func chart_for_wave(w: int) -> Array:
 ## Lists the WAVs in audio/. BPM comes from audio/songs.cfg, else from a
 ## leading number in the filename if it looks like a tempo (60-220), else 120.
 func _scan_songs() -> void:
-	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM}]
+	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM, "sfx": ""}]
 	var dir := DirAccess.open(SONG_DIR)
 	if dir == null:
 		return
@@ -283,7 +285,12 @@ func _scan_songs() -> void:
 			bpm = float(cfg.get_value("bpm", f))
 		elif cfg.has_section_key("bpm", base):
 			bpm = float(cfg.get_value("bpm", base))
-		songs.append({"name": base, "path": SONG_DIR + "/" + f, "bpm": bpm})
+		var pack: String = str(cfg.get_value("sfx", "default", ""))
+		if cfg.has_section_key("sfx", f):
+			pack = str(cfg.get_value("sfx", f))
+		elif cfg.has_section_key("sfx", base):
+			pack = str(cfg.get_value("sfx", base))
+		songs.append({"name": base, "path": SONG_DIR + "/" + f, "bpm": bpm, "sfx": pack})
 	var want := _load_song_choice()
 	for i in songs.size():
 		if songs[i]["name"] == want:

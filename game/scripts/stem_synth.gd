@@ -111,7 +111,9 @@ static func tick(freq := 330.0) -> AudioStreamWAV:
 
 ## Feedback sounds can be replaced by dropping a WAV in game/audio/sfx/ named
 ## after the sheet in docs/notes/sound-sheet-2026-10-25.md (for example
-## note-perfect.wav). Missing files fall back to the synth voice.
+## note-perfect.wav). A song can name its own pack in songs.cfg ([sfx]
+## "file.wav" = packname), looked up first in game/audio/sfx/packname/. Missing
+## files fall back to the folder's default, then to the synth voice (D-0031).
 const SFX_FILES := {
 	"perfect": "note-perfect", "good": "note-good", "miss": "note-miss", "clear": "wave-clear",
 	"parry": "parry", "parry_perfect": "parry-perfect", "restore": "restore", "suppress": "tower-locked",
@@ -119,9 +121,16 @@ const SFX_FILES := {
 }
 
 
-static func with_override(key: String, synth: AudioStreamWAV) -> AudioStreamWAV:
-	var path := "res://audio/sfx/%s.wav" % SFX_FILES.get(key, key)
-	if not FileAccess.file_exists(path):
+static func with_override(key: String, synth: AudioStreamWAV, pack := "") -> AudioStreamWAV:
+	var file: String = SFX_FILES.get(key, key)
+	var path := ""
+	for candidate in ["res://audio/sfx/%s/%s.wav" % [pack, file], "res://audio/sfx/%s.wav" % file]:
+		if pack == "" and candidate.begins_with("res://audio/sfx//"):
+			continue
+		if FileAccess.file_exists(candidate):
+			path = candidate
+			break
+	if path == "":
 		return synth
 	var stream := AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(path))
 	if stream == null:

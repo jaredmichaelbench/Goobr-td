@@ -4,7 +4,7 @@ Drop WAV files in this folder to play them in M3 and M4. The WAVs stay out of th
 
 ## Your own sound effects
 
-Drop WAVs in `sfx/` named after `docs/notes/sound-sheet-2026-10-25.md` (`note-perfect.wav`, `parry.wav`, ...) and the game plays them instead of the built-in synth voices. `sfx-preview/` holds a render of the built-in voices to listen to. Both folders stay out of git.
+Drop WAVs in `sfx/` named after `docs/notes/sound-sheet-2026-10-25.md` (`note-perfect.wav`, `parry.wav`, ...) and the game plays them instead of the built-in synth voices. A song can have its own pack: a folder under `sfx/` named in `songs.cfg` under `[sfx]`; the game looks in the pack, then `sfx/`, then the synth, one sound at a time. `sfx-preview/` holds a render of the built-in voices to listen to. Both folders stay out of git.
 
 ## Switching songs
 

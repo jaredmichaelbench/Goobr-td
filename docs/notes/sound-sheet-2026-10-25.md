@@ -32,6 +32,27 @@ Volume is in dB relative to the song. "Trigger" is the game event; "Why" is the 
 
 Bed loops for reference (also in the preview folder, 2 s at 120 BPM): `bed-kick-loop`, `bed-sub-loop` (E1 pulse on each beat), `bed-pulse-loop` (E2 8th notes). These only play on "synth stems"; the VOiD1 tracks replace them. `old-chime` is the bell everything used before D-0029.
 
+## Attack layers: where to start
+
+Six raw transients are in the preview folder next to the voices. Each is one ingredient, not a finished sound. Stack one on top of your GarageBand tone (two tracks, export together) and you have the "contact" the current set lacks:
+
+| File | What it is | Stack it on |
+|---|---|---|
+| `layer-click.wav` | A 30 ms high click | Perfect note, Perfect parry: the "snap" that says exact |
+| `layer-noise-snap.wav` | White noise burst fading in 100 ms | Good note, miss: a soft "pff" or tap |
+| `layer-metal-clang.wav` | Inharmonic metal ring, 400 ms | Parry, Perfect parry: sword on shield |
+| `layer-sub-thump.wav` | Sub kick with a pitch drop | Parry, lock, posture break: weight |
+| `layer-laser-zap.wav` | Pitch falling fast from 2 kHz | Perfect note: a laser snipe, if you want the attack to sound like a shot |
+| `layer-riser.wav` | Noise swelling for half a second then cut | Restore, wave clear: put it before the hit |
+
+Rule of thumb: transient at full volume, your tone 3 to 6 dB under it, total under 300 ms. If a sound still feels weak, it is almost always the first 10 ms that is missing, not the tail.
+
+Laser or sword as the attack sound works with the music as long as the laser itself is unpitched or pitch-swept (a sweep crosses every key, so it never clashes). The pitched part, if any, should be the tail, and short.
+
+## Per-song packs
+
+A pack is a folder under `game/audio/sfx/` with any of the files above. Name it per song in `game/audio/songs.cfg` under `[sfx]` (`default = packname` for all songs, `"9. Space Invaders.wav" = other` for one). The game looks in the pack first, then in `sfx/` itself, then uses the synth voice, sound by sound, so a pack can be partial.
+
 ## GarageBand export settings
 
 - One sound per file, mono or stereo, 44.1 kHz, 16 bit, WAV (Share > Export Song to Disk > WAVE, uncompressed). Trim the silence at the start: the game plays the file on the event and any lead-in silence becomes lag.
