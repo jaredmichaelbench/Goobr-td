@@ -60,3 +60,7 @@ Bot results (1x, perfect notes and parries, no walls, every coin spent on towers
 - Boss 2 with no parries: the first stomp locked 2 towers, four bolts landed, the escorts leaked; lost.
 
 Waiting on Jared's playtest of all three slices.
+
+## M6b playtest (2026-10-25, Jared)
+
+Cleared the run: 5:13, health 3, 142 notes (68%, 66 Perfects), 41 of 62 attacks parried, 21 locks, 6 shields lost, 1 Restore; boss 29 bolts, 6 stomps, 4 breaks; 9 picks. "Fun, an improvement." Can see the new enemies coming in; they need more work. Picks feel samey; Jared wants them to reach into the bizarre, parked for the power progression review. "I like how it plays for now." Asked for next steps: progression review or evolving towers, and noted nothing can be selected and there is no tower info or upgrade menu yet (M6c).

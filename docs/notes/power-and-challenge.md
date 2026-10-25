@@ -30,3 +30,8 @@ Towers: start with 3 (heavy, splash, slow) and let draft picks and talents resha
 - Economy: start gold, kill gold, wave bonus, tower costs, sell value.
 
 Gaps to fill for variety (ideas): fast runners that skip towers, a shielded creep that only notes break, swarms that favour splash, a creep that disables Restore for a bar, a boss that changes the path.
+
+## After M6b (2026-10-25, Jared)
+
+- The first draft pool (D-0034) plays but feels samey: plain stat bumps and small rule tweaks. Jared wants picks that reach "even into the spectrum of the bizarre". Parked until the power progression review; the draft system and its hooks stay, the pool gets replaced.
+- Candidates for the bizarre end, to discuss: snipes ricochet off walls; a tower that fires only on Perfects but at x10; swarms count as one creep for splash; the Conductor walks (goal moves one tile a wave); a parry that freezes time for a beat; towers that trade range for a second note ring; a Shade of your own that hides a tower from Jammers; gold that decays unless spent; a wave played backwards (creeps spawn at the goal, walk to the start, you defend the start).
