@@ -71,6 +71,11 @@ const WALL_LIMIT := 20
 
 const IDLE_DB := {"kick": -16.0, "hat": -80.0, "bass": -80.0, "lead": -80.0}
 const ACTIVE_DB := {"kick": 0.0, "hat": -8.0, "bass": 0.0, "lead": -1.0}
+## A real song (test only, see audio/README.md) takes the groove slot.
+const SONG_DIR := "res://audio"
+const SONG_IDLE_DB := -16.0
+const SONG_ACTIVE_DB := -3.0
+const DEFAULT_BPM := 120.0
 
 var clock: BeatClock
 var calibration_ms := 0.0
@@ -79,6 +84,10 @@ var show_timeline := true
 
 var stem_index := {}  # stem name -> BeatClock stem index
 var stem_db := {}  # stem name -> current dB
+var idle_db := IDLE_DB.duplicate()
+var active_db := ACTIVE_DB.duplicate()
+var songs: Array[Dictionary] = []  # name, path, bpm. Index 0 is "synth stems".
+var song_index := 0
 var _time_offset := 0.0  # Extra time from the speed-up test tool.
 var _last_step := -1
 var _lead_timer := 0.0
@@ -116,13 +125,27 @@ func _ready() -> void:
 	clock = BeatClock.new()
 	add_child(clock)
 	clock.set_muted(true)
+	_scan_songs()
+	var song := songs[song_index]
+	var song_stream: AudioStreamWAV = null
+	if song["path"] != "":
+		song_stream = _load_song(song["path"], song["bpm"])
+	if song_stream == null:
+		song_index = 0
+		song = songs[0]
+	clock.set_bpm(song["bpm"])
 	var bar := clock.bar_length()
-	stem_index["kick"] = clock.add_stem(StemSynth.kick(bar), IDLE_DB["kick"])
-	stem_index["hat"] = clock.add_stem(StemSynth.hat(bar), IDLE_DB["hat"])
-	stem_index["bass"] = clock.add_stem(StemSynth.bass(bar), IDLE_DB["bass"])
-	stem_index["lead"] = clock.add_stem(StemSynth.lead(bar), IDLE_DB["lead"])
-	for k in IDLE_DB:
-		stem_db[k] = IDLE_DB[k]
+	stem_index["kick"] = clock.add_stem(StemSynth.kick(bar), idle_db["kick"])
+	if song_stream != null:
+		idle_db["hat"] = SONG_IDLE_DB
+		active_db["hat"] = SONG_ACTIVE_DB
+		stem_index["hat"] = clock.add_stem(song_stream, idle_db["hat"])
+	else:
+		stem_index["hat"] = clock.add_stem(StemSynth.hat(bar), idle_db["hat"])
+	stem_index["bass"] = clock.add_stem(StemSynth.bass(bar), idle_db["bass"])
+	stem_index["lead"] = clock.add_stem(StemSynth.lead(bar), idle_db["lead"])
+	for k in idle_db:
+		stem_db[k] = idle_db[k]
 	for sfx in [["perfect", 1320.0, -4.0], ["good", 880.0, -8.0], ["miss", 140.0, -6.0]]:
 		var player := AudioStreamPlayer.new()
 		player.stream = StemSynth.chime(sfx[1])
@@ -168,6 +191,70 @@ func creeps_in_wave(w: int) -> int:
 ## Wave 1 = level 0, wave 2 = level 1, waves 3-4 = level 2 (E joins), wave 5+ = level 3.
 func chart_for_wave(w: int) -> Array:
 	return CHARTS[clampi(w - 1 if w <= 2 else (w + 1) / 2, 0, CHARTS.size() - 1)]
+
+
+# --- Test songs ----------------------------------------------------------------
+
+## Lists the WAVs in audio/. A leading number in the filename is the BPM.
+func _scan_songs() -> void:
+	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM}]
+	var dir := DirAccess.open(SONG_DIR)
+	if dir == null:
+		return
+	var re := RegEx.new()
+	re.compile("^\\s*(\\d+(?:\\.\\d+)?)[\\s_.-]*(.*)$")
+	var names := Array(dir.get_files())
+	names.sort()
+	for f in names:
+		if not f.to_lower().ends_with(".wav"):
+			continue
+		var base: String = f.substr(0, f.length() - 4)
+		var bpm := DEFAULT_BPM
+		var m := re.search(base)
+		if m != null and m.get_string(2) != "":
+			bpm = float(m.get_string(1))
+			base = m.get_string(2)
+		songs.append({"name": base, "path": SONG_DIR + "/" + f, "bpm": bpm})
+	var want := _load_song_choice()
+	for i in songs.size():
+		if songs[i]["name"] == want:
+			song_index = i
+
+
+## Loads a WAV at runtime (no import step) and loops it on a whole bar.
+func _load_song(path: String, bpm: float) -> AudioStreamWAV:
+	var stream := AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(path))
+	if stream == null:
+		push_warning("Could not load song " + path)
+		return null
+	var bar := 60.0 / bpm * clock.beats_per_bar
+	var bars := floorf(stream.get_length() / bar)
+	if bars >= 1.0:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		stream.loop_end = int(bars * bar * stream.mix_rate)
+	return stream
+
+
+func _load_song_choice() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(Timing.SETTINGS_PATH) == OK:
+		return cfg.get_value("test", "song", "")
+	return ""
+
+
+func _save_song_choice(name: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(Timing.SETTINGS_PATH)
+	cfg.set_value("test", "song", name)
+	cfg.save(Timing.SETTINGS_PATH)
+
+
+## Switching songs rebuilds the audio graph, so it restarts the scene.
+func _switch_song(delta_index: int) -> void:
+	var next := posmod(song_index + delta_index, songs.size())
+	_save_song_choice(songs[next]["name"])
+	get_tree().reload_current_scene()
 
 
 # --- Time ----------------------------------------------------------------------
@@ -314,6 +401,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_L:
 			show_timeline = not show_timeline
 			return
+		if event.keycode == KEY_BRACKETLEFT or event.keycode == KEY_BRACKETRIGHT:
+			_switch_song(1 if event.keycode == KEY_BRACKETRIGHT else -1)
+			return
 		if event.keycode in [KEY_Q, KEY_E] or (one_key_mode and event.keycode == KEY_SPACE):
 			_play(event.keycode)
 			return
@@ -423,7 +513,7 @@ func _update_stems(delta: float, speed: int) -> void:
 	active["hat"] = active["kick"] or active["bass"]  # Background groove while fighting.
 	_adjust_mix(active)
 	for k in stem_db:
-		var target_db: float = ACTIVE_DB[k] if active[k] else IDLE_DB[k]
+		var target_db: float = active_db[k] if active[k] else idle_db[k]
 		if speed > 1:
 			target_db = -80.0
 		var cur: float = stem_db[k]
@@ -591,6 +681,7 @@ func status_lines() -> Array[String]:
 		var rate: float = 0.0 if st["notes"] == 0 else 100.0 * st["hits"] / st["notes"]
 		lines.append("%s  notes %d   hits %d (%.0f%%)   crits %d   missed %d   no tower %d" % [OS.get_keycode_string(KEYS[type]), st["notes"], st["hits"], rate, st["perfects"], st["missed"], st["wasted"]])
 	lines.append("Calibration %+.0f ms (set in M1)%s" % [calibration_ms, "   ONE-KEY MODE" if one_key_mode else ""])
+	lines.append("Song: %s (%.0f BPM)   [ ] switch (%d/%d)" % [songs[song_index]["name"], clock.bpm, song_index + 1, songs.size()])
 	return lines
 
 

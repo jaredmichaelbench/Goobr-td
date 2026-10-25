@@ -22,3 +22,4 @@ Later workstreams (art direction, music, assets, revenue/Steam) get their own fo
 3. Promoting an idea means: a decision entry, a task, and a vision changelog line if it changes scope.
 4. Every prototype ends with a results file and a keep/kill call.
 5. Discarded ideas stay in the backlog marked `dropped`, with a reason. Nothing is deleted.
+6. **Playtest, then agree, then build.** (Jared, 2026-10-25) A build pass goes to Jared whole. He plays it and collects all his feedback, even if it arrives in pieces, and says when he's done testing. Claude then replies with a discussion: what it would change, where it pushes back (the feature may have been meant differently than it played), and open questions. Nothing changes in the build until both agree. Feedback is logged in the milestone's results file as it comes in, marked as collected or acted on.

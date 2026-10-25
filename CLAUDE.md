@@ -5,4 +5,5 @@
 - New ideas go to `docs/backlog/backlog.md` first, not straight into the build.
 - The current build plan is `docs/prototypes/demo-0-plan.md`. Work one milestone at a time. Each milestone ends with `docs/prototypes/M#-results.md`.
 - Game code lives in `game/` (Godot 4.5, GDScript, no plugins yet). Rhythm timing always comes from `BeatClock` (the audio clock), never from frame delta.
+- Playtest, then agree, then build: collect all of Jared's feedback on a pass, discuss it (push back where it helps), and only change the build once you both agree. See rule 6 in `docs/INDEX.md`.
 - Jared is the designer and playtester on a Mac Studio and a Windows PC. Explain engineering choices in plain language and give a recommendation when there's a choice to make.

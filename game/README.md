@@ -6,6 +6,8 @@ Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are neede
 
 Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore. **Esc** returns to the menu.
 
+**Real music for testing:** drop WAVs into `game/audio/` (kept out of git) with the BPM at the start of the filename, like `130 Space Invaders.wav`. In M3 or M4, **[** and **]** switch songs. See `game/audio/README.md`.
+
 ## M4: suppress and Restore (v2)
 
 The question: does silence create tension, and does restoring on the beat feel great?

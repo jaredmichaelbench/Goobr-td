@@ -1,0 +1,2 @@
+game/audio/*
+!game/audio/README.md
