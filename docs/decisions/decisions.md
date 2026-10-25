@@ -125,3 +125,9 @@ Decision: T speed, Y auto-send, G +100 gold, H skip a wave, K one-key mode, L ti
 Context: Timing Restore to the beat (D-0016, D-0017) collided with Q notes on the same beats, and a wasted charge punished a player who was already locked. Jared wanted Restore independent of the music with a refreshing full-map effect, and the sound aligned to the beat for satisfaction.
 Decision: F works any time with no timing check and nothing wasted. The Restore lands on the next 8th note (`RESTORE_GRID_STEPS`, 0 = instant) so the ripple, salvo and sound sit on the grid. A refresh ripple sweeps the board from the goal outward and each locked tower relights as it passes, firing an Overcharge salvo. Charges stay at 3, +1 per wave cleared. Locks still wear off on their own after 10 s.
 Alternatives: Fully detached from the music (rejected: the on-grid landing is free and keeps the music honest). A cooldown instead of charges (open, ask after the playtest).
+
+## D-0020: The first boss walks the maze and fires at the Conductor (model D)
+2026-10-25 · accepted (Jared picked it on the card)
+Context: M5 needed a boss model from `notes/boss-design.md`. The candidates were C (off-board, reaches in; simplest) and D (walks the maze, ranged attacks at the Conductor that speed up as it nears).
+Decision: Model D. The boss walks the creep path slowly and quietly; its ranged attacks at the Conductor are the event. Attacks land on the beat grid with tells and no timing UI. Space parries. An unparried hit locks the towers it passes over (M4's lock) and damages the objective. Parries build posture damage; a posture break opens a Crescendo window (about +30% tower damage). A long maze buys slower, more readable attacks.
+Alternatives: C (rejected for now: the maze wouldn't affect the fight, and M3/M4 showed the maze is where the agency lives). A hybrid with a final latched-on phase stays open.
