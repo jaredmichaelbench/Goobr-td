@@ -31,3 +31,12 @@ Headless bots after the change:
 - M5, perfect parry bot: boss dead in about 25 s with two breaks, no notes until the Crescendo burst. No-parry bot still loses in about 30 s.
 
 Waiting on Jared's playtest.
+
+## Second pass playtest, feedback collected (2026-10-25, not yet acted on)
+
+Jared, two runs (first died at wave 3 with 10 elite pulses, 0 parried, 10 locks; second lost at about wave 2).
+
+- "Quite difficult." The lock can't be that long, and there are too many elites too quickly.
+- Loved the infinite-range snipe on a landed note; wants to push that feeling further: heavy towers do a big snipe, splash towers lob an AoE wave. Wondering whether towers should always get notes even with nothing in range (not sure).
+- Parrying elites is too hard to time and read, and there are too many of them. Suggests leaving parry for bosses and later enemies and working on the telegraph. Locking the only 4 towers in play is an instant wipe.
+- Restore should grant a period of immunity: towers came back and an elite's charged pulse locked them straight away.
