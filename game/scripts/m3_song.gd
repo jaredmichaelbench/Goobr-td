@@ -11,8 +11,8 @@ extends "res://scripts/m2_maze.gd"
 ## up wave by wave so early waves teach the rhythm.
 ##
 ## Towers: 2 = Q tower (on the beat), 3 = E tower (off-beat). 1 = wall.
-## F5 = one-key mode (P-04 arm B): any of Q/E/Space plays any note.
-## F6 = show or hide the timeline overlay.
+## K = one-key mode (P-04 arm B): any of Q/E/Space plays any note.
+## L = show or hide the timeline overlay.
 ##
 ## The map has rock (D-0015): two ridges split it into three fields joined by
 ## gaps, so creeps must pass chokepoints, and walls are limited.
@@ -308,10 +308,10 @@ func engaged_towers(type: String) -> Array[Vector2i]:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F5:
+		if event.keycode == KEY_K:
 			one_key_mode = not one_key_mode
 			return
-		if event.keycode == KEY_F6:
+		if event.keycode == KEY_L:
 			show_timeline = not show_timeline
 			return
 		if event.keycode in [KEY_Q, KEY_E] or (one_key_mode and event.keycode == KEY_SPACE):
@@ -603,13 +603,13 @@ func help_lines() -> Array[String]:
 		"%s  Q tower   20g  on the beat, heavy" % keys["kick"],
 		"%s  E tower   25g  off-beat, splash" % keys["bass"],
 		"Q / E  play notes as they reach the line",
-		"F5  one-key mode (any key plays any note)",
-		"F6  timeline %s" % ("on" if show_timeline else "off"),
+		"K  one-key mode (any key plays any note)",
+		"L  timeline %s" % ("on" if show_timeline else "off"),
 		"Left click  place     Right click  sell (75%)",
 		"Brown = rock. Walls are limited to %d." % WALL_LIMIT,
 		"Esc twice  menu",
 		"",
-		"TEST  F1 speed %dx   F2 auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
-		"TEST  F3 +100g   F4 skip a wave",
+		"TEST  T speed %dx   Y auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
+		"TEST  G +100g   H skip a wave",
 		"Next wave: %d creeps, %.0f HP each" % [creeps_in_wave(wave + 1), creep_hp_at(wave + 1)],
 	]

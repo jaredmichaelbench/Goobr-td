@@ -7,8 +7,8 @@ extends Node2D
 ## N = start next wave. R = restart after a win or loss. Esc twice = menu.
 ##
 ## Test tools (playtesting only, not part of the game):
-## F1 = cycle speed 1x/2x/4x/8x   F2 = auto-send waves   F3 = +100 gold
-## F4 = skip ahead one wave of difficulty. After wave 10, N keeps going (endless).
+## T = cycle speed 1x/2x/4x/8x   Y = auto-send waves   G = +100 gold
+## H = skip ahead one wave of difficulty. After wave 10, N keeps going (endless).
 ##
 ## Towers fire on simple cooldowns here. M3 moves them onto the beat.
 
@@ -100,14 +100,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				_say("Press Esc again to quit to the menu")
 		elif event.keycode == KEY_R and state != "playing":
 			reset()
-		elif event.keycode == KEY_F1:
+		elif event.keycode == KEY_T:
 			speed_index = (speed_index + 1) % SPEEDS.size()
-		elif event.keycode == KEY_F2:
+		elif event.keycode == KEY_Y:
 			auto_send = not auto_send
 			_auto_timer = AUTO_SEND_DELAY
-		elif event.keycode == KEY_F3:
+		elif event.keycode == KEY_G:
 			gold += 100
-		elif event.keycode == KEY_F4 and not wave_active:
+		elif event.keycode == KEY_H and not wave_active:
 			wave += 1
 		elif event.keycode == KEY_B:
 			build_mode = not build_mode
@@ -359,8 +359,8 @@ func help_lines() -> Array[String]:
 		"Left click  place     Right click  sell (75%)",
 		"Esc twice  menu",
 		"",
-		"TEST  F1 speed %dx   F2 auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
-		"TEST  F3 +100g   F4 skip a wave",
+		"TEST  T speed %dx   Y auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
+		"TEST  G +100g   H skip a wave",
 		"Next wave: %d creeps, %.0f HP each" % [creeps_in_wave(wave + 1), creep_hp_at(wave + 1)],
 	]
 

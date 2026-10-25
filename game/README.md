@@ -6,23 +6,23 @@ Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are neede
 
 Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore. **Esc** returns to the menu.
 
-## M4: suppress and Restore
+## M4: suppress and Restore (v2)
 
 The question: does silence create tension, and does restoring on the beat feel great?
 
 Everything from M3, plus:
 
-- From wave 2, every 6th creep is an **elite**: big, dark red, 4x health, a bit slower. A faint ring shows its reach.
-- On a downbeat, if an elite has towers in reach, it **pulses**: those towers are suppressed for 10 seconds. They go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. The groove drops out too while anything is suppressed. The same elite can pulse again after 4 bars.
-- **F = Restore.** Press it on a downbeat (the bar line; while suppressed, a white **F** marker on the timeline shows the next one). On the beat: every suppressed tower comes back at once, fires an **Overcharge salvo** (2.5x damage, splash) at its target, the screen flashes, and the melody joins for 2 bars. Off the beat: the charge is still spent, the towers come back one bar later, and there's no salvo.
-- You have **3 Restore charges**, shown as yellow bars under the meters. Each wave cleared gives one back (cap 3). Suppression wears off on its own if you don't Restore, so a missed Restore costs time, not the run.
-- The HUD counts suppressions, Restores (on beat vs late), and how many wore off.
+- From wave 2, every 6th creep is an **elite**: big, dark red, 4x health, a bit slower. While it has towers within reach, its ring pulses and it says "miss = lock".
+- **Miss a note while an elite is armed** and it locks every tower in its reach for 10 seconds. Locked towers go dark with a red cross, stop firing, stop answering notes, and their instrument drops out. The groove drops out too. Clean play never gets locked. The same elite can lock again after 2 bars.
+- **F = Restore.** It lands on **any beat** (4 per bar), so you pick the moment, but it can't be used off the beat: an off-beat press does nothing and keeps the charge. While locked, white marks on the timeline show every beat you could press on. On the beat, every locked tower comes back at once with an **Overcharge salvo** (2.5x damage, splash), the screen flashes, and the melody joins for 2 bars.
+- **3 Restore charges**, yellow bars under the meters, one back per wave cleared (cap 3). Locks wear off on their own if you don't Restore.
+- The HUD counts locks, Restores, off-beat presses, and locks that wore off.
 
 ### What to report back
 
-- Does the mix thinning out make you want to press F? Can you hear which towers went down?
-- Does a Restore on the beat feel like a payoff? Is the late version punishing enough, or too much?
-- Are 3 charges and +1 per wave about right? Did you ever run dry?
+- Does the lock feel like a fair consequence of the miss, and does the thin mix make you want to press F?
+- Is Restore on any beat the right amount of freedom? Would every 8th note be better, or only downbeats?
+- Are 3 charges and +1 per wave about right?
 - Are elites readable? Did you reroute or rebuild to keep them away from towers?
 
 ## M3: the maze plays the song (v4)
@@ -32,16 +32,16 @@ The question: can you hear your maze, and do you build it so your towers are in 
 - Calibrate in M1 first (press **C** there). M3 uses the same calibration.
 - Build keys: **1** wall, **2** Q tower (on the beat, heavy), **3** E tower (off-beat, splash). Hats are background groove only.
 - **The map has rock** (brown). Creeps can't walk on it and you can't build on it. Two ridges split the board into three fields joined by gaps. **Walls are limited to 20**, so use the terrain.
-- During a wave, notes scroll right to left along a faint **timeline across the top of the board** (Q lane on top, E below). Press the key as a note reaches the line. **F6** hides the timeline so you can try playing from the rings and music alone.
+- During a wave, notes scroll right to left along a faint **timeline across the top of the board** (Q lane on top, E below). Press the key as a note reaches the line. **L** hides the timeline so you can try playing from the rings and music alone.
 - Two beats before a note, a ring closes on every tower of that key **that has a target**. Towers with nothing in range only glow softly.
 - A hit fires a Resonance from every engaged tower of that key. You get a chime, damage numbers over the targets (yellow with "!" for a Perfect crit), and a flash on the timeline line. A note that passes with towers ready and no press is a **MISS**: low tone, red flash, "miss" over those towers. Pressing with nothing to hit says "Too early" or "No note".
 - The chart builds up: one Q per bar in wave 1, more Q in wave 2, E joins at wave 3, both mixed from wave 5. The HUD shows notes, hits, crits, misses and wasted presses per key.
 - Balance: 100 starting gold, 1g per kill, creeps get 30% tougher each wave. In bot runs, 4 starter towers alone fall at wave 4, and spending everything on towers with no walls and no notes falls around wave 9. Walls and notes should carry you to 10.
-- Missing costs nothing. **F5** toggles one-key mode. Speeding up (F1) mutes the music and turns notes off.
+- Missing costs nothing. **K** toggles one-key mode. Speeding up (T) mutes the music and turns notes off.
 
 ### What to report back
 
-- Timeline at the top: readable without stealing your eyes? Better with it on or off (F6)?
+- Timeline at the top: readable without stealing your eyes? Better with it on or off (L)?
 - Do hits feel good now, and can you tell when you miss?
 - Does the rock map make mazing more interesting? Is 20 walls too few or too many?
 - Difficulty: where did it get hard, and did gold feel tight?
@@ -60,12 +60,12 @@ The question: does building a maze while creeps reroute live feel smooth and rea
 - 10 waves, then **N** keeps going in endless mode. Leaks cost 1 health out of 20. Kills give 2g, and clearing a wave gives a bonus.
 - **Esc twice** returns to the menu.
 
-### Test tools (playtesting only)
+### Test tools (playtesting only, plain letter keys because the F-keys are media keys on the Mac)
 
-- **F1** speed 1x / 2x / 4x / 8x
-- **F2** auto-send the next wave 2 seconds after one ends
-- **F3** +100 gold
-- **F4** skip ahead a wave of difficulty
+- **T** speed 1x / 2x / 4x / 8x
+- **Y** auto-send the next wave 2 seconds after one ends
+- **G** +100 gold
+- **H** skip ahead a wave of difficulty
 - The HUD shows how many creeps the next wave has and their HP.
 
 Towers fire on simple timers for now. M3 puts them on the beat.

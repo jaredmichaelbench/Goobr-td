@@ -108,3 +108,14 @@ Alternatives: Terrain only, unlimited walls (weaker: walls still beat the map). 
 Context: M4 needs a source of suppression before the boss exists (M5), and the Restore rules from the pitch notes needed numbers.
 Decision: Elites (every 6th creep from wave 2, 4x health, 0.8x speed) pulse on a downbeat when towers are within 2.2 tiles, suppressing them for 10 seconds; the same elite waits 4 bars before pulsing again. Suppressed towers don't fire, don't answer notes, and their stem drops out, and the groove drops out while anything is suppressed. F Restores: on a downbeat (Good window or better) all suppressed towers return with an Overcharge salvo (2.5x damage, splash 1); off the beat the charge is still spent, the towers return one bar later, no salvo. 3 charges, +1 per wave cleared, capped at 3. Suppression also expires on its own, so Restore is about tempo, not survival.
 Alternatives: Suppression only from boss attacks (rejected: nothing to test until M5). Permanent until Restored (rejected: running out of charges would end the run on its own).
+
+## D-0017: Locks come from missed notes, Restore lands on any beat
+2026-10-25 · proposed (testing in M4 v2, Jared's call)
+Context: In M4 v1, elites locked towers on a timer (every downbeat in reach), and Restore only landed on the downbeat, which always coincided with a Q note and felt predictable. Jared wanted the lock to be reactive (miss a note near enemies, lose your towers, unlock fast if you're quick) and Restore to be the player's choice of moment, but still never off-beat.
+Decision: An elite with towers in reach is armed. A missed note while an elite is armed locks the towers in its reach (10 s). Clean play is never locked. Restore lands on any beat (quarter notes, Good window); an off-beat press does nothing and keeps the charge. The late-restore rule from D-0016 is dropped. Beat marks show on the timeline while locked.
+Alternatives: Restore on every 8th note (rejected for now: at 120 BPM with a 90 ms window, most presses would count, so "on beat" would mean little; it's one constant if we want to try it). Locks on a timer (D-0016, rejected: not reactive).
+
+## D-0018: Test tools use letter keys, not F-keys
+2026-10-25 · accepted
+Context: F1-F12 are media keys on Jared's Mac keyboard and didn't reach the game.
+Decision: T speed, Y auto-send, G +100 gold, H skip a wave, K one-key mode, L timeline toggle.
