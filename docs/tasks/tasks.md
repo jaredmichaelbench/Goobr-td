@@ -15,7 +15,7 @@ Active work. Each task has an id, status, and a link to the decision or prototyp
 | Id | Task | Status | Notes |
 |---|---|---|---|
 | T-014 | M2: maze, grid, flow-field pathing | done | Passed 2026-10-24 (`docs/prototypes/M2-results.md`) |
-| T-015 | M3: the maze plays the song | doing | Fourth pass (rock map, timeline overlay, hit feedback, balance; D-0015) built 2026-10-25. Waiting on Jared's playtest |
+| T-015 | M3: the maze plays the song | done | Four passes, 2026-10-24 to 25. Song chart + timeline (D-0014), rock map (D-0015). Tuning notes in `prototypes/M3-results.md` |
 | T-019 | Economy and relative tower power pass | todo | After M3 (towers change when they move onto the beat). Jared: "never felt hard" in M2 |
 | T-016 | M4: suppress and Restore | todo | |
 | T-017 | M5: first boss | todo | |

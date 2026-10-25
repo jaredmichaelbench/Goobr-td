@@ -16,7 +16,7 @@ The question: can you hear your maze, and do you build it so your towers are in 
 - During a wave, notes scroll right to left along a faint **timeline across the top of the board** (Q lane on top, E below). Press the key as a note reaches the line. **F6** hides the timeline so you can try playing from the rings and music alone.
 - Two beats before a note, a ring closes on every tower of that key **that has a target**. Towers with nothing in range only glow softly.
 - A hit fires a Resonance from every engaged tower of that key. You get a chime, damage numbers over the targets (yellow with "!" for a Perfect crit), and a flash on the timeline line. A note that passes with towers ready and no press is a **MISS**: low tone, red flash, "miss" over those towers. Pressing with nothing to hit says "Too early" or "No note".
-- The chart builds up: one Q per bar in waves 1-2, more Q in waves 3-4, E joins at wave 5, both mixed from wave 7.
+- The chart builds up: one Q per bar in wave 1, more Q in wave 2, E joins at wave 3, both mixed from wave 5. The HUD shows notes, hits, crits, misses and wasted presses per key.
 - Balance: 100 starting gold, 1g per kill, creeps get 30% tougher each wave. In bot runs, 4 starter towers alone fall at wave 4, and spending everything on towers with no walls and no notes falls around wave 9. Walls and notes should carry you to 10.
 - Missing costs nothing. **F5** toggles one-key mode. Speeding up (F1) mutes the music and turns notes off.
 

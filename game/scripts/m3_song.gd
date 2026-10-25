@@ -85,7 +85,7 @@ var _lead_timer := 0.0
 var _flashes := {}  # tower cell -> seconds left
 
 var notes: Array[Dictionary] = []  # time, type, state ("open", "hit", "missed")
-var stats := {"notes": 0, "hits": 0, "perfects": 0, "wasted": 0, "missed": 0}
+var stats := {}  # tower type -> {notes, hits, perfects, wasted, missed}
 var _wave_notes := 0
 var _feedback := ""
 var _feedback_color := Color.WHITE
@@ -110,6 +110,7 @@ func _ready() -> void:
 	creep_hp = 24.0
 	creep_hp_growth = 1.3
 	kill_gold = 1
+	_reset_stats()
 	super._ready()
 
 	clock = BeatClock.new()
@@ -135,8 +136,21 @@ func reset() -> void:
 	super.reset()
 	gold = START_GOLD_M3
 	notes.clear()
-	stats = {"notes": 0, "hits": 0, "perfects": 0, "wasted": 0, "missed": 0}
+	_reset_stats()
 	_wave_notes = 0
+
+
+func _reset_stats() -> void:
+	stats = {}
+	for type in KEYS:
+		stats[type] = {"notes": 0, "hits": 0, "perfects": 0, "wasted": 0, "missed": 0}
+
+
+func stat_total(field: String) -> int:
+	var n := 0
+	for type in stats:
+		n += stats[type][field]
+	return n
 
 
 ## Longer waves so each one carries several phrases of practice.
@@ -151,8 +165,9 @@ func creeps_in_wave(w: int) -> int:
 	return 14 + 3 * w
 
 
+## Wave 1 = level 0, wave 2 = level 1, waves 3-4 = level 2 (E joins), wave 5+ = level 3.
 func chart_for_wave(w: int) -> Array:
-	return CHARTS[clampi((w - 1) / 2, 0, CHARTS.size() - 1)]
+	return CHARTS[clampi(w - 1 if w <= 2 else (w + 1) / 2, 0, CHARTS.size() - 1)]
 
 
 # --- Time ----------------------------------------------------------------------
@@ -233,7 +248,7 @@ func _schedule_bar(bar: int) -> void:
 			continue
 		var time: float = (bar * STEPS_PER_BAR + entry[1]) * step_length()
 		notes.append({"time": time, "type": entry[2], "state": "open"})
-		stats["notes"] += 1
+		stats[entry[2]]["notes"] += 1
 		_wave_notes += 1
 
 
@@ -324,13 +339,13 @@ func _resonance(type: String, g: String, offset_ms: float) -> void:
 	var color: Color = builds[type]["color"]
 	var crit := g == "Perfect"
 	var towers := engaged_towers(type)
-	stats["hits"] += 1
+	stats[type]["hits"] += 1
 	if crit:
-		stats["perfects"] += 1
+		stats[type]["perfects"] += 1
 	_lead_timer = clock.bar_length() * LEAD_HOLD_BARS
 	_sfx["perfect" if crit else "good"].play()
 	if towers.is_empty():
-		stats["wasted"] += 1
+		stats[type]["wasted"] += 1
 		_flash_line(Color(1, 0.6, 0.4))
 		_show_feedback("%s, but no %s tower in the fight" % [g, OS.get_keycode_string(KEYS[type])], Color(1, 0.6, 0.4))
 		return
@@ -365,7 +380,7 @@ func _on_miss(type: String) -> void:
 	var towers := engaged_towers(type)
 	if towers.is_empty():
 		return
-	stats["missed"] += 1
+	stats[type]["missed"] += 1
 	_sfx["miss"].play()
 	_flash_line(Color(1, 0.3, 0.3))
 	_show_feedback("MISS", Color(1, 0.3, 0.3))
@@ -552,10 +567,12 @@ func _draw_meters(font: Font, board_w: float) -> void:
 
 func status_lines() -> Array[String]:
 	var lines := super.status_lines()
-	var rate: float = 0.0 if stats["notes"] == 0 else 100.0 * stats["hits"] / stats["notes"]
 	lines.append("")
-	lines.append("Notes this wave %d   total %d" % [_wave_notes, stats["notes"]])
-	lines.append("Hits %d (%.0f%%)   Crits %d   Missed %d   No tower %d" % [stats["hits"], rate, stats["perfects"], stats["missed"], stats["wasted"]])
+	lines.append("Notes this wave %d   total %d" % [_wave_notes, stat_total("notes")])
+	for type in KEYS:
+		var st: Dictionary = stats[type]
+		var rate: float = 0.0 if st["notes"] == 0 else 100.0 * st["hits"] / st["notes"]
+		lines.append("%s  notes %d   hits %d (%.0f%%)   crits %d   missed %d   no tower %d" % [OS.get_keycode_string(KEYS[type]), st["notes"], st["hits"], rate, st["perfects"], st["missed"], st["wasted"]])
 	lines.append("Calibration %+.0f ms (set in M1)%s" % [calibration_ms, "   ONE-KEY MODE" if one_key_mode else ""])
 	return lines
 

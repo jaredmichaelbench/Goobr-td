@@ -56,3 +56,7 @@ Changed in v4:
 - Hit feedback: chime (higher on Perfect), damage numbers per target (yellow "!" for crits), damage total in the banner, and a flash on the timeline line. Misses (note passes while towers had targets) play a low tone, flash red, and show "miss" over those towers. They're counted in the HUD.
 
 Waiting on Jared's playtest.
+
+## Fourth pass playtest (2026-10-25)
+
+Jared: "feels better." Noticed E notes were about 3% of presses (they didn't start until wave 5). Asked for per-tower stats, clickable menus (parked, see backlog), and when to stop polishing. Small follow-up: per-key stats in the HUD, E notes from wave 3. Decision: M3 answers P-04 well enough; remaining items are tuning. Moving to M4.
