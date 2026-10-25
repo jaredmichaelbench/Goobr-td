@@ -91,6 +91,7 @@ The question: does building a maze while creeps reroute live feel smooth and rea
 
 ### Test tools (playtesting only, plain letter keys because the F-keys are media keys on the Mac)
 
+- **I** toggles the **isometric look-test**: the same board drawn as a 2:1 diamond with raised rock and walls. Circles and rings are not rescaled, so they look a little big; it is only to judge whether the maze reads at that angle (`docs/notes/art-direction.md`).
 - **T** speed 1x / 2x / 4x / 8x
 - **Y** auto-send the next wave 2 seconds after one ends
 - **G** +100 gold

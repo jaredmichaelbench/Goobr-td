@@ -53,6 +53,8 @@ var endless := false
 # Map and balance knobs. M2 uses a flat map with unlimited walls; later
 # milestones override these before _ready().
 var terrain := {}  # Vector2i -> true. Rock: no walking, no building.
+var iso := false  # Look-test: draw the board as a 2:1 isometric diamond (I toggles).
+var _iso_w := TILE * 1.5  # Width of one tile diamond on screen; set per frame to fit the view.
 var wall_limit := 0  # 0 = unlimited.
 var creep_hp := 18.0
 var creep_hp_growth := 1.2
@@ -113,6 +115,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			build_mode = not build_mode
 		elif event.keycode == KEY_N:
 			start_wave()
+		elif event.keycode == KEY_I:
+			iso = not iso
 		elif build_mode and build_keys.has(event.keycode):
 			selected = build_keys[event.keycode]
 	elif event is InputEventMouseButton and event.pressed and build_mode and state == "playing":
@@ -321,11 +325,70 @@ func _pick_target(from: Vector2, tower_range: float) -> Dictionary:
 # --- Drawing -----------------------------------------------------------------
 
 func cell_at(screen_pos: Vector2) -> Vector2i:
+	if iso:
+		var d := screen_pos - _origin
+		var u := d.x / (_iso_w * 0.5)
+		var v := d.y / (_iso_w * 0.25)
+		return Vector2i(Vector2((u + v) * 0.5, (v - u) * 0.5).floor())
 	return Vector2i(((screen_pos - _origin) / TILE).floor())
 
 
+## A grid corner (not a cell centre) on screen. Everything board-shaped goes
+## through here, so the isometric look-test is one projection swap.
+func _grid_to_screen(g: Vector2) -> Vector2:
+	if iso:
+		return _origin + Vector2((g.x - g.y) * _iso_w * 0.5, (g.x + g.y) * _iso_w * 0.25)
+	return _origin + g * TILE
+
+
+## The four screen corners of a cell, optionally inset (in tiles) and lifted
+## (in pixels, for raised blocks).
+func _cell_poly(cell: Vector2i, inset := 0.0, lift := 0.0) -> PackedVector2Array:
+	var c := Vector2(cell)
+	var up := Vector2(0, -lift)
+	return PackedVector2Array([
+		_grid_to_screen(c + Vector2(inset, inset)) + up,
+		_grid_to_screen(c + Vector2(1.0 - inset, inset)) + up,
+		_grid_to_screen(c + Vector2(1.0 - inset, 1.0 - inset)) + up,
+		_grid_to_screen(c + Vector2(inset, 1.0 - inset)) + up,
+	])
+
+
+func _draw_cell(cell: Vector2i, color: Color, inset := 0.0, lift := 0.0) -> void:
+	draw_colored_polygon(_cell_poly(cell, inset, lift), color)
+
+
+## A raised block: top face plus the two visible side faces in iso, or a flat
+## cell with a lighter top edge in plain view.
+func _draw_block(cell: Vector2i, top: Color, side: Color, height: float, inset := 0.0) -> void:
+	if not iso:
+		_draw_cell(cell, side, inset)
+		var r := Rect2(_origin + Vector2(cell) * TILE, Vector2(TILE, TILE)).grow(-inset * TILE)
+		draw_rect(Rect2(r.position, Vector2(r.size.x, 4)), top)
+		return
+	var base := _cell_poly(cell, inset)
+	var lift := Vector2(0, -height)
+	# base[1] is the right corner, base[2] the bottom, base[3] the left.
+	draw_colored_polygon(PackedVector2Array([base[1], base[2], base[2] + lift, base[1] + lift]), side * Color(0.85, 0.85, 0.85))
+	draw_colored_polygon(PackedVector2Array([base[2], base[3], base[3] + lift, base[2] + lift]), side * Color(0.7, 0.7, 0.7))
+	draw_colored_polygon(_cell_poly(cell, inset, height), top)
+
+
+func _board_poly() -> PackedVector2Array:
+	return PackedVector2Array([
+		_grid_to_screen(Vector2.ZERO),
+		_grid_to_screen(Vector2(GRID_SIZE.x, 0)),
+		_grid_to_screen(Vector2(GRID_SIZE)),
+		_grid_to_screen(Vector2(0, GRID_SIZE.y)),
+	])
+
+
+func _on_board(p: Vector2) -> bool:
+	return Geometry2D.is_point_in_polygon(p, _board_poly())
+
+
 func _to_screen(grid_pos: Vector2) -> Vector2:
-	return _origin + (grid_pos + Vector2(0.5, 0.5)) * TILE
+	return _grid_to_screen(grid_pos + Vector2(0.5, 0.5))
 
 
 func _say(text: String) -> void:
@@ -360,41 +423,53 @@ func help_lines() -> Array[String]:
 		"Esc twice  menu",
 		"",
 		"TEST  T speed %dx   Y auto-send %s" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
-		"TEST  G +100g   H skip a wave",
+		"TEST  G +100g   H skip a wave   I isometric look-test %s" % ("ON" if iso else "off"),
 		"Next wave: %d creeps, %.0f HP each" % [creeps_in_wave(wave + 1), creep_hp_at(wave + 1)],
 	]
 
 
 func _draw() -> void:
 	var view := get_viewport_rect().size
-	_origin = Vector2((view.x - GRID_SIZE.x * TILE) * 0.5 + 120.0, (view.y - GRID_SIZE.y * TILE) * 0.5)
+	if iso:
+		# Fit the diamond beside the HUD: width (W+H)/2 tiles, height (W+H)/4.
+		var n := float(GRID_SIZE.x + GRID_SIZE.y)
+		_iso_w = minf(TILE * 1.5, minf(2.0 * (view.x - 500.0) / n, 4.0 * (view.y - 90.0) / n))
+		var center := Vector2((view.x + 480.0) * 0.5, view.y * 0.5 + 10.0)
+		_origin = center - Vector2((GRID_SIZE.x - GRID_SIZE.y) * _iso_w * 0.25, n * _iso_w * 0.125)
+	else:
+		_origin = Vector2((view.x - GRID_SIZE.x * TILE) * 0.5 + 120.0, (view.y - GRID_SIZE.y * TILE) * 0.5)
 	var font := ThemeDB.fallback_font
 
 	# Board and route.
-	draw_rect(Rect2(_origin, Vector2(GRID_SIZE) * TILE), Color(0.13, 0.14, 0.17))
+	draw_colored_polygon(_board_poly(), Color(0.13, 0.14, 0.17))
 	for x in GRID_SIZE.x + 1:
-		draw_line(_origin + Vector2(x * TILE, 0), _origin + Vector2(x * TILE, GRID_SIZE.y * TILE), Color(1, 1, 1, 0.05))
+		draw_line(_grid_to_screen(Vector2(x, 0)), _grid_to_screen(Vector2(x, GRID_SIZE.y)), Color(1, 1, 1, 0.05))
 	for y in GRID_SIZE.y + 1:
-		draw_line(_origin + Vector2(0, y * TILE), _origin + Vector2(GRID_SIZE.x * TILE, y * TILE), Color(1, 1, 1, 0.05))
+		draw_line(_grid_to_screen(Vector2(0, y)), _grid_to_screen(Vector2(GRID_SIZE.x, y)), Color(1, 1, 1, 0.05))
 	var route := grid.route()
 	for i in route.size() - 1:
 		draw_line(_to_screen(Vector2(route[i])), _to_screen(Vector2(route[i + 1])), Color(1, 1, 1, 0.12), 3.0)
-	for c in terrain:
-		var rock := Rect2(_origin + Vector2(c) * TILE, Vector2(TILE, TILE))
-		draw_rect(rock, Color(0.29, 0.25, 0.22))
-		draw_rect(Rect2(rock.position, Vector2(TILE, 4)), Color(0.38, 0.33, 0.29))
-	draw_rect(Rect2(_origin + Vector2(SPAWN) * TILE, Vector2(TILE, TILE)), Color(0.3, 0.8, 0.4, 0.5))
-	draw_rect(Rect2(_origin + Vector2(GOAL) * TILE, Vector2(TILE, TILE)), Color(1.0, 0.85, 0.3, 0.6))
+	_draw_cell(SPAWN, Color(0.3, 0.8, 0.4, 0.5))
+	_draw_cell(GOAL, Color(1.0, 0.85, 0.3, 0.6))
 
-	# Structures.
+	# Rock and structures, back to front so raised blocks overlap correctly in iso.
+	var raised: Array[Vector2i] = []
+	for c in terrain:
+		raised.append(c)
 	for cell in structures:
+		raised.append(cell)
+	raised.sort_custom(func(a, b): return a.x + a.y < b.x + b.y)
+	var block_h := _iso_w * 0.45 if iso else 0.0
+	for cell in raised:
+		if terrain.has(cell):
+			_draw_block(cell, Color(0.38, 0.33, 0.29), Color(0.29, 0.25, 0.22), block_h)
+			continue
 		var type: String = structures[cell]["type"]
-		var r := Rect2(_origin + Vector2(cell) * TILE, Vector2(TILE, TILE)).grow(-2)
 		if type == "wall":
-			draw_rect(r, builds[type]["color"])
+			_draw_block(cell, builds[type]["color"] * Color(1.1, 1.1, 1.1), builds[type]["color"], block_h * 0.7, 0.07)
 		else:
-			draw_rect(r, Color(0.2, 0.2, 0.24))
-			draw_circle(r.get_center(), TILE * 0.32, builds[type]["color"])
+			_draw_block(cell, Color(0.26, 0.26, 0.3), Color(0.2, 0.2, 0.24), block_h * 0.35, 0.07)
+			draw_circle(_to_screen(Vector2(cell)) + Vector2(0, -block_h * 0.35), TILE * 0.32, builds[type]["color"])
 
 	# Creeps and shots.
 	for c in creeps:
@@ -414,7 +489,7 @@ func _draw() -> void:
 		var ok: bool = gold >= builds[selected]["cost"] and grid.can_block([hover], _creep_cells())
 		if selected == "wall" and wall_limit > 0 and wall_count() >= wall_limit:
 			ok = false
-		draw_rect(Rect2(_origin + Vector2(hover) * TILE, Vector2(TILE, TILE)), Color(0.3, 1.0, 0.4, 0.3) if ok else Color(1.0, 0.3, 0.3, 0.3))
+		_draw_cell(hover, Color(0.3, 1.0, 0.4, 0.3) if ok else Color(1.0, 0.3, 0.3, 0.3))
 		if builds[selected].has("range"):
 			draw_arc(_to_screen(Vector2(hover)), builds[selected]["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.3), 1.5)
 	if structures.has(hover) and builds[structures[hover]["type"]].has("range"):

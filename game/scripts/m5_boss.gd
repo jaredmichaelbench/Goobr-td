@@ -324,7 +324,7 @@ func _draw() -> void:
 	var board_w := GRID_SIZE.x * TILE
 
 	if crescendo > 0.0:
-		draw_rect(Rect2(_origin, Vector2(board_w, GRID_SIZE.y * TILE)), Color(1.0, 0.85, 0.3, 0.06 + 0.04 * sin(beat_time() * TAU * 2.0)))
+		draw_colored_polygon(_board_poly(), Color(1.0, 0.85, 0.3, 0.06 + 0.04 * sin(beat_time() * TAU * 2.0)))
 
 	if boss_alive():
 		var p := _to_screen(boss["pos"])
@@ -359,9 +359,9 @@ func _draw() -> void:
 
 	# Boss health and posture over the board.
 	if boss_alive():
-		var x := _origin.x + board_w * 0.25
 		var w := board_w * 0.5
-		var y := _origin.y - 58
+		var x := (get_viewport_rect().size.x + 480.0) * 0.5 - w * 0.5
+		var y := 14.0
 		draw_rect(Rect2(x, y, w, 10), Color(1, 1, 1, 0.1))
 		draw_rect(Rect2(x, y, w * clampf(boss["hp"] / boss["max_hp"], 0.0, 1.0), 10), Color(0.9, 0.25, 0.4))
 		draw_rect(Rect2(x, y + 13, w, 5), Color(1, 1, 1, 0.08))

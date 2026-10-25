@@ -443,12 +443,12 @@ func _draw() -> void:
 
 	# Suppressed towers: greyed out with a cross and a draining bar.
 	for cell in suppressed:
-		var r := Rect2(_origin + Vector2(cell) * TILE, Vector2(TILE, TILE)).grow(-2)
-		draw_rect(r, Color(0.1, 0.1, 0.12, 0.75))
-		draw_line(r.position, r.end, Color(1, 0.3, 0.3, 0.8), 2.0)
-		draw_line(Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), Color(1, 0.3, 0.3, 0.8), 2.0)
+		var poly := _cell_poly(cell, 0.07)
+		draw_colored_polygon(poly, Color(0.1, 0.1, 0.12, 0.75))
+		draw_line(poly[0], poly[2], Color(1, 0.3, 0.3, 0.8), 2.0)
+		draw_line(poly[1], poly[3], Color(1, 0.3, 0.3, 0.8), 2.0)
 		var frac: float = suppressed[cell] / SUPPRESS_SECONDS
-		draw_rect(Rect2(r.position + Vector2(0, r.size.y - 3), Vector2(r.size.x * frac, 3)), Color(1, 0.3, 0.3))
+		draw_line(poly[3], poly[3].lerp(poly[2], frac), Color(1, 0.3, 0.3), 3.0)
 
 	# Immune towers: a soft shield ring.
 	for cell in immune:
@@ -460,11 +460,10 @@ func _draw() -> void:
 		draw_arc(_to_screen(w["pos"]), SUPPRESS_RADIUS * TILE * (1.0 - a * 0.7), 0, TAU, 48, w["color"] * Color(1, 1, 1, a), 4.0)
 
 	if _restore_flash > 0.0:
-		draw_rect(Rect2(_origin, Vector2(board_w, GRID_SIZE.y * TILE)), Color(1.0, 0.9, 0.3, 0.12 * _restore_flash / 0.5))
+		draw_colored_polygon(_board_poly(), Color(1.0, 0.9, 0.3, 0.12 * _restore_flash / 0.5))
 	if _ripple >= 0.0:
 		# The refresh ripple: a bright ring with a soft band behind it.
 		var center := _to_screen(Vector2(GOAL))
-		var board := Rect2(_origin, Vector2(GRID_SIZE) * TILE)
 		for i in 4:
 			var r: float = (_ripple - i * 0.8) * TILE
 			if r <= 0.0:
@@ -475,7 +474,7 @@ func _draw() -> void:
 			for k in range(1, 97):
 				var ang := TAU * k / 96.0
 				var pt := center + Vector2(cos(ang), sin(ang)) * r
-				if board.has_point(prev) and board.has_point(pt):
+				if _on_board(prev) and _on_board(pt):
 					draw_line(prev, pt, color, 6.0 - i * 1.2)
 				prev = pt
 
