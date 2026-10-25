@@ -25,3 +25,7 @@ Changed (D-0013):
 Headless test: about one cue every 5 seconds during waves, none between waves.
 
 Waiting on Jared's playtest.
+
+## Second pass playtest (2026-10-25)
+
+Not landing yet: hard to parse, not telegraphed, too few attempts per wave, and early waves don't train. Jared wants to drop hats to 1-2 rhythms and suggested a scrolling timeline. Root cause: cues are enemy-driven, so they can't be known in advance. Options and recommendation in `docs/notes/rhythm-model-options.md`.
