@@ -69,3 +69,14 @@ Jared, one run to wave 8 with a boss summoned mid wave 7 (stats: Q 66% hits, E 5
 ## Polish pass (2026-10-25, D-0025)
 
 Telegraph moved to the tower (sword on the elite, closing red ring and beat pips on the target), bolts 10 tiles/s capped at 3 s, wave-clear transition. Bots unchanged: M3 perfect, M4 parry bot 2 of 2, M5 perfect parry bot kills the boss with flights of 2.75-3 s (was 5.25). Waiting on Jared's playtest; then M5 is done.
+
+## Polish pass playtest, feedback collected (2026-10-25, not yet acted on)
+
+Jared, full run to wave 10 cleared (Q 90% hits, E 86%, 25 elite pulses, 13 parried, 21 locks, 0 Restores; boss 8 bolts, 5 parries, 1 hit, 1 break). Balance at wave 9 with all gold spent: "almost perfect", "genuinely fun".
+
+- Boss alone isn't exciting enough: send two small creep waves with it, one at the start and one about 10 s later.
+- Elite parry: 13 of 25 now. Timing is "challenging but learnable" and fair; widen slightly. The remaining readability problem is how close the elite is to the tower when it attacks: little room to see it coming. Doesn't want the balance changed.
+- Idea to discuss: elites attack the "king" (Conductor) from range, which gives a long telegraph; the king has about 3 shields per level that each absorb one ranged hit, so shots never cost permanent health, while creeps walking in still do. Leaves the lock in an odd spot unless combined; could be a second elite type. Also: parry return damage currently comes from the king even though the attack is on the tower, which doesn't make sense.
+- Build phase: forgets to spend gold or skips it; perfect play lets him coast then struggle two waves later. The economic leverage from perfect play is good, but the build phase feels unofficial and boring, probably for lack of tech tree, towers, variety. Enemy and elite variety matter.
+- Music: the placeholder synth bed (xylophone-like) grates next to the real tracks. When the track ducks on a miss, it just reveals the worse music underneath. Wants our bed to be bass and rhythm only at the BPM, so a miss is "less cool", not bad-sounding. Intensity should rise with good play.
+- Credit VOiD1 Gaming for the SynthWave pack if it ships, and thank them either way.
