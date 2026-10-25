@@ -53,3 +53,15 @@ Built the whole package from `notes/elite-pressure-2026-10-25.md`. Headless bots
 - Crescendo sweep: one ring at a time, starting at the tower farthest from the boss.
 
 Waiting on Jared's playtest.
+
+## Third pass playtest, feedback collected (2026-10-25)
+
+Jared, one run to wave 8 with a boss summoned mid wave 7 (stats: Q 66% hits, E 56%, 10 elite pulses, 0 parried, 17 locks, 1 Restore; boss 44 bolts, 28 parries, 21 perfect, 1 hit, 6 breaks).
+
+- Waves 1-3 already feel much better as an opening. Crits are satisfying; a weak maze can finish stragglers on the beat.
+- Wave 7 with a boss summoned: "awesome". Fighting locks, parrying the boss, the stagger notes clearing the wave with snipes, then focusing the boss. Notes hard to hit but readability way better. "Genuinely fun, we are on to something."
+- Boss bolts: travel time is long, and with no notes to play it's a lot of waiting. Minor tweak.
+- Elite parries are still hard to hit: indication and timing are lost on him (0 of 10 parried). Idea: drop the circle on the elite; show it raising a sword instead, and put the emphasis on the ring of the tower(s) it attacks.
+- Song and notes sometimes linger awkwardly after the last creep dies: discuss the wave-to-build transition.
+- Default synth music behind the new tracks is getting stale (later). Backlog: how to get Geometry Dash-style music; songs should get more intense as you do well (partly there, not the full effect); single-player waves should be long and scripted to the music so songs play out.
+- Verdict: finish some polish here, then move on. "So much exciting stuff: rogue-lite paths, talents, tower types."
