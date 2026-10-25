@@ -405,30 +405,41 @@ func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	var board_w := GRID_SIZE.x * TILE
 
-	# Elites: a dark ring and their suppression reach.
+	# Elites: a big dark creep. No circle on it: when it attacks it raises a
+	# sword, and the timing lives on the tower it is attacking.
+	var beat := clock.beat_length()
 	for c in creeps:
 		if not c.get("elite", false):
 			continue
 		var p := _to_screen(c["pos"])
 		draw_circle(p, TILE * 0.4, Color(0.55, 0.1, 0.2))
 		draw_arc(p, TILE * 0.4, 0, TAU, 32, Color(1, 0.3, 0.4), 2.0)
-		draw_arc(p, SUPPRESS_RADIUS * TILE, 0, TAU, 48, Color(1, 0.3, 0.4, 0.12), 1.0)
-		# The pulse: a projectile that leaves the elite and crawls to the tower
-		# it threatens over a bar, brightening on the last beat. Space as it lands.
-		if c["pulse_at"] >= 0.0:
-			var frac: float = clampf((beat_time() - c["pulse_from"]) / maxf(c["pulse_at"] - c["pulse_from"], 0.01), 0.0, 1.0)
-			var last: bool = c["told"]
-			draw_arc(p, TILE * 0.55, 0, TAU, 32, Color(1, 0.4, 0.5, 0.5), 2.0)
-			for cell in c["pulse_targets"]:
-				if not structures.has(cell):
-					continue
-				var tp := _to_screen(Vector2(cell))
-				var bp := p.lerp(tp, frac)
-				draw_line(p, tp, Color(1, 0.3, 0.4, 0.18), 1.0)
-				draw_arc(tp, TILE * 0.5, 0, TAU, 32, Color(1, 0.3, 0.4, 0.35 + 0.5 * frac), 2.0 if not last else 3.5)
-				draw_line(p.lerp(tp, maxf(frac - 0.08, 0.0)), bp, Color(1, 0.5, 0.6, 0.5), 4.0)
-				draw_circle(bp, TILE * (0.2 if not last else 0.26), Color(1, 0.5, 0.6))
-				draw_circle(bp, TILE * 0.09, Color.WHITE)
+		if c["pulse_at"] < 0.0:
+			continue
+		var frac: float = clampf((beat_time() - c["pulse_from"]) / maxf(c["pulse_at"] - c["pulse_from"], 0.01), 0.0, 1.0)
+		var last: bool = c["told"]
+		var beats_gone := clampi(floori((beat_time() - c["pulse_from"]) / beat), 0, 4)
+		# The sword: raised over the elite, white while winding up, red on the last beat.
+		var sword := Color(1, 0.35, 0.4) if last else Color(1, 1, 1, 0.9)
+		var hilt := p + Vector2(TILE * 0.35, -TILE * 0.3)
+		draw_line(hilt, hilt + Vector2(TILE * 0.2, -TILE * 0.75), sword, 3.0)
+		draw_line(hilt + Vector2(-TILE * 0.12, -TILE * 0.05), hilt + Vector2(TILE * 0.12, TILE * 0.05), sword, 3.0)
+		# The targeted tower: a red ring closing over the bar, four beat pips
+		# filling up, and the pulse crawling in. Space as it lands.
+		for cell in c["pulse_targets"]:
+			if not structures.has(cell):
+				continue
+			var tp := _to_screen(Vector2(cell))
+			var bp := p.lerp(tp, frac)
+			draw_line(p, tp, Color(1, 0.3, 0.4, 0.15), 1.0)
+			draw_arc(tp, TILE * (0.55 + 1.3 * (1.0 - frac)), 0, TAU, 48, Color(1, 0.3, 0.4, 0.35 + 0.65 * frac), 2.0 + 2.5 * frac)
+			draw_arc(tp, TILE * 0.55, 0, TAU, 32, Color(1, 0.3, 0.4, 0.9 if last else 0.5), 3.5 if last else 2.0)
+			for i in 4:
+				var pip := tp + Vector2(-15 + i * 10, -TILE * 0.72)
+				draw_circle(pip, 3.5, Color(1, 0.35, 0.4) if i < beats_gone else Color(1, 1, 1, 0.25))
+			draw_line(p.lerp(tp, maxf(frac - 0.08, 0.0)), bp, Color(1, 0.5, 0.6, 0.5), 4.0)
+			draw_circle(bp, TILE * (0.2 if not last else 0.26), Color(1, 0.5, 0.6))
+			draw_circle(bp, TILE * 0.09, Color.WHITE)
 
 	# Suppressed towers: greyed out with a cross and a draining bar.
 	for cell in suppressed:

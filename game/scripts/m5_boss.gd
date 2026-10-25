@@ -24,8 +24,9 @@ extends "res://scripts/m4_restore.gd"
 const BOSS_WAVE := 5
 const BOSS_HP_MULT := 40.0  # x creep HP of that wave.
 const BOSS_SPEED := 0.4  # Tiles per second.
-const BOLT_SPEED := 6.0  # Tiles per second along the path.
+const BOLT_SPEED := 10.0  # Tiles per second along the path.
 const BOLT_MIN_TRAVEL := 0.5
+const BOLT_MAX_TRAVEL := 3.0  # Even from the far end, a bolt lands within this.
 const STRINGS := [[0.0, 1.0, 2.0, 3.5], [0.0, 0.5, 2.0, 3.0]]  # Launch offsets in beats.
 const STRING_LEAD_BEATS := 2.0  # First launch this long after the string is called.
 const HIT_HEALTH := 2
@@ -185,7 +186,7 @@ func _call_string(bar: int) -> void:
 	var grid_len := step_length()
 	for off in offsets:
 		var launch: float = start + off * mult * beat
-		var travel := clampf(boss_path_left() / BOLT_SPEED, BOLT_MIN_TRAVEL, 8.0)
+		var travel := clampf(boss_path_left() / BOLT_SPEED, BOLT_MIN_TRAVEL, BOLT_MAX_TRAVEL)
 		var arrive := ceilf((launch + travel) / grid_len - 0.001) * grid_len
 		bolts.append({"launch": launch, "arrive": arrive, "from": boss["pos"], "state": "flying", "told": false})
 		m5_stats["bolts"] += 1

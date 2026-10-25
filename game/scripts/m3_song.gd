@@ -113,6 +113,7 @@ var _bursts: Array[Dictionary] = []
 var _popups: Array[Dictionary] = []  # Floating damage numbers: pos, text, color, size, ttl.
 var _line_flash := {"color": Color.WHITE, "ttl": 0.0}
 var _punch := 0.0  # Seconds of screen punch left.
+var _sting_at := -1.0  # Song time the wave-clear sting lands, or -1.
 var _sfx := {}  # name -> AudioStreamPlayer
 
 
@@ -161,7 +162,7 @@ func _ready() -> void:
 	stem_index["lead"] = clock.add_stem(StemSynth.lead(bar), idle_db["lead"])
 	for k in idle_db:
 		stem_db[k] = idle_db[k]
-	for sfx in [["perfect", 1320.0, -4.0], ["good", 880.0, -8.0], ["miss", 140.0, -6.0]]:
+	for sfx in [["perfect", 1320.0, -4.0], ["good", 880.0, -8.0], ["miss", 140.0, -6.0], ["clear", 1760.0, -3.0]]:
 		var player := AudioStreamPlayer.new()
 		player.stream = StemSynth.chime(sfx[1])
 		player.volume_db = sfx[2]
@@ -189,6 +190,31 @@ func stat_total(field: String) -> int:
 	for type in stats:
 		n += stats[type][field]
 	return n
+
+
+## The last creep died: pending notes go, the melody drops, a sting lands on
+## the next beat, and the groove fades to idle on its own (no towers engaged).
+func step(delta: float) -> void:
+	var was_active := wave_active
+	super.step(delta)
+	if was_active and not wave_active and state == "playing":
+		_wave_cleared()
+	if _sting_at >= 0.0 and beat_time() >= _sting_at:
+		_sting_at = -1.0
+		_sfx["clear"].play()
+		_flash_line(Color(1.0, 0.9, 0.3))
+
+
+func _wave_cleared() -> void:
+	for n in notes:
+		if n["state"] == "open":
+			stats[n["type"]]["notes"] -= 1
+			_wave_notes -= 1
+	notes.clear()
+	_lead_timer = 0.0
+	var beat := clock.beat_length()
+	_sting_at = (floorf(beat_time() / beat) + 1.0) * beat
+	_show_feedback("WAVE %d CLEAR" % wave, Color(1.0, 0.9, 0.3))
 
 
 ## Longer waves so each one carries several phrases of practice.

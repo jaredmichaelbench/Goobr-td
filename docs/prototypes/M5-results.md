@@ -65,3 +65,7 @@ Jared, one run to wave 8 with a boss summoned mid wave 7 (stats: Q 66% hits, E 5
 - Song and notes sometimes linger awkwardly after the last creep dies: discuss the wave-to-build transition.
 - Default synth music behind the new tracks is getting stale (later). Backlog: how to get Geometry Dash-style music; songs should get more intense as you do well (partly there, not the full effect); single-player waves should be long and scripted to the music so songs play out.
 - Verdict: finish some polish here, then move on. "So much exciting stuff: rogue-lite paths, talents, tower types."
+
+## Polish pass (2026-10-25, D-0025)
+
+Telegraph moved to the tower (sword on the elite, closing red ring and beat pips on the target), bolts 10 tiles/s capped at 3 s, wave-clear transition. Bots unchanged: M3 perfect, M4 parry bot 2 of 2, M5 perfect parry bot kills the boss with flights of 2.75-3 s (was 5.25). Waiting on Jared's playtest; then M5 is done.
