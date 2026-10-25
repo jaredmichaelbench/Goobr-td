@@ -6,28 +6,27 @@ Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are neede
 
 Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song. **Esc** returns to the menu.
 
-## M3: the maze plays the song
+## M3: the maze plays the song (v3, song chart)
 
-The question: can you hear your maze, and do the moments you play feel like locking in?
+The question: can you hear your maze, and do you build it so your towers are in the fight when the song calls for them?
 
 - Calibrate in M1 first (press **C** there). M3 uses the same calibration.
-- Build keys are **1** wall, **2**, **3**, **4** for the three towers. Q/W/E are for playing.
-- Towers fire on their own and play their part of the music while they have a target. You don't play along with them.
-- The music runs in 4-bar phrases (the strip under the board shows where you are):
-  - **Bars 1-2:** groove. Nothing to press.
-  - **Bar 3, the call:** a chime plays a short rhythm.
-  - **Bar 4, the answer:** that rhythm comes back on your towers. A ring shrinks onto each tower in turn; press the key shown above that tower as the ring lands. Perfect is a crit, and the melody joins in for 2 bars.
-- Each rhythm repeats for two phrases, then changes. Towers in crossfire get picked first and hit harder.
-- Missing costs nothing. **F5** toggles one-key mode, where any key answers any ring.
-- Speeding up (F1) mutes the music and turns cues off.
+- Build keys: **1** wall, **2** Q tower (on the beat, heavy), **3** E tower (off-beat, splash). Hats are gone as a tower; they're just background groove now.
+- Towers fire on their own and play their part of the music while they have a target.
+- During a wave, notes scroll right to left along the **timeline** under the board (Q lane on top, E lane below). Press the key as a note reaches the white line. The song decides the notes, not the enemies, so you always see what's coming.
+- Two beats before a note, a ring starts closing on every tower of that key. Bright ring = that tower has a target and will fire. Faint ring = it has nothing in range and adds nothing.
+- A hit fires a Resonance from **every** engaged tower of that key. Perfect is a crit. Crossfire hits harder. If none of that key's towers have a target, the hit is wasted (the HUD counts these as "No tower").
+- The chart builds up: waves 1-2 are one Q note per bar, waves 3-4 add a few more Q notes, waves 5-6 bring in E, and wave 7+ mixes both. Waves are longer than before (17 creeps on wave 1).
+- Missing costs nothing. **F5** toggles one-key mode, where any key plays any note.
+- Speeding up (F1) mutes the music and turns notes off.
 
 ### What to report back
 
-- Does it feel like locking in, rather than playing the drums?
-- Is the call (chime) a useful hint before the rings?
-- Too sparse, too dense, or about right?
-- Did you change your maze to get better cues?
-- Three keys vs one-key mode (F5)?
+- Can you read the timeline at a glance, and does it feel telegraphed now?
+- Enough attempts per wave to get into it? Does the build-up from wave 1 teach you?
+- Did you change your maze so more Q or E towers are in the fight when notes come?
+- Is the timeline too much like reading a chart (we'd hide it for bosses later)?
+- Two keys vs one-key mode (F5)?
 
 ## M2: the maze
 

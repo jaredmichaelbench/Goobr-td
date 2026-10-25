@@ -29,3 +29,17 @@ Waiting on Jared's playtest.
 ## Second pass playtest (2026-10-25)
 
 Not landing yet: hard to parse, not telegraphed, too few attempts per wave, and early waves don't train. Jared wants to drop hats to 1-2 rhythms and suggested a scrolling timeline. Root cause: cues are enemy-driven, so they can't be known in advance. Options and recommendation in `docs/notes/rhythm-model-options.md`.
+
+## Third pass: song chart and timeline (2026-10-25, D-0014)
+
+Changed:
+- The song's chart decides the notes. They scroll along a timeline under the board (Q lane, E lane) and are known 2 bars ahead.
+- Two rhythms only: Q tower (on the beat) and E tower (off-beat). Hats are background groove. Build keys are 1 wall, 2 Q tower, 3 E tower.
+- A ring closes on every tower of the next note's key two beats out: bright if that tower has a target, faint if not.
+- A hit fires a Resonance from every engaged tower of that key. No engaged tower = wasted note.
+- The chart ramps every two waves: one Q per bar, then extra Qs, then E notes, then a mix.
+- Waves are longer: 14 + 3 per wave creeps.
+
+Headless test (dense test maze, so waves end fast): waves 1-2 had 6-8 notes, wave 3 had 14. All scenes load and the 8x speed tool still works.
+
+Waiting on Jared's playtest.
