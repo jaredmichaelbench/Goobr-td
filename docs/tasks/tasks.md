@@ -17,8 +17,8 @@ Active work. Each task has an id, status, and a link to the decision or prototyp
 | T-014 | M2: maze, grid, flow-field pathing | done | Passed 2026-10-24 (`docs/prototypes/M2-results.md`) |
 | T-015 | M3: the maze plays the song | done | Four passes, 2026-10-24 to 25. Song chart + timeline (D-0014), rock map (D-0015). Tuning notes in `prototypes/M3-results.md` |
 | T-019 | Economy and relative tower power pass | todo | After M3 (towers change when they move onto the beat). Jared: "never felt hard" in M2 |
-| T-016 | M4: suppress and Restore | doing | Third pass built 2026-10-25 (D-0019, Restore any time, lands on the next 8th, ripple). Waiting on Jared's playtest |
-| T-017 | M5: first boss | todo | Boss model D chosen 2026-10-25 (D-0020). Starts once M4 is closed |
+| T-016 | M4: suppress and Restore | done | Three passes 2026-10-25 (D-0016 to D-0019). Keep: Restore feels great, silence is recoverable tension |
+| T-017 | M5: first boss | doing | First pass built 2026-10-25 (D-0020, D-0021). Waiting on Jared's playtest |
 | T-018 | M6: Demo 0 wrap-up | todo | |
 | T-009 | Apple Developer account ($99/yr) for signing and notarization | todo | Only needed before sharing Mac builds |
 

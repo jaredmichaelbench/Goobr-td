@@ -6,6 +6,7 @@ const SCENES := {
 	KEY_2: "res://m2_maze.tscn",
 	KEY_3: "res://m3_song.tscn",
 	KEY_4: "res://m4_restore.tscn",
+	KEY_5: "res://m5_boss.tscn",
 }
 
 
@@ -23,6 +24,7 @@ func _draw() -> void:
 		"2   M2 Maze",
 		"3   M3 The maze plays the song",
 		"4   M4 Suppress and Restore",
+		"5   M5 First boss",
 		"",
 		"Esc in any test returns here",
 	]

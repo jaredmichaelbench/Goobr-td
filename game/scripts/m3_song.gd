@@ -383,9 +383,14 @@ func _fire_towers_on(pattern_step: int) -> void:
 		var target := _pick_target(Vector2(cell), spec["range"])
 		if target.is_empty():
 			continue
-		_hit(target, spec, spec["damage"])
+		_hit(target, spec, spec["damage"] * damage_scale())
 		_flashes[cell] = 0.12
 		shots.append({"from": Vector2(cell), "to": target["pos"], "color": spec["color"], "ttl": 0.12, "splash": spec["splash"]})
+
+
+## Global tower damage multiplier. M5's Crescendo raises it.
+func damage_scale() -> float:
+	return 1.0
 
 
 func _hit(target: Dictionary, spec: Dictionary, damage: float) -> void:
@@ -492,7 +497,7 @@ func _resonance(type: String, g: String, offset_ms: float) -> void:
 		if target.is_empty():
 			continue
 		var crossfire := 1.0 + CROSSFIRE_BONUS * maxi(0, _coverage(target["pos"]) - 1)
-		var bonus: float = spec["damage"] * crossfire * (RESONANCE_PERFECT if crit else RESONANCE_GOOD)
+		var bonus: float = spec["damage"] * damage_scale() * crossfire * (RESONANCE_PERFECT if crit else RESONANCE_GOOD)
 		var dealt := 0.0
 		for c in creeps:
 			if c["pos"].distance_to(target["pos"]) <= RESONANCE_RADIUS:

@@ -212,7 +212,7 @@ func _relight_tower(cell: Vector2i) -> void:
 	var target := _pick_target(Vector2(cell), spec["range"])
 	if target.is_empty():
 		return
-	var dmg: float = spec["damage"] * OVERCHARGE_MULT
+	var dmg: float = spec["damage"] * OVERCHARGE_MULT * damage_scale()
 	var dealt := 0.0
 	for c in creeps:
 		if c["pos"].distance_to(target["pos"]) <= 1.0:

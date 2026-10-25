@@ -4,9 +4,32 @@ Greybox build of the game, made in milestones. The plan is in `../docs/prototype
 
 Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are needed, because all audio is generated in code.
 
-Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore. **Esc** returns to the menu.
+Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore, **5** = M5 first boss. **Esc** returns to the menu.
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3 or M4, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
+
+## M5: first boss
+
+The question: does the boss feel like learning a souls boss, not reading a chart?
+
+Everything from M4, plus:
+
+- **Wave 5 is the boss**, alone. Press **O** to summon it any time instead. It walks your maze slowly (0.4 tiles a second) with a big health bar over the board and a thin yellow **posture** bar under it. Towers, notes and Restore salvos all damage it.
+- Its attacks are the event. It throws **bolts down your path at the Conductor** (the goal, marked with a ring) in short strings of four. There is no timing UI: the tell is the boss swelling for a beat, a low tone, then the bolt itself flying along your maze. Every bolt arrives on the beat grid.
+- Far away, bolts take 4-5 seconds to arrive and strings are half-time. In the middle third they're on the beat. In the last third, or once it reaches the Conductor, they come on 8th notes with half a second of warning. A long maze buys you time to read it.
+- **Space parries** a bolt as it reaches the Conductor. Perfect or Good deflects it back for damage and posture (Perfect counts double). Four Perfect parries in a row break posture.
+- A **hit** (no parry, or late) costs 2 health and locks the towers near the boss, so Restore applies.
+- **Posture break**: the boss staggers for 6 seconds, every tower does +30%, the full mix slams in, and the board glows. Then it carries on.
+- Kill it to clear the wave. If it reaches the Conductor it doesn't leak; it stands there and attacks at the fastest tempo.
+- Space is the parry key, so one-key mode (K) is Q/E only here.
+
+### What to report back
+
+- Can you read the strings from the tell and the bolt alone, without wanting a timing bar?
+- Does the half-time / on-beat / 8th-note tightening feel like the boss closing in, or like three separate fights?
+- Did your maze length change how the fight felt? Did you rebuild for the boss?
+- Is a posture break satisfying, and is 6 seconds of Crescendo enough to matter?
+- Too hard or too easy, and where: the parry window, the bolt damage, the boss health?
 
 ## M4: suppress and Restore (v3)
 

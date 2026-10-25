@@ -27,3 +27,9 @@ Jared: "much harder now but want to test it more." F-keys didn't work on the Mac
 Built from the agreed plan: F any time, lands on the next 8th note, refresh ripple from the goal that relights towers as it passes, salvo per relit tower, charges unchanged. Headless: bot pressing F whenever locked gets every lock cleared by the ripple; no presses, locks wear off at 10 s.
 
 Waiting on Jared's playtest.
+
+## Verdict (2026-10-25): keep
+
+Jared on v3: "Restore feels great after the changes, silence creates recoverable tension." P-03 answered yes. M4 closed.
+
+Notes for M6 tuning, not acted on: charges vs a cooldown; whether 10 s self-recovery should be 6 s; elite reach (2.2 tiles) and how often the same elite can lock (2 bars).
