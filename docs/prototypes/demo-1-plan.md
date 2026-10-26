@@ -28,4 +28,4 @@ Camera3D fixed, tilt from M8, one directional light, flat shading, no shadows at
 
 ## Open questions for Jared (recommendation in brackets)
 
-1. Asset source (free CC0 first). 2. Style: flat-shaded low-poly (yes). 3. Tilt: 60 to 70 or the reference's steeper 3/4 (decide from M8 screenshots). 4. One map or several (one). 5. Current roster for the 20 waves (yes). 6. Collapse the milestone scripts, drop menu keys 1 to 6 (yes). 7. Mac signing (ad-hoc for friends). 8. A date (none known). 9. The name for the title screen. 10. The Conductor as marker or character (marker now).
+1. Asset source (free CC0 first). 2. Style: flat-shaded low-poly (yes). 3. Tilt: 60 to 70 or the reference's steeper 3/4 (decide from M8 screenshots). 4. One map or several: DECIDED one map (Jared, 2026-10-26). 5. Current roster for the 20 waves (yes). 6. Collapse the milestone scripts, drop menu keys 1 to 6 (yes). 7. Mac signing (ad-hoc for friends). 8. A date (none known). 9. The name for the title screen. 10. The Conductor as marker or character (marker now).
