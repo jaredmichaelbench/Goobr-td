@@ -76,3 +76,4 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 - Collapse the M2 to M7 scripts into one run (D-0044, deferred from M9): the 3D build runs the chain unchanged behind `RunSim`. Do it when a rule change keeps tripping over the inheritance, with the bots as the regression check.
 - Compare Kenney TD Kit and Quaternius monsters against the KayKit look (D-0044): blocked from the cloud machine, can be downloaded by hand into `game/assets/` and swapped in `art.gd`.
 - Name and theme: "Goobr TD", skeletons and a medieval keep are placeholders (D-0044).
+- Custom app icon for the exported builds (Jared, 2026-10-26): the Demo 1 Mac and Windows builds show the Godot icon. Needs an icon image once the name and theme settle; set it in project settings and the export presets.
