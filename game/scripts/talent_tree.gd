@@ -1,56 +1,55 @@
 class_name TalentTree
-## The per-run talent tree (D-0038, D-0039). Five areas, each a grid of three
-## columns and four rows plus a capstone. A node needs one owned node in the
-## row above it (same column or a neighbour); row 0 nodes are free to start
-## from. LINKS add cross-area ways in, so a build can reach a neighbour area's
-## early nodes without starting there. Counter-attack is the Defence area's
-## early capstone and has links from three areas.
+## The per-run talent tree, second shape (D-0040, WoW-style). Five areas in a
+## ring (each borders two neighbours). Each area has three rows and a capstone:
+## row 1 is three ranked nodes (0/3, the generic percentages, no repeats);
+## row 2 is one node of its own plus one SHARED node with each neighbour (the
+## same node sits in both areas, so paths cross: counter-attack is Rhythm's and
+## Defence's); row 3 is two stronger nodes. Rows gate on points spent in the
+## area (a shared node counts for both): row 2 needs 4, row 3 needs 8, the
+## capstone 12. First point at level 2.
 ##
-## Effects are stat bumps on the game's gstats dictionary, or flags. Numbers
-## are placeholders for the M7 session; tune here, no code.
+## Effects are stat bumps on the game's gstats dictionary, applied once per
+## rank. Numbers are placeholders for the test session; tune here, no code.
 
 const AREAS: Array[String] = ["rhythm", "towers", "economy", "walls", "defence"]
 const AREA_NAMES := {"rhythm": "Rhythm", "towers": "Towers", "economy": "Economy", "walls": "Walls", "defence": "Defence"}
 const AREA_COLORS := {"rhythm": Color(1.0, 0.6, 0.35), "towers": Color(0.9, 0.8, 0.5), "economy": Color(1.0, 0.9, 0.3), "walls": Color(0.6, 0.65, 0.75), "defence": Color(0.5, 0.8, 1.0)}
-const ROWS := 4
-const COLS := 3
+const GATES := [0, 4, 8, 12]  # Points in the area needed for row 1, 2, 3 and the capstone.
+const ROWS := 3
 
-## [row][col] = [name, effects] per area. Row 0 is the top (the start).
-const GRID := {
-	"rhythm": [
-		[["Pulse", {"note_rate": 1}], ["Accent", {"perfect_mult": 0.15}], ["Tempo", {"damage_mult": 0.04}]],
-		[["Echo", {"echo": 0.25}], ["Sustain", {"veil_crack": 1.0}], ["Cadence", {"note_rate": 1}]],
-		[["Resonance", {"crossfire": 0.15}], ["Encore", {"parry_notes": 1}], ["Crescendo", {"crescendo": 2.0}]],
-		[["Fortissimo", {"perfect_mult": 0.3}], ["Reprise", {"echo": 0.25}], ["Rubato", {"note_window_ms": 15.0}]],
-	],
-	"towers": [
-		[["Sharpen", {"damage_mult": 0.06}], ["Reach", {"range_all": 0.2}], ["Keen", {"crit_chance": 0.05}]],
-		[["Cannonry", {"range_kick": 0.5, "damage_kick": 0.15}], ["Workshop", {"upgrade_discount": 0.1}], ["Brutal", {"crit_mult": 0.25}]],
-		[["Heavy shot", {"damage_mult": 0.08}], ["Frostwork", {"damage_slow": 0.3, "range_slow": 0.4}], ["Splashworks", {"damage_bass": 0.2, "splash_bonus": 0.3}]],
-		[["Overcharge", {"crit_chance": 0.08}], ["Foundry", {"upgrade_discount": 0.15}], ["Executioner", {"crit_mult": 0.5}]],
-	],
-	"economy": [
-		[["Tithe", {"gold_mult": 0.08}], ["Scholar", {"xp_mult": 0.1}], ["Lucky coin", {"luck": 1}]],
-		[["Bounty hunter", {"kill_gold": 1}], ["Interest", {"interest": 0.02}], ["Fortune", {"luck": 1}]],
-		[["Trade", {"gold_mult": 0.1}], ["Tomes", {"xp_mult": 0.15}], ["Hoard", {"wave_bonus_mult": 0.25}]],
-		[["Mogul", {"gold_mult": 0.12}], ["Sage", {"xp_mult": 0.2}], ["Charmed", {"luck": 2}]],
-	],
-	"walls": [
-		[["Masonry", {"wall_cap": 2}], ["Mortar", {"wall_cheap": 1}], ["Buttress", {"wall_cap": 2}]],
-		[["Tar", {"wall_slow": 0.15}], ["Spikes", {"wall_thorns": 2.0}], ["Bulwark", {"wall_cap": 3}]],
-		[["Quagmire", {"wall_slow": 0.15}], ["Barbs", {"wall_thorns": 3.0}], ["Keep", {"shield_cap": 1}]],
-		[["Mire", {"wall_slow": 0.2}], ["Palisade", {"wall_thorns": 4.0}], ["Citadel", {"wall_cap": 4}]],
-	],
-	"defence": [
-		[["Guard", {"parry_mult": 0.15}], ["Poise", {"parry_window_ms": 10.0}], ["Ward", {"shield_cap": 1}]],
-		[["Riposte", {"parry_mult": 0.2}], ["Reflex", {"parry_window_ms": 10.0}], ["Battery", {"restore_charges": 1}]],
-		[["Sweep", {"parry_splash": 1.0}], ["COUNTER-ATTACK", {"counter": true}], ["Aegis", {"shield_cap": 1}]],
-		[["Cleave", {"parry_splash": 1.0}], ["Second wind", {"counter_mult": 0.5}], ["Bastion", {"restore_charges": 1, "shield_cap": 1}]],
-	],
+## Row 1: [name, effects per rank], three per area, 0/3 each.
+const ROW1 := {
+	"rhythm": [["Pulse", {"note_rate": 1}, 2], ["Accent", {"perfect_mult": 0.1}, 3], ["Tempo", {"damage_mult": 0.04}, 3]],
+	"towers": [["Sharpen", {"damage_mult": 0.05}, 3], ["Reach", {"range_all": 0.15}, 3], ["Keen", {"crit_chance": 0.04}, 3]],
+	"economy": [["Tithe", {"gold_mult": 0.06}, 3], ["Scholar", {"xp_mult": 0.08}, 3], ["Lucky coin", {"luck": 1}, 3]],
+	"walls": [["Masonry", {"wall_cap": 2}, 3], ["Tar", {"wall_slow": 0.08}, 3], ["Spikes", {"wall_thorns": 1.0}, 3]],
+	"defence": [["Guard", {"parry_mult": 0.1}, 3], ["Poise", {"parry_window_ms": 6.0}, 3], ["Ward", {"shield_cap": 1}, 2]],
 }
-
-## Capstones: one per area, needs any row 3 node of that area (6 points in
-## through the shortest path with its links, 5 straight down).
+## Row 2, the area's own node (one rank).
+const ROW2 := {
+	"rhythm": ["Echo", {"echo": 0.35}],
+	"towers": ["Workshop", {"upgrade_discount": 0.15}],
+	"economy": ["Interest", {"interest": 0.03}],
+	"walls": ["Bulwark", {"wall_cap": 4}],
+	"defence": ["Battery", {"restore_charges": 1}],
+}
+## Row 2, shared between an area and the next one in the ring (one rank).
+const SHARED := {
+	"rhythm|towers": ["Resonance", {"crossfire": 0.2}],
+	"towers|economy": ["Trade routes", {"gold_mult": 0.1, "upgrade_discount": 0.05}],
+	"economy|walls": ["Toll road", {"kill_gold": 1, "wall_cheap": 1}],
+	"walls|defence": ["Keep", {"shield_cap": 1, "restore_charges": 1}],
+	"defence|rhythm": ["COUNTER-ATTACK", {"counter": true}],
+}
+## Row 3: two per area (one rank).
+const ROW3 := {
+	"rhythm": [["Encore", {"parry_notes": 1}], ["Rubato", {"note_window_ms": 20.0}]],
+	"towers": [["Overcharge", {"crit_mult": 0.5}], ["Heavy shot", {"damage_mult": 0.15}]],
+	"economy": [["Hoard", {"wave_bonus_mult": 0.5}], ["Sage", {"xp_mult": 0.3}]],
+	"walls": [["Quagmire", {"wall_slow": 0.25}], ["Palisade", {"wall_thorns": 4.0}]],
+	"defence": [["Sweep", {"parry_splash": 2.0}], ["Second wind", {"counter_mult": 0.5}]],
+}
+## Capstones: one per area, 12 points in.
 const CAPSTONES := {
 	"rhythm": ["Fermata", "A Perfect parry freezes every creep for a beat", {"fermata": true}],
 	"towers": ["Arsenal", "Every tower type unlocks now", {"arsenal": true}],
@@ -59,53 +58,76 @@ const CAPSTONES := {
 	"defence": ["Riposte", "Counter-attacks hit twice and build double posture", {"counter": true, "counter_mult": 1.0, "riposte": true}],
 }
 
-## Cross-area ways in: node -> extra prerequisites that also open it.
-const LINKS := {
-	"defence_2_1": ["rhythm_1_2", "walls_1_2", "towers_1_2"],  # Counter-attack: an early capstone most starts can reach.
-	"towers_2_0": ["rhythm_1_2"],
-	"economy_2_0": ["towers_1_2"],
-	"walls_2_0": ["economy_1_2"],
-	"rhythm_2_2": ["towers_1_0"],
-	"economy_2_2": ["walls_1_0"],
-}
-
 static var _nodes := {}
+static var _layout := {}
 
 
-## id -> {area, row, col, name, text, effects, needs: Array[String]}; capstones have row = ROWS.
+static func _id(name: String) -> String:
+	return name.to_lower().replace(" ", "_").replace("-", "_")
+
+
+## id -> {name, text, effects, areas: Array[String], row (1..3, 4 = capstone), max}.
 static func nodes() -> Dictionary:
 	if not _nodes.is_empty():
 		return _nodes
-	for area in AREAS:
-		for r in ROWS:
-			for c in COLS:
-				var entry: Array = GRID[area][r][c]
-				var id := "%s_%d_%d" % [area, r, c]
-				var needs: Array[String] = []
-				if r > 0:
-					for dc in [-1, 0, 1]:
-						if c + dc >= 0 and c + dc < COLS:
-							needs.append("%s_%d_%d" % [area, r - 1, c + dc])
-				for extra in LINKS.get(id, []):
-					needs.append(extra)
-				_nodes[id] = {"area": area, "row": r, "col": c, "name": entry[0], "text": describe(entry[1]), "effects": entry[1], "needs": needs}
+	for i in AREAS.size():
+		var area: String = AREAS[i]
+		var prev: String = AREAS[(i - 1 + AREAS.size()) % AREAS.size()]
+		var next: String = AREAS[(i + 1) % AREAS.size()]
+		var rows: Array = [[], [], [], []]
+		for entry in ROW1[area]:
+			var id := _id(entry[0])
+			_nodes[id] = {"name": entry[0], "text": describe(entry[1]) + " per rank", "effects": entry[1], "areas": [area], "row": 1, "max": entry[2]}
+			rows[0].append(id)
+		var own: Array = ROW2[area]
+		var own_id := _id(own[0])
+		_nodes[own_id] = {"name": own[0], "text": describe(own[1]), "effects": own[1], "areas": [area], "row": 2, "max": 1}
+		var left: Array = SHARED[prev + "|" + area]
+		var right: Array = SHARED[area + "|" + next]
+		for pair in [[left, [prev, area]], [right, [area, next]]]:
+			var sid := _id(pair[0][0])
+			if not _nodes.has(sid):
+				_nodes[sid] = {"name": pair[0][0], "text": describe(pair[0][1]), "effects": pair[0][1], "areas": pair[1], "row": 2, "max": 1, "shared": true}
+		rows[1] = [_id(left[0]), own_id, _id(right[0])]
+		for entry in ROW3[area]:
+			var id := _id(entry[0])
+			_nodes[id] = {"name": entry[0], "text": describe(entry[1]), "effects": entry[1], "areas": [area], "row": 3, "max": 1}
+			rows[2].append(id)
 		var cap: Array = CAPSTONES[area]
-		var cap_needs: Array[String] = []
-		for c in COLS:
-			cap_needs.append("%s_%d_%d" % [area, ROWS - 1, c])
-		_nodes[area + "_cap"] = {"area": area, "row": ROWS, "col": 1, "name": cap[0], "text": cap[1], "effects": cap[2], "needs": cap_needs, "capstone": true}
+		_nodes[area + "_cap"] = {"name": cap[0], "text": cap[1], "effects": cap[2], "areas": [area], "row": 4, "max": 1, "capstone": true}
+		rows[3] = [area + "_cap"]
+		_layout[area] = rows
 	return _nodes
 
 
-## Can this node be taken with these owned ids? Roots are always open.
+## The ids to show for an area, row by row (row 2 holds the two shared nodes at its edges).
+static func layout(area: String) -> Array:
+	nodes()
+	return _layout[area]
+
+
+## Ranks taken: owned lists an id once per rank.
+static func ranks(id: String, owned: Array) -> int:
+	return owned.count(id)
+
+
+## Points spent in an area; a shared node counts for both of its areas.
+static func area_points(area: String, owned: Array) -> int:
+	var n := 0
+	for id in owned:
+		if nodes()[id]["areas"].has(area):
+			n += 1
+	return n
+
+
+## Can one more rank be taken? Needs a free rank and the row's gate in any of the node's areas.
 static func available(id: String, owned: Array) -> bool:
 	var n: Dictionary = nodes()[id]
-	if owned.has(id):
+	if ranks(id, owned) >= n["max"]:
 		return false
-	if n["needs"].is_empty():
-		return true
-	for need in n["needs"]:
-		if owned.has(need):
+	var gate: int = GATES[n["row"] - 1]
+	for area in n["areas"]:
+		if area_points(area, owned) >= gate:
 			return true
 	return false
 
@@ -125,7 +147,7 @@ static func describe(effects: Dictionary) -> String:
 			"parry_notes": parts.append("a parry adds a note")
 			"crescendo": parts.append("Crescendo +%d s" % int(v))
 			"note_window_ms": parts.append("note window +%d ms" % int(v))
-			"range_all": parts.append("+%.1f range, all towers" % v)
+			"range_all": parts.append("+%.2f range, all towers" % v)
 			"crit_chance": parts.append("+%d%% crit chance" % int(v * 100))
 			"crit_mult": parts.append("+%d%% crit damage" % int(v * 100))
 			"upgrade_discount": parts.append("type upgrades %d%% cheaper" % int(v * 100))
@@ -144,7 +166,7 @@ static func describe(effects: Dictionary) -> String:
 			"parry_mult": parts.append("parry return +%d%%" % int(v * 100))
 			"parry_window_ms": parts.append("parry window +%d ms" % int(v))
 			"restore_charges": parts.append("+%d Restore charge" % v)
-			"parry_splash": parts.append("parries also hit creeps within %d tile of the target" % int(v))
+			"parry_splash": parts.append("parries also hit creeps within %d tiles of the target" % int(v))
 			"counter": parts.append("unlocks the counter-attack")
 			"counter_mult": parts.append("counters +%d%%" % int(v * 100))
 			_:

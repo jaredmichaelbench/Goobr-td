@@ -38,6 +38,14 @@ const UNLOCKS := {
 	"lightning": {"text": "needs 10 Perfects", "stat": "perfects", "need": 10},
 	"light": {"text": "needs a Shade kill", "stat": "kills_shade", "need": 1},
 }
+const COUNTER_BURST := 2.0  # Tiles a counter on a creep reaches (D-0040).
+const EXTRA_DRAFT_WAVES := [3, 8, 13, 18]  # Drafts between bosses (D-0040).
+const TRICKLE_GAP := 8.0  # Seconds between escort packs while a boss lives.
+const TRICKLE_PACKS := 5
+const SUMMON_EVERY_BREAKS := 3  # Bosses after wave 10 summon a pack on every third break.
+const STAGGER_BEATS := 2  # An elite holds this long after a parried throw.
+## Crescendo charts, one rolled per posture break: Q, E or a rest per beat, looped.
+const CRESCENDO_SETS := ["QEQE", "QQEE", "QE.E", "EQQ.", "QQQE", "E.QE", "QEE.", "EEQQ"]
 const RUNG_MULT := [1.5, 2.0, 3.0, 3.5, 4.0]  # Price = base cost x this x (1 + 0.1 x towers of the type).
 const PER_TOWER_PRICE := 0.1
 const BRANCHES := {
@@ -75,6 +83,9 @@ var points := 0
 var owned: Array[String] = []  # Talent ids.
 var gstats := {}  # Global stats talents and cards add to (slice H).
 var tree_open := false
+var _trickle: Array[Dictionary] = []  # Escorts still to come during a boss fight.
+var _trickle_at := -1.0
+var _trickle_pack := 0
 var counters: Array[Dictionary] = []  # at, ref (a creep), state (flying / hit / gone)
 var draft_cards: Array[Dictionary] = []  # The rolled cards on offer (draft holds their ids).
 var rerolls_left := 0
@@ -170,13 +181,13 @@ func type_spec(type: String) -> Dictionary:
 	var rank: int = type_rank.get(type, 0)
 	var dmg := 1.0
 	if rank >= 1:
-		dmg += 0.25
+		dmg += 0.4
 	if rank >= 2 and not RATE_STEPS.has(type):
 		spec["range"] += 1.0
 	if rank >= 4:
-		dmg += 0.3
+		dmg += 0.4
 	if rank >= 5:
-		dmg += 0.3
+		dmg += 0.4
 		spec["range"] += 0.5
 	dmg += gstats.get("damage_" + type, 0.0)
 	spec["range"] += gstats.get("range_all", 0.0) + gstats.get("range_" + type, 0.0)
@@ -214,11 +225,11 @@ func type_upgrade_cost(type: String) -> int:
 ## What the next rung does, for the panel. Rung 3 is the fork: pick 1 or 2.
 func rung_text(type: String, rank: int) -> String:
 	match rank:
-		1: return "+25% damage"
+		1: return "+40% damage"
 		2: return "fires on the off-beats too" if RATE_STEPS.has(type) else "+1 range"
 		3: return "the fork: %s or %s" % [BRANCHES[type][0][0], BRANCHES[type][1][0]]
-		4: return "+30% damage"
-		5: return "+30% damage, +0.5 range"
+		4: return "+40% damage"
+		5: return "+40% damage, +0.5 range"
 	return "maxed"
 
 
@@ -245,6 +256,10 @@ func upgrade_type(type: String, branch := 0) -> bool:
 	if rank == 2:
 		type_branch[type] = branch
 	m7_stats["upgrades"] += 1
+	for cell in structures:
+		if structures[cell]["type"] == type:
+			_flashes[cell] = 0.6
+			_popup(Vector2(cell), "rung %d" % (rank + 1), Color(1.0, 0.9, 0.3), 12)
 	var what := rung_text(type, rank + 1) if rank != 2 else "%s: %s" % [BRANCHES[type][branch - 1][0], BRANCHES[type][branch - 1][1]]
 	_show_feedback("%s rung %d   %s" % [tower_name(type).to_upper(), rank + 1, what], Color(1.0, 0.9, 0.3))
 	return true
@@ -363,6 +378,8 @@ func damage(c: Dictionary, amount: float) -> float:
 	if forced or (chance > 0.0 and rng.randf() < chance):
 		amount *= CRIT_BASE_MULT + gstats.get("crit_mult", 0.0)
 		m7_stats["crits"] += 1
+		if c.has("pos"):
+			_popup(c["pos"] + Vector2(0.3, -0.3), "crit %d" % roundi(amount), Color(0.55, 0.75, 1.0), 12)
 		if gstats.get("crit_slow", false):
 			c["slow_until"] = maxf(c.get("slow_until", 0.0), sim_time + clock.beat_length())
 	return super.damage(c, amount)
@@ -514,8 +531,15 @@ func start_wave() -> void:
 		var bar := floori(beat_time() / clock.bar_length())
 		_schedule_bar(bar + 1)
 		_schedule_bar(bar + 2)
-		if gstats.get("interest", 0.0) > 0.0:
-			pass  # Paid at the wave end, see step().
+		# Boss waves: the second escort pack becomes a trickle for the whole fight (D-0040).
+		_trickle.clear()
+		_trickle_at = -1.0
+		if boss_waves.has(wave) and not _escort_queue.is_empty():
+			_trickle = _escort_queue.duplicate()
+			_escort_queue.clear()
+			_escort_at = -1.0
+			_trickle_pack = maxi(1, ceili(_trickle.size() / float(TRICKLE_PACKS)))
+			_trickle_at = beat_time() + TRICKLE_GAP
 
 
 ## Extra notes per phrase from the Rhythm area, on steps the chart leaves free.
@@ -660,6 +684,15 @@ func step(delta: float) -> void:
 		_gold_frac -= whole
 	if paused:
 		return
+	if not _trickle.is_empty():
+		if not boss_alive():
+			_trickle.clear()  # The escorts scatter when the boss falls.
+		elif beat_time() >= _trickle_at:
+			var pack := _trickle.slice(0, _trickle_pack)
+			_trickle = _trickle.slice(_trickle_pack)
+			spawn_queue.append_array(pack)
+			_to_spawn = spawn_queue.size()
+			_trickle_at += TRICKLE_GAP
 	_tick_m7(delta)
 
 
@@ -737,6 +770,16 @@ func _tick_m7(delta: float) -> void:
 	counters = keep_c
 
 
+func _nearest_tower(pos: Vector2) -> Vector2i:
+	var best := Vector2i(-1, -1)
+	var best_d := INF
+	for cell in structures:
+		if is_tower(structures[cell]["type"]) and Vector2(cell).distance_to(pos) < best_d:
+			best_d = Vector2(cell).distance_to(pos)
+			best = cell
+	return best
+
+
 func _beside_wall(pos: Vector2) -> bool:
 	var cell := Vector2i(pos.round())
 	for dx in [-1, 0, 1]:
@@ -809,6 +852,8 @@ func _apply_effects(effects: Dictionary) -> void:
 		match k:
 			"gold":
 				gold += int(v)
+			"points":
+				points += int(v)
 			"restore_charges":
 				gstats[k] = gstats.get(k, 0) + int(v)
 				restore_charges = mini(restore_cap(), restore_charges + int(v))
@@ -874,11 +919,16 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 			var dmg: float = parry_damage() * (1.0 + gstats.get("counter_mult", 0.0)) * (2.0 if perfect else 1.0)
 			if target.get("boss", false):
 				target["hp"] -= dmg
-				posture += (POSTURE_PERFECT if perfect else POSTURE_GOOD) * (2.0 if gstats.get("riposte", false) else 1.0)
+				posture += (POSTURE_PERFECT if perfect else POSTURE_GOOD) * 0.5 * (2.0 if gstats.get("riposte", false) else 1.0)
 				if posture >= POSTURE_MAX:
 					_posture_break()
 			else:
 				damage(target, dmg)
+				# On a creep the counter bursts: everything within two tiles takes half.
+				for c in creeps:
+					if c != target and c["hp"] > 0.0 and not c.get("boss", false) and c["pos"].distance_to(target["pos"]) <= COUNTER_BURST:
+						damage(c, dmg * 0.5)
+				_bursts.append({"pos": target["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.4, "crit": perfect, "radius": COUNTER_BURST})
 			if gstats.get("riposte", false):
 				damage(target, dmg) if not target.get("boss", false) else target.set("hp", target["hp"] - dmg)
 			shots.append({"from": Vector2(GOAL), "to": target["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 3.5})
@@ -896,6 +946,17 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 			struck = cand["ref"]["ref"]
 		"bolt", "stomp":
 			struck = boss
+	# An elite staggers after a parried throw: it holds for two beats and opens a two-note phrase
+	# on the tower nearest it (D-0040; never a full Crescendo).
+	if (cand["kind"] == "elite" or cand["kind"] == "arrow") and not struck.is_empty() and creeps.has(struck) and struck["hp"] > 0.0:
+		var beat := clock.beat_length()
+		struck["frozen_until"] = maxf(struck.get("frozen_until", 0.0), sim_time + beat * STAGGER_BEATS)
+		var tower := _nearest_tower(struck["pos"])
+		if tower.x >= 0:
+			var first := (floorf(beat_time() / beat) + 2.0) * beat
+			add_note(first, "kick", tower)
+			add_note(first + beat, "bass", tower)
+			_popup(struck["pos"], "STAGGER", Color(1.0, 0.9, 0.3), 13)
 	# Wide guard: creeps near the struck one take half the return.
 	var splash: float = gstats.get("parry_splash", 0.0)
 	if splash > 0.0 and not struck.is_empty() and struck.has("pos"):
@@ -913,9 +974,49 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 		add_note((floorf(beat_time() / beat) + 2.0) * beat, "kick")
 	# The counter: a yellow ring on the next beat on what you parried. Not during a Volley.
 	if gstats.get("counter", false) and not struck.is_empty() and creeps.has(struck) and struck["hp"] > 0.0 and not (cand["kind"] == "bolt" and boss2()):
+		# The ring lands on the off-beat (the "and") so it never collides with a note on the beat.
 		var beat := clock.beat_length()
-		counters.append({"at": (floorf(beat_time() / beat) + 1.0) * beat, "from": beat_time(), "ref": struck, "state": "flying"})
+		var at := (floorf(beat_time() / beat) + 0.5) * beat
+		if at - beat_time() < 0.25:
+			at += beat
+		counters.append({"at": at, "from": beat_time(), "ref": struck, "state": "flying"})
 		m7_stats["counters"] += 1
+
+
+## A posture break rolls its Crescendo chart from a set, and bosses after wave 10
+## summon a pack every third break (D-0040).
+func _posture_break() -> void:
+	var before := notes.size()
+	super._posture_break()
+	# Replace the fixed Q E Q E burst with a rolled pattern on the same beats and towers.
+	var burst: Array[Dictionary] = []
+	for n in notes.slice(before):
+		burst.append(n)
+	if not burst.is_empty():
+		var pattern: String = CRESCENDO_SETS[rng.randi() % CRESCENDO_SETS.size()]
+		for i in burst.size():
+			var ch := pattern[i % pattern.length()]
+			var n: Dictionary = burst[i]
+			if ch == ".":
+				notes.erase(n)
+				_wave_notes -= 1
+				stats[n["type"]]["notes"] -= 1
+			elif ch == "Q" and n["type"] != "kick":
+				_retype_note(n, "kick")
+			elif ch == "E" and n["type"] != "bass":
+				_retype_note(n, "bass")
+		_show_feedback("POSTURE BREAK   CRESCENDO   %s" % pattern.replace(".", "-"), Color(1.0, 0.9, 0.3))
+	if wave > 10 and m5_stats["breaks"] % SUMMON_EVERY_BREAKS == 0 and boss_alive():
+		for i in 4:
+			spawn_queue.append({"kind": "runner", "gap": 0.4})
+		_to_spawn = spawn_queue.size()
+		_say("The boss summons")
+
+
+func _retype_note(n: Dictionary, type: String) -> void:
+	stats[n["type"]]["notes"] -= 1
+	n["type"] = type
+	stats[type]["notes"] += 1
 
 
 # --- Slice F: the draft ------------------------------------------------------------------
@@ -924,7 +1025,9 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 func wants_draft() -> bool:
 	if wave >= last_wave:
 		return false
-	return boss_waves.has(wave) if not quick else wave % 2 == 0
+	if quick:
+		return wave % 2 == 0
+	return boss_waves.has(wave) or EXTRA_DRAFT_WAVES.has(wave)
 
 
 func card_name(id: String) -> String:
@@ -1080,7 +1183,22 @@ func _draw() -> void:
 	for c in creeps:
 		if c.get("poison", 0.0) > 0.0 and c["hp"] > 0.0 and (type_branch["poison"] == 2 or c.get("poison_until", 0.0) > sim_time):
 			var p := _to_screen(c["pos"])
-			draw_arc(p, TILE * 0.3, 0, TAU, 16, Color(0.6, 1.0, 0.4, 0.8), 1.5)
+			draw_circle(p, TILE * 0.3, Color(0.4, 1.0, 0.3, 0.45))
+			draw_arc(p, TILE * 0.3, 0, TAU, 16, Color(0.6, 1.0, 0.4, 0.9), 1.5)
+			draw_string(ThemeDB.fallback_font, p + Vector2(-8, -TILE * 0.45), "%d" % roundi(c["poison"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.6, 1.0, 0.4))
+	# Rung pips on every tower; the fork colours them.
+	for cell in structures:
+		var type: String = structures[cell]["type"]
+		var rank: int = type_rank.get(type, 0)
+		if not is_tower(type) or rank <= 0:
+			continue
+		var branch: int = type_branch.get(type, 0)
+		var col := Color.WHITE if branch == 0 else (Color(0.5, 0.9, 1.0) if branch == 1 else Color(1.0, 0.6, 0.3))
+		var tc := _to_screen(Vector2(cell)) + Vector2(-TILE * 0.38, TILE * 0.38)
+		for i in rank:
+			draw_circle(tc + Vector2(i * 5.0, 0), 1.8, col)
+		if branch > 0:
+			draw_arc(_to_screen(Vector2(cell)), TILE * 0.4, 0, TAU, 24, col * Color(1, 1, 1, 0.7), 1.5)
 	# Level bar under the title.
 	var x := 24.0
 	var y := 42.0
@@ -1091,7 +1209,13 @@ func _draw() -> void:
 
 func run_lines() -> Array[String]:
 	var lines := super.run_lines()
-	lines.append("Level %d   XP %d   Talents %d (%s)" % [level, roundi(m7_stats["xp"]), owned.size(), ", ".join(owned.map(func(id): return TalentTree.nodes()[id]["name"])) if not owned.is_empty() else "none"])
+	var taken: Array[String] = []
+	for id in owned:
+		var n: Dictionary = TalentTree.nodes()[id]
+		var label: String = n["name"] + ((" %d" % TalentTree.ranks(id, owned)) if n["max"] > 1 else "")
+		if not taken.has(label):
+			taken.append(label)
+	lines.append("Level %d   XP %d   Talents %d (%s)" % [level, roundi(m7_stats["xp"]), owned.size(), ", ".join(taken) if not taken.is_empty() else "none"])
 	var ranks: Array[String] = []
 	for type in ["kick", "bass", "slow", "poison", "lightning", "light"]:
 		if type_rank.get(type, 0) > 0:

@@ -51,9 +51,9 @@ func _ready() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(12, 1)
 	bar.add_child(gap)
-	wave_button = _button(bar, Vector2(128, 36), func(): game.start_wave())
-	restore_button = _button(bar, Vector2(110, 36), func(): game._press_restore())
-	pause_button = _button(bar, Vector2(80, 36), func(): game.toggle_pause())
+	wave_button = _button(bar, Vector2(112, 36), func(): game.start_wave())
+	restore_button = _button(bar, Vector2(96, 36), func(): game._press_restore())
+	pause_button = _button(bar, Vector2(72, 36), func(): game.toggle_pause())
 
 	# Tower panel.
 	panel = PanelContainer.new()
@@ -205,11 +205,11 @@ func _refresh_bar() -> void:
 		b.disabled = not playing or game.gold < spec["cost"]
 		if type == "wall" and game.wall_limit > 0:
 			b.text += "  (%d/%d)" % [game.wall_count(), game.wall_limit]
-	wave_button.text = ("Wave %d  in progress" % game.wave) if game.wave_active else ("Start wave %d  (N)" % (game.wave + 1))
+	wave_button.text = ("Wave %d running" % game.wave) if game.wave_active else ("Start wave %d (N)" % (game.wave + 1))
 	wave_button.disabled = game.wave_active or not playing or game.get("drafting") == true
-	restore_button.text = "Restore  (F)  %d/%d" % [game.restore_charges, game.restore_cap()]
+	restore_button.text = "Restore (F) %d/%d" % [game.restore_charges, game.restore_cap()]
 	restore_button.disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
-	pause_button.text = "Resume  (P)" if game.paused else "Pause  (P)"
+	pause_button.text = "Resume (P)" if game.paused else "Pause (P)"
 	pause_button.disabled = not playing
 
 

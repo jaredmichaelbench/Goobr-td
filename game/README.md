@@ -8,7 +8,19 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
-## M7: the progression run (v1)
+## M7: the progression run (v2)
+
+New in v2 (round 2, after Jared's first 20-wave run, D-0040):
+
+- **Eight drafts a run**: after every boss and after waves 3, 8, 13, 18. The pool is 92 cards and the stat cards are bigger. Some cards give talent points, rerolls or a fourth and fifth card.
+- **Boss fights stay busy**: the escorts trickle in a pack every 8 s while the boss lives. Bosses after wave 10 summon runners on every third posture break.
+- **Every stagger is different**: a posture break rolls its Crescendo chart from a set (the pattern is shown on the break). **Elites stagger too**: parry a Jammer, Warden or Archer and it holds for two beats while two notes open on the tower nearest it.
+- **The counter lands on the off-beat** (the "and" after the parry), so it never shares a beat with a note. On a boss it builds half posture. On a creep it bursts: everything within two tiles takes half the hit.
+- **You can see upgrades**: rung pips under every tower, the fork colours its ring (blue first branch, orange second), crits pop up blue, poisoned creeps are tinted green with their stack count, and the whole type flashes when you upgrade it. Rungs give +40% instead of +25%.
+- **The tree is rebuilt** (Tab): five areas, three rows and a capstone. Row 1 nodes take up to three ranks. Row 2 needs 4 points in the area, row 3 needs 8, the capstone 12. The outer row 2 nodes are shared with the neighbour area and count for both, so a Defence start can take Counter-attack and carry on into Rhythm. Each area shows its points.
+- One bottom bar, smaller fonts, nothing overlaps; pause holds everything; buttons never steal Space.
+
+### Round 1 (v1)
 
 The question: does a 20-wave run with a build to plan (the tree), a build to react to (the draft) and type-wide upgrades stay interesting from wave 1 to the last boss? Menu **7** is the full run, **8** the 10-wave quick run. Plan: `../docs/prototypes/m7-plan.md`.
 

@@ -12,7 +12,8 @@ var fork_a_button: Button
 var reroll_button: Button
 var tree_box: CenterContainer
 var tree_title: Label
-var tree_nodes := {}  # id -> Button
+var tree_nodes := {}  # "area:id" -> Button
+var area_points := {}  # area -> Label
 
 
 func _ready() -> void:
@@ -23,11 +24,11 @@ func _ready() -> void:
 	var slot := 0
 	for k in keys:
 		var b: Button = build_buttons[game.build_keys[k]]
-		b.custom_minimum_size = Vector2(92, 36)
+		b.custom_minimum_size = Vector2(88, 36)
 		b.add_theme_font_size_override("font_size", 11)
 		_bar.move_child(b, slot)
 		slot += 1
-	tree_button = _button(_bar, Vector2(84, 36), func(): game.toggle_tree())
+	tree_button = _button(_bar, Vector2(78, 36), func(): game.toggle_tree())
 	# The fork: its own row of two buttons above Upgrade / Sell, so the panel stays narrow.
 	fork_row = HBoxContainer.new()
 	fork_row.add_theme_constant_override("separation", 6)
@@ -89,33 +90,40 @@ func _ready() -> void:
 		name.add_theme_color_override("font_color", TalentTree.AREA_COLORS[area])
 		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(name)
-		var grid := GridContainer.new()
-		grid.columns = TalentTree.COLS
-		grid.add_theme_constant_override("h_separation", 4)
-		grid.add_theme_constant_override("v_separation", 4)
-		col.add_child(grid)
-		for r in TalentTree.ROWS:
-			for c in TalentTree.COLS:
-				var id := "%s_%d_%d" % [area, r, c]
-				grid.add_child(_node_button(id, nodes[id], Vector2(74, 40)))
-		col.add_child(_node_button(area + "_cap", nodes[area + "_cap"], Vector2(230, 44)))
+		area_points[area] = Label.new()
+		area_points[area].add_theme_font_size_override("font_size", 10)
+		area_points[area].horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		area_points[area].modulate = Color(1, 1, 1, 0.6)
+		col.add_child(area_points[area])
+		var rows: Array = TalentTree.layout(area)
+		for r in rows.size():
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 4)
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			col.add_child(row)
+			for id in rows[r]:
+				var w := 230.0 if r == 3 else (74.0 if rows[r].size() == 3 else 113.0)
+				row.add_child(_node_button(area + ":" + id, id, nodes[id], Vector2(w, 40)))
 	var foot := Label.new()
-	foot.text = "A node needs one owned node in the row above it (same column or next to it). Dotted links let a neighbour area in. Hover a node for what it does."
+	foot.text = "Row 1 nodes take up to three ranks. Row 2 needs 4 points in the area, row 3 needs 8, the capstone 12. The outer row 2 nodes are shared with the neighbour area and count for both. Hover a node for what it does."
 	foot.add_theme_font_size_override("font_size", 11)
 	foot.modulate = Color(1, 1, 1, 0.6)
 	tv.add_child(foot)
 
 
-func _node_button(id: String, node: Dictionary, size: Vector2) -> Button:
+func _node_button(key: String, id: String, node: Dictionary, size: Vector2) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = size
 	b.text = node["name"]
 	b.add_theme_font_size_override("font_size", 11)
+	b.focus_mode = Control.FOCUS_NONE
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	b.tooltip_text = "%s\n%s%s" % [node["name"], node["text"], ("\nNeeds: " + ", ".join(node["needs"].map(func(n): return TalentTree.nodes()[n]["name"]))) if not node["needs"].is_empty() else ""]
+	var gate: int = TalentTree.GATES[node["row"] - 1]
+	var where := " or ".join(node["areas"].map(func(a): return TalentTree.AREA_NAMES[a]))
+	b.tooltip_text = "%s%s\n%s%s" % [node["name"], ("  (shared: %s)" % where) if node.get("shared", false) else "", node["text"], ("\nNeeds %d points in %s" % [gate, where]) if gate > 0 else ""]
 	b.pressed.connect(func(): game.take_talent(id))
-	tree_nodes[id] = b
+	tree_nodes[key] = b
 	return b
 
 
@@ -271,23 +279,26 @@ func _refresh_tree() -> void:
 	if not game.tree_open:
 		return
 	tree_title.text = "TALENTS   level %d   %d point%s to spend" % [game.level, game.points, "" if game.points == 1 else "s"]
-	for id in tree_nodes:
-		var b: Button = tree_nodes[id]
+	for area in area_points:
+		area_points[area].text = "%d points in" % TalentTree.area_points(area, game.owned)
+	for key in tree_nodes:
+		var id: String = key.split(":")[1]
+		var b: Button = tree_nodes[key]
 		var node: Dictionary = TalentTree.nodes()[id]
-		var owned: bool = game.owned.has(id)
+		var ranks: int = TalentTree.ranks(id, game.owned)
+		var full: bool = ranks >= node["max"]
 		var open: bool = TalentTree.available(id, game.owned)
-		if owned:
-			b.modulate = TalentTree.AREA_COLORS[node["area"]]
+		var label: String = node["name"] + ((" %d/%d" % [ranks, node["max"]]) if node["max"] > 1 else (" ✓" if full else ""))
+		b.text = label
+		if full:
+			b.modulate = TalentTree.AREA_COLORS[node["areas"][0]]
 			b.disabled = true
-			b.text = node["name"] + " ✓"
 		elif open and game.points > 0:
-			b.modulate = Color.WHITE
+			b.modulate = Color.WHITE if ranks == 0 else Color(0.8, 1.0, 0.85)
 			b.disabled = false
-			b.text = node["name"]
 		else:
 			b.modulate = Color(1, 1, 1, 0.45) if open else Color(1, 1, 1, 0.25)
 			b.disabled = true
-			b.text = node["name"]
 
 
 func _tip() -> String:
