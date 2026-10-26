@@ -1240,9 +1240,34 @@ func stats_line() -> String:
 	return ", ".join(parts) if not parts.is_empty() else "base"
 
 
+## The M7 column from scratch: short lines that fit left of the board (the
+## long per-key stat lines from M3 to M6 spilled onto the map on Jared's screen).
 func status_lines() -> Array[String]:
-	var lines := super.status_lines()
-	lines.append("Level %d   XP %d/%d   Points %d   Stats: %s" % [level, roundi(xp), roundi(xp_to_next()), points, stats_line()])
+	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > last_wave else ("Wave %d/%d" % [wave, last_wave])
+	var lines: Array[String] = [
+		"Gold %d   Health %d   Walls %d/%d" % [gold, health, wall_count(), wall_limit],
+		(wave_label + " in progress") if wave_active else ("N starts wave %d%s" % [wave + 1, _unspent_hint()]),
+		"Selected: %s %dg   Shields %d/%d   Restores %d/%d" % [selected, builds.get(selected, {}).get("cost", 0), shields, shield_cap, restore_charges, restore_cap()],
+		"",
+	]
+	var notes := stat_total("notes")
+	var hits := stat_total("hits")
+	var rate := 0 if notes == 0 else roundi(100.0 * hits / notes)
+	lines.append("Notes %d/%d (%d%%)   Perfects %d   streak %d" % [hits, notes, rate, stat_total("perfects"), streak])
+	var thrown: int = m4_stats["pulses"] + m4_stats["arrows"] + m5_stats["bolts"] + m6_stats["stomps"]
+	var parried: int = m4_stats["parried"] + m5_stats["parries"] + m6_stats["stomp_parries"]
+	lines.append("Parries %d/%d   Counters %d/%d   Locked %d   Shields lost %d" % [parried, thrown, m7_stats["counter_hits"], m7_stats["counters"], m4_stats["suppressed"], m4_stats["shields_lost"]])
+	if boss_alive():
+		lines.append("Boss: breaks %d   bolts parried %d/%d" % [m5_stats["breaks"], m5_stats["parries"], m5_stats["bolts"]])
+	if crescendo > 0.0:
+		lines.append("CRESCENDO  %.1f s" % crescendo)
+	lines.append("")
+	lines.append("Level %d   XP %d/%d   Points %d" % [level, roundi(xp), roundi(xp_to_next()), points])
+	lines.append("Stats: %s" % stats_line())
+	if not pending.is_empty():
+		lines.append("Locked card: %s (%s)" % [card_name(pending["id"]), card_condition(pending["id"])])
+	lines.append("Picks (%d): %s" % [picks.size(), ", ".join(picks.map(func(id): return card_name(id))) if not picks.is_empty() else "none yet"])
+	lines.append("Song: %s   %.0f BPM   [ ] switch" % [songs[song_index]["name"], clock.bpm])
 	return lines
 
 
@@ -1250,10 +1275,11 @@ func help_lines() -> Array[String]:
 	if selected_cell.x >= 0 or (hud != null and hud.panel.visible):
 		return []
 	return [
-		"Q / E  press the key shown on a tower as its ring lands",
-		"Space  parry a landing projectile; yellow ring after = counter-attack (talent)",
-		"Tab  talent tree (pauses)    U  upgrade the selected type, U / I pick the fork    Esc twice  menu",
+		"Q / E  the key on a tower as its ring lands",
+		"Space  parry; yellow ring after = counter-attack",
+		"Tab  talent tree   U / I  upgrade or fork the selected type",
+		"Click a tower for its panel.  Right click sells.  Esc twice  menu",
 		"",
-		"TEST  T speed %dx   Y auto-send %s   G +100g   H skip   O boss   [ ] song" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
+		"TEST  T speed %dx   Y auto %s   G +100g   H skip   O boss" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
 		"Next wave: %s   (%.0f HP each)" % [wave_summary(wave + 1), creep_hp_at(wave + 1)],
 	]

@@ -538,6 +538,41 @@ func _unspent_hint() -> String:
 	return ""
 
 
+## Break a HUD line into pieces no wider than max_w pixels. Splits at the
+## triple-space gaps first (the columns), then at single spaces if it must.
+func _fit(line: String, size: int, max_w: float) -> Array[String]:
+	var out: Array[String] = []
+	if line == "" or _text_w(line, size) <= max_w:
+		out.append(line)
+		return out
+	for part in _pack(line.split("   ", false), "   ", size, max_w):
+		if _text_w(part, size) <= max_w:
+			out.append(part)
+		else:
+			out.append_array(_pack(part.split(" ", false), " ", size, max_w))
+	return out
+
+
+func _text_w(text: String, size: int) -> float:
+	return ThemeDB.fallback_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+
+
+## Greedy packing of pieces into lines joined by sep.
+func _pack(pieces: PackedStringArray, sep: String, size: int, max_w: float) -> Array[String]:
+	var out: Array[String] = []
+	var cur := ""
+	for piece in pieces:
+		var trial := piece if cur == "" else cur + sep + piece
+		if cur != "" and _text_w(trial, size) > max_w:
+			out.append(cur)
+			cur = piece
+		else:
+			cur = trial
+	if cur != "":
+		out.append(cur)
+	return out
+
+
 func status_lines() -> Array[String]:
 	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > last_wave else ("Wave %d/%d" % [wave, last_wave])
 	var lines: Array[String] = [
@@ -667,15 +702,19 @@ func _draw() -> void:
 		draw_arc(_to_screen(Vector2(hover)), tower_spec(hover)["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.4), 1.5)
 
 	# HUD: bright status lines, then dimmer help lines.
+	# Every line is wrapped so it ends before the board's left edge, never on the map.
 	var y := 36.0
+	var max_w := _origin.x - 24.0 - 12.0
 	draw_string(font, Vector2(24, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 17)
 	for line in status_lines():
-		y += 18.0
-		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 13)
+		for part in _fit(line, 13, max_w):
+			y += 18.0
+			draw_string(font, Vector2(24, y), part, HORIZONTAL_ALIGNMENT_LEFT, -1, 13)
 	y += 8.0
 	for line in help_lines():
-		y += 17.0
-		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.55))
+		for part in _fit(line, 12, max_w):
+			y += 17.0
+			draw_string(font, Vector2(24, y), part, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.55))
 	if _message_time > 0.0:
 		draw_string(font, Vector2(24, view.y - 40), _message, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 0.5, 0.4))
 	if state != "playing" and get("hud") == null:  # M6 shows this on its run screen instead.

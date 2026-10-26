@@ -35,3 +35,14 @@ Jared's notes: `../notes/m7-playtest-2026-10-26.md` (13 points). Fixed the same 
 All seven agreed points built the same night: eight drafts (bosses plus waves 3, 8, 13, 18) and a 92-card pool with bigger stat cards; escorts trickle through boss fights and later bosses summon on every third break; rolled Crescendo charts and a two-beat elite stagger with two notes; the counter on the off-beat with half posture on bosses and a burst on creeps; rung pips, fork colours, crit and poison reads, +40% rungs; the ranked and gated tree (40 nodes, 68 points of depth, shared nodes between neighbours).
 
 Bots: tree logic (ranks cap at 3, gates at 4/8/12, shared node counts for both areas, counter-attack 5 points from Rhythm or Defence, random spending reaches all 68 points); draft odds unchanged with 92 cards; counter bot 6 parries, 6 counters on the off-beat; M6c HUD regression unchanged. Full runs at 1x, wall-less perfect bot: quick run won at 20/20 in 3:58 (four drafts, level 13); 20-wave run won at 20/20 in 9:13 with 60 towers, Cannon rung 4 Pierce, level 20, 18 talent points, seven drafts (Slack bowstrings, Shrapnel, Ghost bounty, Mud season, Double time, Light boots, Heavy boots). Easier than round 1 (which won at 18/20): the +40% rungs and bigger cards; balance held for Jared's call (D-0040 point 7).
+
+## Playtest round 2 fixes (2026-10-26, late)
+
+Jared's second session: won at 8/20 in 15:09; notes 54%, parries 67%, counters 45%. Notes in `docs/notes/m7-playtest-2-2026-10-26.md`. Fixed before discussion (bugs and UI only, rule 6):
+
+- The status column still spilled onto the board: it was the M3 to M6 stack of long stat lines. `M7Run.status_lines()` now builds its own eleven short lines, and `m2_maze.gd` measures every HUD line and wraps it at the board's left edge (`_fit`), so no scene can spill again.
+- Card history: a "Picks (n): ..." line in the column lists every pick in order.
+- Fork buttons: a greyed fork says why on the button ("(gold 50/90)" or "(not now)"). The round 2 screenshot showed both grey with Sell bright; gold under the fork's cost is the only path that does that.
+- Bottom bar: build buttons no longer grow with their text (clip), locked ones are greyed without the word "locked" (the tip under the bar carries the condition), the Tree button is back on screen.
+
+Checked with the xvfb screenshot bot (column, panel with the fork at 50 gold, tree, end screen) and the headless bots (t_hud, t_pause, t_counter clean, scenes compile). Design points wait on the round 2 discussion doc.

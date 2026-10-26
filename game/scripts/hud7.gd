@@ -24,7 +24,8 @@ func _ready() -> void:
 	var slot := 0
 	for k in keys:
 		var b: Button = build_buttons[game.build_keys[k]]
-		b.custom_minimum_size = Vector2(88, 36)
+		b.custom_minimum_size = Vector2(92, 36)
+		b.clip_text = true  # Never grow past the bar; the right end was pushed off screen.
 		b.add_theme_font_size_override("font_size", 11)
 		_bar.move_child(b, slot)
 		slot += 1
@@ -148,11 +149,11 @@ func _refresh_bar() -> void:
 	for type in build_buttons:
 		var b: Button = build_buttons[type]
 		if not game.unlocked.has(type):
-			b.text = "%s  %s  locked" % [_key(type), game.tower_name(type)]
+			b.text = "%s  %s" % [_key(type), game.tower_name(type)]  # Greyed; the tip says how to unlock.
 			b.disabled = true
 		elif game.type_rank.get(type, 0) > 0:
 			b.text += "  r%d" % game.type_rank[type]
-	tree_button.text = "Tree (Tab)" + ("  +%d" % game.points if game.points > 0 else "")
+	tree_button.text = "Tree" + ("  +%d" % game.points if game.points > 0 else "")
 	tree_button.modulate = Color(0.6, 1.0, 0.7) if game.points > 0 else Color.WHITE
 	tree_button.disabled = not playing
 
@@ -226,9 +227,13 @@ func _refresh_panel() -> void:
 		body += "\nThe fork: %s (%s)  or  %s (%s)" % [br[0][0], br[0][1], br[1][0], br[1][1]]
 		upgrade_button.visible = false
 		fork_row.visible = true
-		fork_a_button.text = "%s  %dg  (U)" % [br[0][0], cost]
+		# When a fork is greyed, the button says why (Jared saw both grey with Sell bright).
+		var why := "" if playing else "  (not now)"
+		if playing and game.gold < cost:
+			why = "  (gold %d/%d)" % [game.gold, cost]
+		fork_a_button.text = "%s  %dg  (U)%s" % [br[0][0], cost, why]
 		fork_a_button.disabled = game.gold < cost or not playing
-		branch_button.text = "%s  %dg  (I)" % [br[1][0], cost]
+		branch_button.text = "%s  %dg  (I)%s" % [br[1][0], cost, why]
 		branch_button.disabled = game.gold < cost or not playing
 	else:
 		upgrade_button.text = "Upgrade  %dg  (U)\nrung %d: %s" % [cost, rank + 1, game.rung_text(type, rank + 1)]

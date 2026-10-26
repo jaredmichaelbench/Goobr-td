@@ -204,7 +204,7 @@ func _refresh_bar() -> void:
 		b.button_pressed = game.selected == type and game.build_mode
 		b.disabled = not playing or game.gold < spec["cost"]
 		if type == "wall" and game.wall_limit > 0:
-			b.text += "  (%d/%d)" % [game.wall_count(), game.wall_limit]
+			b.text += " %d/%d" % [game.wall_count(), game.wall_limit]
 	wave_button.text = ("Wave %d running" % game.wave) if game.wave_active else ("Start wave %d (N)" % (game.wave + 1))
 	wave_button.disabled = game.wave_active or not playing or game.get("drafting") == true
 	restore_button.text = "Restore (F) %d/%d" % [game.restore_charges, game.restore_cap()]
