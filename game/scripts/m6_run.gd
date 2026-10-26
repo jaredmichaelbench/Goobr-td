@@ -59,8 +59,13 @@ func _ready() -> void:
 	rng.randomize()
 	_last_gold = gold
 	hud_left = 150.0
-	hud = Hud.new(self)
+	hud = make_hud()
 	add_child(hud)
+
+
+## M7 brings its own HUD class.
+func make_hud() -> Hud:
+	return Hud.new(self)
 
 
 func toggle_pause() -> void:
@@ -80,8 +85,30 @@ func run_lines() -> Array[String]:
 		"Notes %d hit of %d (%d%%)   Perfects %d" % [stat_total("hits"), stat_total("notes"), int(100.0 * stat_total("hits") / maxi(stat_total("notes"), 1)), stat_total("perfects")],
 		"Parries %d of %d   Towers locked %d   Shields lost %d   Restores %d" % [m4_stats["parried"] + m5_stats["parries"], m4_stats["pulses"] + m4_stats["arrows"] + m5_stats["bolts"] + m6_stats["stomps"], m4_stats["suppressed"], m4_stats["shields_lost"], m4_stats["restores"]],
 		"Boss: %d bolts, %d stomps, %d breaks" % [m5_stats["bolts"], m6_stats["stomps"], m5_stats["breaks"]],
-		"Picks: %s" % (", ".join(picks.map(func(id): return CARDS[id]["name"])) if not picks.is_empty() else "none"),
+		"Picks: %s" % (", ".join(picks.map(func(id): return card_name(id))) if not picks.is_empty() else "none"),
 	]
+
+
+## Card lookups; M7 swaps the pool.
+func card_name(id: String) -> String:
+	return CARDS[id]["name"]
+
+
+func card_text(id: String) -> String:
+	return CARDS[id]["text"]
+
+
+func card_condition(id: String) -> String:
+	return CARDS[id].get("condition", "")
+
+
+## When a cleared wave opens a draft. M7: after boss waves only.
+func wants_draft() -> bool:
+	return wave < last_wave
+
+
+func is_boss2_wave(w: int) -> bool:
+	return w >= BOSS2_WAVE
 
 
 func reset() -> void:
@@ -131,7 +158,7 @@ func step(delta: float) -> void:
 	_last_gold = gold
 	if was_active and not wave_active and state == "playing":
 		_judge_pending()
-		if wave < LAST_WAVE:
+		if wants_draft():
 			_open_draft()
 	# Stomps: ticks, the tell, and the slam if nobody parried.
 	for st in stomps:
@@ -145,7 +172,7 @@ func step(delta: float) -> void:
 		if not st["told"] and beat_time() >= st["at"] - PULSE_TELL_BEATS * beat:
 			st["told"] = true
 			_sfx["tell"].play()
-		if press_time() > st["at"] + Timing.PARRY_GOOD_MS / 1000.0:
+		if press_time() > st["at"] + parry_good_ms() / 1000.0:
 			_stomp_lands(st)
 			on_streak_miss()
 	var keep: Array[Dictionary] = []
@@ -172,10 +199,10 @@ func _judge_pending() -> void:
 	if ok:
 		_apply(id)
 		m6_stats["unlocked"] += 1
-		_show_feedback("UNLOCKED   %s: %s" % [CARDS[id]["name"], CARDS[id]["text"]], Color(1.0, 0.9, 0.3))
+		_show_feedback("UNLOCKED   %s: %s" % [card_name(id), card_text(id)], Color(1.0, 0.9, 0.3))
 	else:
 		m6_stats["lost"] += 1
-		_show_feedback("%s stays locked (%s)" % [CARDS[id]["name"], CARDS[id]["condition"]], Color(1, 0.5, 0.4))
+		_show_feedback("%s stays locked (%s)" % [card_name(id), card_condition(id)], Color(1, 0.5, 0.4))
 
 
 func _open_draft() -> void:
@@ -229,7 +256,7 @@ func _apply(id: String) -> void:
 		"gold":
 			gold += 40
 		"charge":
-			restore_charges = mini(RESTORE_CHARGES + 1, restore_charges + 1)
+			restore_charges = mini(restore_cap() + 1, restore_charges + 1)
 		"shield", "cond_shield":
 			shield_cap += 1
 		"killgold":
@@ -277,7 +304,7 @@ func boss2() -> bool:
 func _summon_boss() -> void:
 	var had := boss_alive()
 	super._summon_boss()
-	if boss_alive() and not had and wave >= BOSS2_WAVE:
+	if boss_alive() and not had and is_boss2_wave(wave):
 		boss["second"] = true
 		_string_count = 0
 		_show_feedback("THE SECOND BOSS   it stomps the maze and volleys the Conductor", Color(0.8, 0.5, 1.0))
@@ -359,7 +386,7 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	if boss_alive():
 		# The maze answers: every tower in the stomp's reach fires back at the boss.
 		var cells := _stomp_targets(st["pos"])
-		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
+		var dmg := parry_damage() * (2.0 if perfect else 1.0)
 		for cell in cells:
 			dmg += tower_spec(cell)["damage"] * 3.0 * (2.0 if perfect else 1.0)
 			_flashes[cell] = 0.3
@@ -413,7 +440,7 @@ func status_lines() -> Array[String]:
 	var lines := super.status_lines()
 	var extra := "Picks %d" % picks.size()
 	if not pending.is_empty():
-		extra += "   locked: %s (%s)" % [CARDS[pending["id"]]["name"], CARDS[pending["id"]]["condition"]]
+		extra += "   locked: %s (%s)" % [card_name(pending["id"]), card_condition(pending["id"])]
 	if boss2():
 		extra += "   Stomps %d parried %d landed %d" % [m6_stats["stomps"], m6_stats["stomp_parries"], m6_stats["stomp_hits"]]
 	lines.append(extra)

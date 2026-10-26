@@ -4,9 +4,32 @@ Greybox build of the game, made in milestones. The plan is in `../docs/prototype
 
 Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are needed, because all audio is generated in code.
 
-Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore, **5** = M5 first boss, **6** = M6 the run. **Esc** returns to the menu.
+Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore, **5** = M5 first boss, **6** = M6 the run, **7** = M7 the progression run (20 waves), **8** = M7 quick run (10 waves). **Esc** returns to the menu.
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
+
+## M7: the progression run (v1)
+
+The question: does a 20-wave run with a build to plan (the tree), a build to react to (the draft) and type-wide upgrades stay interesting from wave 1 to the last boss? Menu **7** is the full run, **8** the 10-wave quick run. Plan: `../docs/prototypes/m7-plan.md`.
+
+- **Six towers, two rows of buttons.** Keys **1** wall, **2** Cannon, **3** Splash, **4** Frost, **5** Poison, **6** Lightning, **7** Light. Poison, Lightning and Light start locked; their buttons show what unlocks them (build 3 Frost; land 10 Perfects; kill a Shade). Poison stacks tick every beat and ignore armour. Lightning arcs from its target to a creep nearby. Light does no damage: towers around it hit harder, its pulse cracks veils near it. Each new tower has its own note (Poison **Spread**, Lightning **Storm**, Light **Chorus**).
+- **Upgrades are per type, not per tower.** Click any tower, or press **U** with one selected: the panel shows the type's five-rung ladder and the price (it rises with the rung and with how many of that type you own). At rung 3 you pick a **fork** for that type and keep it (Cannon: Pierce or Siege; Splash: Quake or Ember; Frost: Deep freeze or Brittle; Poison: Poison-splash or Virulent; Lightning: Fork or Static; Light: Beacon or Flare). Sell still refunds 75%.
+- **Levels.** Kills give XP (bosses most, swarm least); the bar under the status column fills; every level from 2 gives a talent point.
+- **The tree (Tab, pauses).** Five areas side by side: Rhythm, Towers, Economy, Walls, Defence. Take any top-row node; below that a node needs one owned node above it, or a link from another area. **Counter-attack** is three points in from Rhythm, Walls, Towers or Defence. Each area ends in a capstone (Fermata, Arsenal, Bounty, Rampart, Riposte).
+- **Counter-attack.** After a parry lands, a yellow ring on the creep you struck on the next beat. **Space** on it returns the damage again and builds posture. Missing it costs nothing. Not during a Volley.
+- **The draft** comes after every boss (every other wave in the quick run). Each card rolls a rarity (grey, green, blue, purple, orange) and a category (Stats, Economy, Enemy altering, Tower altering, Abilities, Special, Draft). Blue and above may come locked with a condition for the next wave. Keys **1 to 5** pick; some cards give rerolls or a fifth card. The pool is `scripts/card_pool.gd` and the tree `scripts/talent_tree.gd`: numbers and text, no code.
+- **20 waves.** Bosses at 5 and 15 (the first boss, more health later), 10 and 20 (the crowned boss). Creep health grows 22% a wave. After 20 the waves repeat. Wave 1 now has its chart from the first bar.
+- **Stats block** on the end screen: crit, crit damage, luck, enemy speed and attack rate, XP and gold gain, plus counters, crits, arcs and poison dealt.
+
+### What to report back
+
+- Tower or rung: when did you choose to upgrade a type instead of building, and did the fork at rung 3 feel like a choice?
+- Which towers did you never build? Which notes did you wait for?
+- Did an unlock change how you played (did you build Frost to get Poison)?
+- First talent point: too early, too late? How many points by wave 20, and did you plan a route or take what was open? Which capstone mattered?
+- The counter: a riposte you reach for, or a tax after every parry?
+- The four drafts: did each one matter? Any card broken or boring? Did a locked card make you play for it?
+- Where did the run drag, and where did it rush? Health and gold at waves 10, 15 and 20.
 
 ## M6: the run (v2)
 

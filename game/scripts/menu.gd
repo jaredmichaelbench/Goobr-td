@@ -8,11 +8,14 @@ const SCENES := {
 	KEY_4: "res://m4_restore.tscn",
 	KEY_5: "res://m5_boss.tscn",
 	KEY_6: "res://m6_run.tscn",
+	KEY_7: "res://m7_run.tscn",
+	KEY_8: "res://m7_run.tscn",
 }
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and SCENES.has(event.keycode):
+		M7Run.quick = event.keycode == KEY_8
 		get_tree().change_scene_to_file(SCENES[event.keycode])
 
 
@@ -27,6 +30,8 @@ func _draw() -> void:
 		"4   M4 Suppress and Restore",
 		"5   M5 First boss",
 		"6   M6 The run (draft, 10 waves, two bosses)",
+		"7   M7 The progression run (20 waves, towers, tree, rolled draft)",
+		"8   M7 quick run (10 waves)",
 		"",
 		"Esc in any test returns here",
 	]

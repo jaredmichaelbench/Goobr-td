@@ -38,6 +38,7 @@ const CRESCENDO_MULT := 1.3
 const ESCORT_DELAY := 10.0  # Seconds after the boss appears the second pack comes.
 
 var boss: Dictionary = {}  # The boss creep, or empty.
+var boss_waves: Array = BOSS_WAVES  # M7 adds 15 and 20.
 var crescendo_seconds := CRESCENDO_SECONDS  # A draft pick can lengthen it.
 var bolts: Array[Dictionary] = []  # launch, arrive, from (Vector2), state: flying/parried/hit
 var posture := 0.0
@@ -87,7 +88,7 @@ func chart_allowed() -> bool:
 func start_wave() -> void:
 	var was_active := wave_active
 	super.start_wave()
-	if wave_active and not was_active and BOSS_WAVES.has(wave):
+	if wave_active and not was_active and boss_waves.has(wave):
 		# The boss brings the wave's script as escorts: the first half now, the rest ESCORT_DELAY later.
 		var half := spawn_queue.size() / 2
 		_escort_queue = spawn_queue.slice(half)
@@ -155,7 +156,7 @@ func step(delta: float) -> void:
 		_escort_queue.clear()
 	# Bolts that reached the Conductor without a parry.
 	for b in bolts:
-		if b["state"] == "flying" and press_time() > b["arrive"] + Timing.PARRY_GOOD_MS / 1000.0:
+		if b["state"] == "flying" and press_time() > b["arrive"] + parry_good_ms() / 1000.0:
 			b["state"] = "hit"
 			_bolt_hit()
 			on_streak_miss()
@@ -264,7 +265,7 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 		m5_stats["perfect"] += 1
 	_conductor_flash = {"color": Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, "ttl": 0.4}
 	if boss_alive():
-		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
+		var dmg := parry_damage() * (2.0 if perfect else 1.0)
 		boss["hp"] -= dmg
 		shots.append({"from": Vector2(GOAL), "to": boss["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.3, "splash": 0.0})
 		_popup(boss["pos"], ("%d!" if perfect else "%d") % roundi(dmg), Color(1.0, 0.9, 0.3) if perfect else Color.WHITE, 20 if perfect else 15)

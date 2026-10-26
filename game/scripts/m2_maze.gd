@@ -62,6 +62,8 @@ var iso := false  # Look-test: draw the board as a 2:1 isometric diamond (I togg
 var _iso_w := TILE * 1.5  # Width of one tile diamond on screen; set per frame to fit the view.
 var wall_limit := 0  # 0 = unlimited.
 var creep_hp := 18.0
+var last_wave := LAST_WAVE  # M7 runs longer (20) or shorter (quick mode).
+const TOWER_NAMES := {"kick": "Cannon", "bass": "Splash", "slow": "Frost", "hat": "Hat", "wall": "Wall"}
 ## Creep kinds (D-0033). hp and speed multiply the wave's base; armour is flat
 ## damage ignored per hit; veil = immune to towers until a note cracks it.
 const CREEP_KINDS := {
@@ -175,6 +177,11 @@ func try_place(cell: Vector2i, type: String) -> bool:
 func tower_spec(cell: Vector2i) -> Dictionary:
 	var s: Dictionary = structures[cell]
 	return s["spec"] if s.has("spec") else builds[s["type"]]
+
+
+## Display name of a build type (M7 adds towers).
+func tower_name(type: String) -> String:
+	return TOWER_NAMES.get(type, type.capitalize())
 
 
 func upgrade_cost(cell: Vector2i) -> int:
@@ -383,7 +390,7 @@ func step(delta: float) -> void:
 	elif wave_active and _to_spawn == 0 and creeps.is_empty():
 		wave_active = false
 		gold += 12 + wave * 3
-		if wave == LAST_WAVE and not endless:
+		if wave == last_wave and not endless:
 			state = "won"
 
 
@@ -532,13 +539,13 @@ func _unspent_hint() -> String:
 
 
 func status_lines() -> Array[String]:
-	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > LAST_WAVE else ("Wave %d/%d" % [wave, LAST_WAVE])
+	var wave_label := ("Wave %d (endless)" % wave) if endless or wave > last_wave else ("Wave %d/%d" % [wave, last_wave])
 	var lines: Array[String] = [
 		"Gold %d    Health %d" % [gold, health],
 		(wave_label + " in progress") if wave_active else ("Press N to start wave %d%s" % [wave + 1, _unspent_hint()]),
 		"",
 		"Build mode: %s (B)" % ("ON" if build_mode else "off"),
-		"Selected: %s (%dg)" % [selected, builds[selected]["cost"]],
+		"Selected: %s (%dg)" % [selected, builds.get(selected, {}).get("cost", 0)],
 	]
 	if wall_limit > 0:
 		lines.append("Walls %d/%d" % [wall_count(), wall_limit])

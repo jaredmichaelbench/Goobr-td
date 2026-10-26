@@ -1,6 +1,6 @@
 # M7 build plan: the progression update (proposal, 2026-10-26)
 
-Status: proposed, waiting on Jared's go. Live copy for markup: Claude Doc "M7 build plan: the progression update". One large build on top of M6 that packs in everything agreed in the progression review (D-0038) and as much of the rest as fits, then one big test and notes session.
+Status: approved by Jared 2026-10-26 ("go") and built the same day; see D-0039 and `M7-results.md`. Slice I (stretch) not built. Live copy for markup: Claude Doc "M7 build plan: the progression update". One large build on top of M6 that packs in everything agreed in the progression review (D-0038) and as much of the rest as fits, then one big test and notes session.
 
 The question: does a 20-wave run with a build to plan (the tree), a build to react to (the draft) and type-wide upgrades stay interesting from wave 1 to the last boss?
 

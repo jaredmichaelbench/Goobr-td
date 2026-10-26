@@ -17,11 +17,11 @@ static func grade(offset_ms: float) -> String:
 	return "Miss"
 
 
-static func grade_parry(offset_ms: float) -> String:
+static func grade_parry(offset_ms: float, good_ms := PARRY_GOOD_MS) -> String:
 	var a := absf(offset_ms)
 	if a <= PERFECT_MS:
 		return "Perfect"
-	if a <= PARRY_GOOD_MS:
+	if a <= good_ms:
 		return "Good"
 	return "Miss"
 

@@ -60,6 +60,19 @@ var arrows: Array[Dictionary] = []  # launch, arrive, from, state (flying/parrie
 var m4_stats := {"suppressed": 0, "restores": 0, "expired": 0, "pulses": 0, "parried": 0, "arrows": 0, "shields_lost": 0}
 
 
+## Knobs M7's talents and cards move. Here they are the constants.
+func parry_damage() -> float:
+	return PARRY_DAMAGE
+
+
+func parry_good_ms() -> float:
+	return Timing.PARRY_GOOD_MS
+
+
+func restore_cap() -> int:
+	return RESTORE_CHARGES
+
+
 func _ready() -> void:
 	super._ready()
 	title = "M4 Suppress and Restore"
@@ -80,7 +93,7 @@ func reset() -> void:
 	immune.clear()
 	shields = shield_cap
 	arrows.clear()
-	restore_charges = RESTORE_CHARGES
+	restore_charges = restore_cap()
 	_restore_at = -1.0
 	_relight.clear()
 	_ripple = -1.0
@@ -95,7 +108,7 @@ func start_wave() -> void:
 		_refunded_this_wave = false
 		arrows.clear()
 		if wave > 1:
-			restore_charges = mini(RESTORE_CHARGES, restore_charges + 1)
+			restore_charges = mini(restore_cap(), restore_charges + 1)
 
 
 # --- Elites ------------------------------------------------------------------
@@ -299,7 +312,7 @@ func _parry() -> void:
 		_show_feedback("Nothing to parry", Color(1, 1, 1, 0.4))
 		return
 	var offset_ms: float = (press_time() - best["time"]) * 1000.0
-	var g := Timing.grade_parry(offset_ms)
+	var g := Timing.grade_parry(offset_ms, parry_good_ms())
 	if g == "Miss":
 		_show_feedback("Too early (%+.0f ms)" % offset_ms, Color(1, 1, 1, 0.5))
 		return
@@ -313,7 +326,7 @@ func _parry() -> void:
 		if is_same(cand["ref"], best["ref"]):
 			continue
 		var off_ms: float = (press_time() - cand["time"]) * 1000.0
-		var g2 := Timing.grade_parry(off_ms)
+		var g2 := Timing.grade_parry(off_ms, parry_good_ms())
 		if g2 != "Miss":
 			_resolve_parry(cand, g2, off_ms)
 
@@ -326,7 +339,7 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 		a["state"] = "parried"
 		m4_stats["parried"] += 1
 		var archer: Dictionary = a["ref"]
-		var dmg := PARRY_DAMAGE * (2.0 if perfect else 1.0)
+		var dmg := parry_damage() * (2.0 if perfect else 1.0)
 		if creeps.has(archer):
 			damage(archer, dmg)
 			shots.append({"from": Vector2(GOAL), "to": archer["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 3.0})
@@ -341,10 +354,10 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 		m4_stats["parried"] += 1
 		# The attacked tower fires back: its own damage x3, at least PARRY_DAMAGE.
 		var from := Vector2(GOAL)
-		var base := PARRY_DAMAGE
+		var base := parry_damage()
 		if not targets.is_empty() and structures.has(targets[0]):
 			from = Vector2(targets[0])
-			base = maxf(PARRY_DAMAGE, tower_spec(targets[0])["damage"] * 3.0)
+			base = maxf(parry_damage(), tower_spec(targets[0])["damage"] * 3.0)
 			_flashes[targets[0]] = 0.3
 		var dmg := base * (2.0 if perfect else 1.0)
 		var broke_cover: bool = c.get("covering", false)
@@ -385,7 +398,7 @@ func step(delta: float) -> void:
 			if not c["told"] and beat_time() >= c["pulse_at"] - PULSE_TELL_BEATS * beat:
 				c["told"] = true
 				_sfx["tell"].play()
-			if press_time() > c["pulse_at"] + Timing.PARRY_GOOD_MS / 1000.0:
+			if press_time() > c["pulse_at"] + parry_good_ms() / 1000.0:
 				_pulse_lands(c)
 				on_streak_miss()
 	# Arrows in the air: ticks, the tell, and the hit if nobody parried.
@@ -400,7 +413,7 @@ func step(delta: float) -> void:
 		if not a["told"] and beat_time() >= a["arrive"] - PULSE_TELL_BEATS * beat:
 			a["told"] = true
 			_sfx["tell"].play()
-		if press_time() > a["arrive"] + Timing.PARRY_GOOD_MS / 1000.0:
+		if press_time() > a["arrive"] + parry_good_ms() / 1000.0:
 			_arrow_hit(a)
 			on_streak_miss()
 	var keep: Array[Dictionary] = []
@@ -663,7 +676,7 @@ func _draw() -> void:
 	var x := _origin.x + board_w + 20
 	var y := _origin.y + 190
 	draw_string(font, Vector2(x, y), "Restore (F)", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 1, 1, 0.7))
-	for i in RESTORE_CHARGES:
+	for i in restore_cap():
 		var filled := i < restore_charges
 		draw_rect(Rect2(x + i * 22, y + 6, 18, 10), Color(1.0, 0.9, 0.3) if filled else Color(1, 1, 1, 0.1))
 	if not suppressed.is_empty():

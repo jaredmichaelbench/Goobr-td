@@ -23,6 +23,8 @@ var end_body: Label
 var endless_button: Button
 var tip: Label
 var _bar: HBoxContainer
+var card_row: HBoxContainer
+var panel_row: HBoxContainer
 
 
 func _init(target: Node2D) -> void:
@@ -67,7 +69,8 @@ func _ready() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	vb.add_child(row)
-	upgrade_button = _button(row, Vector2(140, 36), func(): game.upgrade(game.selected_cell))
+	upgrade_button = _button(row, Vector2(140, 36), _on_upgrade)
+	panel_row = row
 	sell_button = _button(row, Vector2(120, 36), func(): game.sell(game.selected_cell))
 
 	# Draft.
@@ -87,6 +90,7 @@ func _ready() -> void:
 	var cards := HBoxContainer.new()
 	cards.add_theme_constant_override("separation", 12)
 	dv.add_child(cards)
+	card_row = cards
 	for i in 3:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(230, 170)
@@ -130,6 +134,10 @@ func _ready() -> void:
 	_refresh()
 
 
+func _on_upgrade() -> void:
+	game.upgrade(game.selected_cell)
+
+
 func _button(parent: Control, size: Vector2, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = size
@@ -155,6 +163,14 @@ func _process(_delta: float) -> void:
 
 
 func _refresh() -> void:
+	_refresh_bar()
+	_refresh_panel()
+	_refresh_draft()
+	_refresh_end()
+	tip.text = _tip()
+
+
+func _refresh_bar() -> void:
 	var playing: bool = game.state == "playing"
 	for type in build_buttons:
 		var b: Button = build_buttons[type]
@@ -163,20 +179,21 @@ func _refresh() -> void:
 		for k in game.build_keys:
 			if game.build_keys[k] == type:
 				key = OS.get_keycode_string(k)
-		var label: String = type.capitalize() if not {"kick": "Heavy", "bass": "Splash", "slow": "Slow"}.has(type) else {"kick": "Heavy", "bass": "Splash", "slow": "Slow"}[type]
-		b.text = "%s  %s  %dg" % [key, label, spec["cost"]]
+		b.text = "%s  %s  %dg" % [key, game.tower_name(type), spec["cost"]]
 		b.button_pressed = game.selected == type and game.build_mode
 		b.disabled = not playing or game.gold < spec["cost"]
 		if type == "wall" and game.wall_limit > 0:
 			b.text += "  (%d/%d)" % [game.wall_count(), game.wall_limit]
 	wave_button.text = ("Wave %d  in progress" % game.wave) if game.wave_active else ("Start wave %d  (N)" % (game.wave + 1))
 	wave_button.disabled = game.wave_active or not playing or game.get("drafting") == true
-	restore_button.text = "Restore  (F)  %d/%d" % [game.restore_charges, game.RESTORE_CHARGES]
+	restore_button.text = "Restore  (F)  %d/%d" % [game.restore_charges, game.restore_cap()]
 	restore_button.disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
 	pause_button.text = "Resume  (P)" if game.paused else "Pause  (P)"
 	pause_button.disabled = not playing
 
-	# Tower panel.
+
+func _refresh_panel() -> void:
+	var playing: bool = game.state == "playing"
 	var cell: Vector2i = game.selected_cell
 	var show: bool = game.structures.has(cell)
 	panel.visible = show
@@ -189,15 +206,13 @@ func _refresh() -> void:
 			upgrade_button.visible = false
 		else:
 			var spec: Dictionary = game.tower_spec(cell)
-			var names := {"kick": "Heavy tower", "bass": "Splash tower", "slow": "Slow tower"}
-			var notes := {"kick": "Snipe: x4 damage (x8 Perfect) at the creep nearest the Conductor, anywhere.", "bass": "Wave: x2 (x4 Perfect) on everything within 2 tiles of the target.", "slow": "Freeze: x2 (x4 Perfect) within 2 tiles and holds them a beat (two on a Perfect)."}
-			panel_title.text = "%s%s" % [names.get(type, type), "  (upgraded)" if s.get("tier", 0) >= 1 else ""]
+			panel_title.text = "%s tower%s" % [game.tower_name(type), "  (upgraded)" if s.get("tier", 0) >= 1 else ""]
 			var body := "Damage %.0f   Range %.1f   Every %.2f s" % [spec["damage"], spec["range"], spec["cooldown"]]
 			if spec.get("splash", 0.0) > 0.0:
 				body += "   Splash %.1f" % spec["splash"]
 			if spec.has("slow"):
 				body += "   Slows %.1f s" % spec["slow"]
-			body += "\nIts note: " + notes.get(type, "")
+			body += "\nIts note: " + note_text(type)
 			if game.suppressed.has(cell):
 				body += "\nLOCKED for %.1f s. F to Restore." % game.suppressed[cell]
 			elif game.immune.has(cell):
@@ -213,7 +228,14 @@ func _refresh() -> void:
 		sell_button.text = "Sell  +%dg" % int(s.get("paid", game.builds[type]["cost"]) * game.SELL_REFUND)
 		sell_button.disabled = not playing
 
-	# Draft.
+
+## What a tower's note does, for the panel.
+func note_text(type: String) -> String:
+	var notes := {"kick": "Snipe: x4 damage (x8 Perfect) at the creep nearest the Conductor, anywhere.", "bass": "Wave: x2 (x4 Perfect) on everything within 2 tiles of the target.", "slow": "Freeze: x2 (x4 Perfect) within 2 tiles and holds them a beat (two on a Perfect)."}
+	return notes.get(type, "")
+
+
+func _refresh_draft() -> void:
 	var drafting: bool = game.get("drafting") == true
 	draft_box.visible = drafting
 	if drafting:
@@ -230,7 +252,10 @@ func _refresh() -> void:
 				b.text = text
 				b.modulate = Color(0.85, 0.85, 0.9) if card["type"] == "plain" else (Color(1.0, 0.8, 0.5) if card["type"] == "altering" else Color(0.75, 0.8, 1.0))
 
-	# Run over.
+
+
+func _refresh_end() -> void:
+	var playing: bool = game.state == "playing"
 	end_box.visible = not playing
 	if not playing:
 		var lines: Array = game.run_lines()
@@ -238,8 +263,6 @@ func _refresh() -> void:
 		end_body.text = "\n".join(lines.slice(1))
 		end_title.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3) if game.state == "won" else Color(1, 0.5, 0.5))
 		endless_button.visible = game.state == "won"
-
-	tip.text = _tip()
 
 
 func _tip() -> String:
