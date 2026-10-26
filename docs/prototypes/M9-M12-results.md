@@ -36,3 +36,19 @@ After Jared's first look, two outside reviews and his recording, the seven-item 
 Checks: `tests/t_ui.gd` (HUD states as screenshots), `tests/t_title.gd`, and the 3D bot quick run, all without script errors. The counter logic was read through and is unchanged; Jared's 0 of 11 in the recording should be re-checked with calibration back.
 
 Left for the backlog: a three-model upgrade line per tower, controller and key remapping, colour-blind palettes, text scaling, respec, beat-reactive grass, coin pop animations, a custom app icon. Tooltips in the talent tree can still cover a neighbour (Godot places them at the mouse).
+
+## Round 2 (D-0046, 2026-10-26 night)
+
+Bundles 1 to 3 from Jared's second playtest shipped. Notes now come as a short call once per four bars with rests between, and nailing a whole call fires a finisher. A parried elite staggers into a short sequence of its own. The counter-attack is in the base game, and the talent tree no longer pauses. The bottom panel now has round Talents, Restore and Start wave buttons with an XP bar under them, a level-up chime and flash, and coloured tooltips with totals. The beat bar, the step strip and the L timeline are gone.
+
+While writing the tooltips, several talent and card stats turned out to be dead: they were shown but never read by the rules. These were Perfect damage, kill gold, global damage, crossfire bonus, note window and counter window. All six are now wired in. The Light tower's rung text now says what it actually boosts.
+
+Balance bot (`tests/t_bal1.gd`, plays the 20-wave run in real time; hit rate and parry rate given):
+
+| Bot | Result | Run time | Notes |
+|---|---|---|---|
+| Old rules, 0.6 / 0.65 | lost at wave 20 | 9:01 | waves 15 to 25 s |
+| New rules, 0.6 / 0.65 | lost at wave 15 | 10:12 | wave 4 cost 10 health |
+| New rules, 0.85 / 0.85 | won, 18 of 20 health | 16:51 | waves 26 to 107 s |
+
+Boss health is based on the old creep curve times 1.0 + 0.06 per wave. The new creep health is about 1.7 times higher by wave 5, and putting the boss multiplier on top of it walled the bot at the first boss. Late waves still offer many notes (65 on wave 19, down from 102). The bot's late hit rate is low because calls overlap with staggers. Jared's playtest decides the next tuning step. No Mac or Windows builds were made (Jared, 22:59Z).

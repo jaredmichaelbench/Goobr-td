@@ -290,7 +290,10 @@ func _summon_boss() -> void:
 	var had := boss_alive()
 	super._summon_boss()
 	if boss_alive() and not had and not legacy:
-		boss["hp"] *= BOSS_HP_EXTRA + BOSS_HP_PER_WAVE * wave
+		# Boss health is set against the old creep curve (M7: 30 HP, x1.15 a wave), so
+		# the tougher creeps don't stack on top of the boss's own multiplier.
+		var old_hp: float = CREEP_HP_M7 * pow(CREEP_HP_GROWTH_M7, maxi(wave, 1) - 1)
+		boss["hp"] *= old_hp / creep_hp_at(maxi(wave, 1)) * (BOSS_HP_EXTRA + BOSS_HP_PER_WAVE * wave)
 		boss["max_hp"] = boss["hp"]
 
 
