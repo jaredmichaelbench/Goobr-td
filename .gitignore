@@ -1,3 +1,5 @@
 game/audio/*
 !game/audio/README.md
 !game/audio/songs.cfg
+game/assets/*
+!game/assets/README.md

@@ -10,6 +10,7 @@ const SCENES := {
 	KEY_6: "res://m6_run.tscn",
 	KEY_7: "res://m7_run.tscn",
 	KEY_8: "res://m7_run.tscn",
+	KEY_9: "res://look_test.tscn",
 }
 
 
@@ -32,6 +33,7 @@ func _draw() -> void:
 		"6   M6 The run (draft, 10 waves, two bosses)",
 		"7   M7 The progression run (20 waves, towers, tree, rolled draft)",
 		"8   M7 quick run (10 waves)",
+		"9   M8 Look test (3D camera, rings above towers; Demo 1)",
 		"",
 		"Esc in any test returns here",
 	]

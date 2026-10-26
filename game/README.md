@@ -8,6 +8,14 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
+## M8: the look test (Demo 1, D-0042)
+
+Menu key **9**. Not a game: the 26 by 16 board in 3D at one metre a tile, built from flat-coloured primitives, with the things the look test has to answer on screen at once: three note rings in a row (the clutter case from the round 3 run), a locked tower, the parry ring on the Conductor's keep, the counter flash on a creep, a 3.6-tile range circle, creeps walking the path.
+
+- **1 2 3** camera tilt 60, 65, 70 degrees. **P** perspective or orthographic. **R** rings above the towers (Jared's sketch) or flat on the ground as in Demo 0. **C** the three rings on or off. **Esc** menu.
+- **S** swaps the primitives for models when `assets/models/tower.glb`, `creep.glb`, `keep.glb`, `rock.glb`, `wall.glb` exist (see `assets/README.md`; packs stay out of git).
+- Take screenshots of the combinations you like and say which. The questions: can you read the grid, a ring on a tower, three rings close together, the locked mark and the boss ring at this height; does the scale (tower against creep against range) feel right; which tilt and projection.
+
 ## M7: the progression run (v3)
 
 New in v3 (round 3, after Jared's second 20-wave run, D-0041):
