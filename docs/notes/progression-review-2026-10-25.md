@@ -16,19 +16,19 @@ Status: draft 2, rewritten around Jared's notes from his first read (logged in `
 | Draft | in-run, after each cleared wave | a pick | the build you react to; rolled for rarity and category | surprising, Megabonk-style specials |
 | Combinations | in-run, build phase | gold and five towers | turn a crowded maze into one unique tower | poker-hand discovery |
 
-Rules: nothing upgrades one tower (every gold upgrade applies to a whole type). The tree is chosen, the draft is dealt (no randomness in the tree, no guaranteed slot in the draft). Talents are per run; what carries between runs is at most unlocks (open question).
+Rules: nothing upgrades one tower (every gold upgrade applies to a whole type). The tree is chosen, the draft is dealt (no randomness in the tree, no guaranteed slot in the draft). Talents are per run; unlocks are in-run only for now (agreed 2026-10-26).
 
 ## 3. Towers: roster, unlocks, type upgrades
 
 Eight base types, each with one role and one note behaviour: Cannon (today's Heavy; infinite-range snipe), Splash (wave), Frost (today's Slow; freeze), Poison (stack spreads to touching creeps), Lightning (chain to every creep for one tick), Light (every tower in 2 tiles fires once free; cracks veils), Void (holds the pack for a beat), Land mine (arms every mine at once). If two towers have the same note they are one tower.
 
-Unlocks, Warcraft 3 style: Cannon, Splash, Frost always; the rest unlocked by an in-run requirement shown on the greyed button (Poison: 3 Frost built; Lightning: 10 Perfects; Light: a Shade killed; Void: a parried Stomp; Land mine: a wall-less wave). Numbers are tuning. Open: do unlocks persist between runs.
+Unlocks, Warcraft 3 style: Cannon, Splash, Frost always; the rest unlocked by an in-run requirement shown on the greyed button (Poison: 3 Frost built; Lightning: 10 Perfects; Light: a Shade killed; Void: a parried Stomp; Land mine: a wall-less wave). Numbers are tuning. Agreed 2026-10-26: unlocks are in-run only for now.
 
-Type upgrades (gold): a short ladder per type applying to every tower of that type. Rungs 1 and 2 plain (+damage, +range, +rate); rung 3 transforms (Poison to Poison-splash, Cannon pierce, Frost freeze every third hit, Lightning one more jump, Light radius doubles). Price rises per rung and per tower of that type on the board (lever against mono-type mazes).
+Type upgrades (gold): a short ladder per type applying to every tower of that type. Rungs 1 and 2 plain (+damage, +range, +rate); rung 3 branches (agreed 2026-10-26, medium depth): two transformations per type, pick one for the run (Poison-splash or Virulent; Pierce or Siege; Deep freeze or Brittle; extra jump or Static through walls; double radius or Flare); rungs 4 and 5 continue the branch with numbers. Price rises per rung and per tower of that type on the board (lever against mono-type mazes).
 
 ## 4. Talents: a per-run tree
 
-One point per level from level 5; XP from kills, notes, parries, waves (tuning). A 6-minute 10-wave run gives about 8 points, so start with five areas of about 12 nodes (60 nodes), one capstone per area at 6 deep; grow the tree only when runs grow.
+One point per level, first point at level 2. XP from mobs, elites and bosses at their own values, so "more XP", "more elites" and "more bosses" are real stats the draft can hand out (Bonk-cup XP, luck, difficulty tomes). Agreed 2026-10-26: the real run is 20 to 35 waves plus endless (TFT-match length; a couch session is one or two games; multiplayer the same); Demo 0 stays at 10 waves so a test run takes a handful of minutes. A 30-wave run gives roughly 25 to 30 points: two capstones and a dip. Five areas of about 12 nodes (60), one capstone per area at 6 deep, generic percentages until each area gets a pass. The tree links: areas join at set positions, and major things such as counter-attack sit as early capstones most builds can reach; deeper investment gives more specific and powerful rewards. Grow with the run by adding a ring, not an area.
 
 | Area | Nodes | Capstone idea |
 |---|---|---|
@@ -52,14 +52,14 @@ Rules: soft floor, no three of the same category (third rerolls once). Blue and 
 
 ## 6. New mechanics
 
-Counter-attack: every parry opens a yellow ring on the parried enemy on the next beat; Space on the beat lands the counter; a miss loses only the counter. Space becomes a two-beat phrase. Test on the wave 10 Volley first (six presses on alternating 8ths): counters off during a Volley, or one press per string.
+Counter-attack: every parry opens a yellow ring on the parried enemy on the next beat; Space on the beat lands the counter; a miss loses only the counter. Space becomes a two-beat phrase. Per Jared it is an early capstone in the tree, not a baseline mechanic. Test on the wave 10 Volley first (six presses on alternating 8ths): counters off during a Volley, or one press per string.
 
 Tower combinations: in a build phase, five towers plus gold become one unique tower; the other four become crumbling walls that break at the next build phase (wall cap holds). Hands, poker-style: Flush (five of a type, its ultimate), Full House (hybrid), Straight (five different, takes every note). Each hand is a designed tower. After the roster.
 
 ## 7. Open questions
 
-Levels and XP; unlock persistence; one transformation per type or a branch at rung 3; cut two of the eight, anything missing; counters during a Volley; keep the draft floor.
+Answered 2026-10-26: first point at level 2, XP from mobs/elites/bosses; unlocks in-run only; rung 3 branches; runs 20 to 35 waves plus endless, Demo 0 stays at 10. Still open: cut two of the eight towers, anything missing; counters during a Volley; keep the draft floor; when the run lengthens past 10.
 
 ## 8. Proposed order of work
 
-1. Agree sections 2 to 6 in a decision. 2. Type upgrades replace tiers; roster to six (Poison, Lightning, Light) with unlocks. 3. Draft on rarity times category with Draft and Special categories and locked cards. 4. Counter-attack, tested on the boss. 5. Talent tree, five areas, with levels. 6. Void, Land mine, then combinations. 7. Sim/view split, then art.
+1. Agree sections 2 to 6 in a decision. 2. Type upgrades replace tiers (five rungs, fork at 3); roster to six (Poison, Lightning, Light) with in-run unlocks. 3. Draft on rarity times category with Draft and Special categories and locked cards. 4. Levels and XP, then the tree with counter-attack as its first early capstone, tested on the boss. 5. Runs lengthen to 20-plus waves with a matching wave script; the demo keeps a 10-wave mode. 6. Void, Land mine, then combinations. 7. Sim/view split, then art.
