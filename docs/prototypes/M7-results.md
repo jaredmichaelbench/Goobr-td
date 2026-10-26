@@ -46,3 +46,18 @@ Jared's second session: won at 8/20 in 15:09; notes 54%, parries 67%, counters 4
 - Bottom bar: build buttons no longer grow with their text (clip), locked ones are greyed without the word "locked" (the tip under the bar carries the condition), the Tree button is back on screen.
 
 Checked with the xvfb screenshot bot (column, panel with the fork at 50 gold, tree, end screen) and the headless bots (t_hud, t_pause, t_counter clean, scenes compile). Design points wait on the round 2 discussion doc.
+
+## Round 3 build (2026-10-26, D-0041)
+
+Agreed on the round 2 discussion doc (`notes/m7-playtest-2-discussion.md`, Jared: "Go on the rest of the table"; tap-tap counter; any note cracks a Shade). Built in one push:
+
+- The flow: `_schedule_bar` in `m7_run.gd` replaces the M3 charts for M7. Throws land on beat 1 (`throw_wind_bars()` hook in `m4_restore.gd`; late elites 1.5 bars), notes on beats 2 to 4 from `_wave_pattern` (bands by wave: Q only, Q+E, rolled per wave from PATTERNS_MID, re-rolled per phrase from PATTERNS_LATE plus an "and" E). The strip over the board draws the bar with the live beat lit.
+- Counter: `_counter_open` window of COUNTER_TAP_MS after a landed parry; `_parry()` override fires the counter on the tap, "late" message up to 450 ms. The ring code stays for the counters array but nothing fills it.
+- Shades: `veiled()` returns false in M7; `veil_mult()` scales `damage()` and `true_damage()` by VEIL_MULTS[cracks]; `crack_veils()` adds `_crack_steps` (2 on a Perfect); Light pulses crack a step.
+- Curve: CREEP_HP_M7 30, growth 1.15. Cards: luck1 +1, bias_stats green, four blue.
+- Boss: TRICKLE_PACKS 3 released in `_posture_break` on breaks 1/3/5 (`_release_pack`, fallback TRICKLE_GAP 20 s); SUMMON_EVERY_BREAKS 2; quiet chart (notes flagged `quiet`, dropped on a break); option A: bolt candidates use `launch`, unparried bolts go `loose` and hit at `arrive`; the ring closes on the boss.
+- Wave log: `_totals()` snapshot at wave start, `_log_wave()` at wave end, lines on the end screen two per row.
+
+Bots: t_shade (10 / 20 / 100 damage at 0 / 1 / 3 cracks), t_counter (7 of 7 taps landed, 2 breaks), xvfb screenshots `screens/m7/m7_flow.png`, `m7_boss.png`, `m7_end3.png`. Quick and long runs below.
+
+Bot runs on the round 3 build (perfect play, no counter talent taken): quick 10 waves won at 16/20 (lost 4 on wave 1 with a single tower), long 20 waves won at 15/20 in 8:12 (lost 5 on wave 1, nothing after; 97% notes, 75 of 81 parries, 10 breaks). The early waves bite now; the rest still holds for a player who never misses, which is the point of Jared's third session with the per-wave log.

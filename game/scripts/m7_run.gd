@@ -40,9 +40,18 @@ const UNLOCKS := {
 }
 const COUNTER_BURST := 2.0  # Tiles a counter on a creep reaches (D-0040).
 const EXTRA_DRAFT_WAVES := [3, 8, 13, 18]  # Drafts between bosses (D-0040).
-const TRICKLE_GAP := 8.0  # Seconds between escort packs while a boss lives.
-const TRICKLE_PACKS := 5
-const SUMMON_EVERY_BREAKS := 3  # Bosses after wave 10 summon a pack on every third break.
+const TRICKLE_GAP := 20.0  # Fallback: a pack comes anyway if no posture break for this long (D-0041).
+const TRICKLE_PACKS := 3  # Three big packs, released on posture breaks 1, 3 and 5.
+const TRICKLE_BREAKS := [1, 3, 5]
+const SUMMON_EVERY_BREAKS := 2  # Bosses after wave 10 summon a pack on every second break.
+const COUNTER_TAP_MS := 150.0  # The counter: a second Space this soon after a landed parry (D-0041).
+const COUNTER_LATE_MS := 450.0  # A tap after the window but before this gets a "late" message.
+const VEIL_MULTS := [0.1, 0.2, 0.3, 1.0]  # Damage a veiled Shade takes at 0, 1, 2, 3 cracks (D-0041).
+## The flow (D-0041): throws land on beat 1, notes sit on beats 2 to 4, the counter is
+## the tap after a parry. Patterns are three symbols for beats 2, 3 and 4.
+const PATTERNS_MID := [".QE", "QQE", "Q.E", "QEE", "QE."]  # Waves 11 to 15, one per wave.
+const PATTERNS_LATE := [".QE", "QQE", "Q.E", "QEE", "QE.", "EQE", "E.Q", ".EQ", "EEQ"]  # 16+, per phrase.
+const CREEP_HP_M7 := 30.0  # Was 18: waves 1 to 3 died to the first shot (D-0041).
 const STAGGER_BEATS := 2  # An elite holds this long after a parried throw.
 ## Crescendo charts, one rolled per posture break: Q, E or a rest per beat, looped.
 const CRESCENDO_SETS := ["QEQE", "QQEE", "QE.E", "EQQ.", "QQQE", "E.QE", "QEE.", "EEQQ"]
@@ -70,7 +79,7 @@ const LIGHT_BUFF := 0.15
 const LIGHT_RADIUS := 2.0
 const GHOST_TICK := 2.0
 const BURN_DPS := 3.0
-const CREEP_HP_GROWTH_M7 := 1.19  # Gentler than M6's 1.3: the run is twice as long. 1.22 killed the wall-less bot on wave 20.
+const CREEP_HP_GROWTH_M7 := 1.15  # Was 1.19 from 18 HP; from 30 HP this keeps wave 12 close and softens 20 (D-0041).
 const CRIT_BASE_MULT := 1.5
 
 var type_rank := {}  # type -> 0..5
@@ -86,6 +95,12 @@ var tree_open := false
 var _trickle: Array[Dictionary] = []  # Escorts still to come during a boss fight.
 var _trickle_at := -1.0
 var _trickle_pack := 0
+var _trickle_released := 0  # Packs let out so far this boss fight.
+var _counter_open := {}  # After a landed parry: ref (the creep), until (press time), perfect, opened.
+var _crack_steps := 1  # Cracks the next crack_veils call adds (2 on a Perfect).
+var _wave_pattern := ".Q."  # Beats 2, 3, 4 for the current wave (band 3+); see pattern_text().
+var _wave_base := {}  # Stat totals at wave start, for the per-wave miss log.
+var wave_log: Array[String] = []  # One line per wave: notes, parries, counters, health lost (D-0041).
 var counters: Array[Dictionary] = []  # at, ref (a creep), state (flying / hit / gone)
 var draft_cards: Array[Dictionary] = []  # The rolled cards on offer (draft holds their ids).
 var rerolls_left := 0
@@ -107,6 +122,7 @@ func _ready() -> void:
 	title = "M7 Quick run (10 waves)" if quick else "M7 The progression run"
 	build_keys = {KEY_1: "wall", KEY_2: "kick", KEY_3: "bass", KEY_4: "slow", KEY_5: "poison", KEY_6: "lightning", KEY_7: "light"}
 	creep_hp_growth = CREEP_HP_GROWTH_M7
+	creep_hp = CREEP_HP_M7
 	_reset_progression()
 
 
@@ -138,6 +154,9 @@ func _reset_progression() -> void:
 	owned.clear()
 	gstats = {}
 	counters.clear()
+	_counter_open = {}
+	wave_log.clear()
+	_wave_base = {}
 	draft_cards.clear()
 	rerolls_left = 0
 	card_taken = {}
@@ -372,6 +391,7 @@ func _cancel_pulse(c: Dictionary) -> void:
 ## Every hit on a creep goes through here: M7 adds crits (and Joe's dagger,
 ## Brittle frost) on top of cover, veil and armour.
 func damage(c: Dictionary, amount: float) -> float:
+	amount *= veil_mult(c)
 	var chance: float = gstats.get("crit_chance", 0.0)
 	var forced: bool = (gstats.get("first_crit", false) and not c.get("struck", false)) or (type_branch.get("slow", 0) == 2 and c.get("frozen_until", 0.0) > sim_time)
 	c["struck"] = true
@@ -387,6 +407,7 @@ func damage(c: Dictionary, amount: float) -> float:
 
 ## Damage that ignores armour (poison, thorns, ghosts), not veils or cover.
 func true_damage(c: Dictionary, amount: float) -> float:
+	amount *= veil_mult(c)
 	var cover := cover_for(c)
 	if not cover.is_empty():
 		c = cover
@@ -482,20 +503,40 @@ func _arc(from_creep: Dictionary, amount: float, color: Color) -> void:
 		last = next
 
 
-## Light: no shot. On the downbeat it cracks veils in reach (Flare: everywhere).
+## Light: no shot. On the downbeat it cracks veils in reach one step (Flare: everywhere).
 func _light_pulse(cell: Vector2i, spec: Dictionary) -> void:
-	var n := 0
-	var seconds: float = (VEIL_CRACK_BEATS + gstats.get("veil_crack", 0.0)) * clock.beat_length()
 	for c in creeps:
 		if c.get("veil", false) and c["hp"] > 0.0 and (type_branch["light"] == 2 or c["pos"].distance_to(Vector2(cell)) <= spec["range"]):
-			c["veil_open_until"] = maxf(c.get("veil_open_until", 0.0), sim_time + seconds)
-			n += 1
+			_crack(c, 1)
 	_flashes[cell] = 0.2
 	_bursts.append({"pos": Vector2(cell), "color": spec["color"], "ttl": 0.4, "crit": false, "radius": spec["range"] * 0.5})
 
 
-func crack_veils(seconds: float) -> int:
-	return super.crack_veils(seconds + gstats.get("veil_crack", 0.0) * clock.beat_length())
+## Shades in M7 (D-0041, Jared's model): never immune. A veiled Shade takes 10% damage;
+## every landed note cracks the veil a step (20%, 30%, then stripped), a Perfect two
+## steps. The veil_crack talent adds a step to every crack.
+func veiled(_c: Dictionary) -> bool:
+	return false
+
+
+func veil_mult(c: Dictionary) -> float:
+	if not c.get("veil", false):
+		return 1.0
+	return VEIL_MULTS[mini(int(c.get("cracks", 0)), VEIL_MULTS.size() - 1)]
+
+
+func _crack(c: Dictionary, steps: int) -> void:
+	c["cracks"] = mini(int(c.get("cracks", 0)) + steps + (1 if gstats.get("veil_crack", 0.0) > 0.0 else 0), VEIL_MULTS.size() - 1)
+
+
+func crack_veils(_seconds: float) -> int:
+	var n := 0
+	for c in creeps:
+		if c.get("veil", false) and c["hp"] > 0.0 and int(c.get("cracks", 0)) < VEIL_MULTS.size() - 1:
+			_crack(c, _crack_steps)
+			n += 1
+	_crack_steps = 1
+	return n
 
 
 ## One free shot from a tower, for the Light note.
@@ -526,6 +567,7 @@ func chart_for_wave(w: int) -> Array:
 
 func start_wave() -> void:
 	var was_active := wave_active
+	var base := _totals()  # Before the first bars are written, so their notes count for this wave.
 	super.start_wave()
 	if wave_active and not was_active:
 		var bar := floori(beat_time() / clock.bar_length())
@@ -540,24 +582,120 @@ func start_wave() -> void:
 			_escort_at = -1.0
 			_trickle_pack = maxi(1, ceili(_trickle.size() / float(TRICKLE_PACKS)))
 			_trickle_at = beat_time() + TRICKLE_GAP
+			_trickle_released = 0
+		_roll_pattern(true)
+		_wave_base = base
+		_wave_base["health"] = health
 
 
-## Extra notes per phrase from the Rhythm area, on steps the chart leaves free.
-func _schedule_bar(bar: int) -> void:
-	super._schedule_bar(bar)
-	if not chart_allowed():
+## The flow band of a wave: 1 = Q only, 2 = Q then E, 3 = a rolled pattern per wave,
+## 4 = patterns flip every phrase and E can sit on the "and".
+func band(w: int) -> int:
+	if quick:
+		w = w * 2
+	return 1 if w <= 5 else (2 if w <= 10 else (3 if w <= 15 else 4))
+
+
+func _roll_pattern(new_wave: bool) -> void:
+	var b := band(wave)
+	if b == 1:
+		_wave_pattern = ".Q."
+	elif b == 2:
+		_wave_pattern = ".QE"
+	elif b == 3 and new_wave:
+		_wave_pattern = PATTERNS_MID[rng.randi() % PATTERNS_MID.size()]
+	elif b == 4:
+		_wave_pattern = PATTERNS_LATE[rng.randi() % PATTERNS_LATE.size()]
+
+
+## "1 parry  2 -  3 Q  4 E": the bar as the HUD prints it.
+func pattern_text() -> String:
+	var parts: Array[String] = ["1 parry"]
+	for i in 3:
+		parts.append("%d %s" % [i + 2, _wave_pattern[i].replace(".", "-")])
+	return "   ".join(parts)
+
+
+func _totals() -> Dictionary:
+	return {
+		"notes": stat_total("notes"), "hits": stat_total("hits"),
+		"throws": m4_stats["pulses"] + m4_stats["arrows"] + m5_stats["bolts"] + m6_stats["stomps"],
+		"parried": m4_stats["parried"] + m5_stats["parries"] + m6_stats["stomp_parries"],
+		"counters": m7_stats["counters"], "counter_hits": m7_stats["counter_hits"],
+	}
+
+
+func _log_wave() -> void:
+	if _wave_base.is_empty():
 		return
+	var t := _totals()
+	var line := "W%d  notes %d/%d  parries %d/%d  counters %d/%d  hp -%d" % [wave,
+		t["hits"] - _wave_base["hits"], t["notes"] - _wave_base["notes"],
+		t["parried"] - _wave_base["parried"], t["throws"] - _wave_base["throws"],
+		t["counter_hits"] - _wave_base["counter_hits"], t["counters"] - _wave_base["counters"],
+		maxi(0, _wave_base["health"] - health)]
+	wave_log.append(line)
+	print("WAVE LOG  " + line)
+	_wave_base = {}
+
+
+## The flow (D-0041): one ask per beat. Beat 1 belongs to throws, so notes sit on
+## beats 2 to 4 (steps 2, 4, 6) by the wave's pattern. Bands 1 and 2 play every
+## other bar of the phrase; bands 3 and 4 every bar, band 4 re-rolling each phrase
+## and sometimes adding an E on the "and" of 4. While a boss lives and no Crescendo
+## plays, a quiet chart keeps the left hand busy: one Q a bar on the tower nearest
+## the boss. Extra notes from the Rhythm area go on the off-beats of beats 2 to 4.
+func _schedule_bar(bar: int) -> void:
+	var bar_t := bar * STEPS_PER_BAR * step_length()
+	var step := step_length()
+	if boss_alive():
+		if crescendo > 0.0:
+			return
+		var tower := _nearest_tower(boss["pos"])
+		if tower.x >= 0:
+			add_note(bar_t + 4 * step, "kick", tower)
+			notes[notes.size() - 1]["quiet"] = true
+		return
+	var b := band(wave)
+	var bar_in_phrase := posmod(bar, PHRASE_BARS)
+	if b <= 2 and bar_in_phrase % 2 == 1:
+		return
+	if b == 4 and bar_in_phrase == 0:
+		_roll_pattern(false)
+	for i in 3:
+		var ch := _wave_pattern[i]
+		if ch == "Q":
+			add_note(bar_t + (2 + 2 * i) * step, "kick")
+		elif ch == "E":
+			add_note(bar_t + (2 + 2 * i) * step, "bass")
+	if b == 4 and rng.randf() < 0.5:
+		add_note(bar_t + 7 * step, "bass")
 	var extra := int(gstats.get("note_rate", 0))
-	var slots := [[1, 6, "kick"], [3, 1, "bass"], [0, 2, "kick"], [2, 5, "bass"], [1, 2, "kick"], [3, 7, "bass"]]
+	var slots := [[1, 5, "kick"], [3, 3, "bass"], [0, 7, "kick"], [2, 5, "bass"], [1, 3, "kick"], [3, 7, "bass"]]
 	for i in mini(extra, slots.size()):
-		if slots[i][0] == posmod(bar, PHRASE_BARS):
-			add_note((bar * STEPS_PER_BAR + slots[i][1]) * step_length(), slots[i][2])
+		if slots[i][0] == bar_in_phrase:
+			add_note(bar_t + slots[i][1] * step, slots[i][2])
+
+
+func _summon_boss() -> void:
+	var had := boss_alive()
+	super._summon_boss()
+	if boss_alive() and not had:
+		_show_feedback("THE BOSS   parry at the boss as it throws; its notes play between", Color(1, 0.4, 0.5))
+
+
+## Late-run elites may wind up for a bar and a half and land on beat 3.
+func throw_wind_bars() -> float:
+	if band(wave) >= 3 and rng.randf() < 0.5:
+		return 1.5
+	return 1.0
 
 
 func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	var cell = n["tower"]
 	var type: String = structures[cell]["type"] if cell is Vector2i and structures.has(cell) else ""
 	var crit := g == "Perfect"
+	_crack_steps = 2 if crit else 1
 	if type in ["poison", "lightning", "light"]:
 		_resonance_new(n, type, g, offset_ms)
 	else:
@@ -673,6 +811,8 @@ func step(delta: float) -> void:
 		if health <= 0:
 			health = 0
 			state = "lost"
+	if was_active and not wave_active:
+		_log_wave()
 	if was_active and not wave_active and state == "playing":
 		gold += roundi((12 + wave * 3) * gstats.get("wave_bonus_mult", 0.0))
 		gold += roundi(gold * gstats.get("interest", 0.0))
@@ -688,12 +828,32 @@ func step(delta: float) -> void:
 		if not boss_alive():
 			_trickle.clear()  # The escorts scatter when the boss falls.
 		elif beat_time() >= _trickle_at:
-			var pack := _trickle.slice(0, _trickle_pack)
-			_trickle = _trickle.slice(_trickle_pack)
-			spawn_queue.append_array(pack)
-			_to_spawn = spawn_queue.size()
-			_trickle_at += TRICKLE_GAP
+			_release_pack()  # Fallback: the boss has not broken for a while.
+	# The counter window closes: a parry nobody followed up.
+	if not _counter_open.is_empty() and press_time() > _counter_open["until"] and press_time() > _counter_open["until"] + COUNTER_LATE_MS / 1000.0:
+		_counter_open = {}
+	# Bolts whose parry moment (the throw) passed fly on and land unparried (D-0041 option A).
+	for b in bolts:
+		if b["state"] == "flying" and press_time() > b["launch"] + parry_good_ms() / 1000.0:
+			b["state"] = "loose"
+		elif b["state"] == "loose" and beat_time() >= b["arrive"]:
+			b["state"] = "hit"
+			_bolt_hit()
+			on_streak_miss()
 	_tick_m7(delta)
+
+
+## One escort pack out of the trickle, on a posture break or the fallback timer.
+func _release_pack() -> void:
+	if _trickle.is_empty():
+		return
+	var pack := _trickle.slice(0, _trickle_pack)
+	_trickle = _trickle.slice(_trickle_pack)
+	spawn_queue.append_array(pack)
+	_to_spawn = spawn_queue.size()
+	_trickle_at = beat_time() + TRICKLE_GAP
+	_trickle_released += 1
+	_show_feedback("ESCORTS", Color(1, 0.4, 0.5))
 
 
 func _on_kill(c: Dictionary) -> void:
@@ -900,14 +1060,6 @@ func restore_cap() -> int:
 
 # --- Slice E: counter-attack ------------------------------------------------------------
 
-func _parry_candidates() -> Array[Dictionary]:
-	var out := super._parry_candidates()
-	for k in counters:
-		if k["state"] == "flying":
-			out.append({"time": k["at"], "kind": "counter", "ref": k})
-	return out
-
-
 func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	var perfect := g == "Perfect"
 	if cand["kind"] == "counter":
@@ -972,22 +1124,55 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	if gstats.get("parry_notes", 0) > 0 and not struck.is_empty():
 		var beat := clock.beat_length()
 		add_note((floorf(beat_time() / beat) + 2.0) * beat, "kick")
-	# The counter: a yellow ring on the next beat on what you parried. Not during a Volley.
+	# The counter (D-0041): a second Space within COUNTER_TAP_MS of this parry, no ring,
+	# no beat to wait for. A Perfect parry makes a Perfect counter. Not during a Volley.
 	if gstats.get("counter", false) and not struck.is_empty() and creeps.has(struck) and struck["hp"] > 0.0 and not (cand["kind"] == "bolt" and boss2()):
-		# The ring lands on the off-beat (the "and") so it never collides with a note on the beat.
-		var beat := clock.beat_length()
-		var at := (floorf(beat_time() / beat) + 0.5) * beat
-		if at - beat_time() < 0.25:
-			at += beat
-		counters.append({"at": at, "from": beat_time(), "ref": struck, "state": "flying"})
+		_counter_open = {"ref": struck, "until": press_time() + COUNTER_TAP_MS / 1000.0, "opened": press_time(), "perfect": perfect}
 		m7_stats["counters"] += 1
+
+
+## Space: the tap after a landed parry fires the counter; otherwise a parry as before.
+func _parry() -> void:
+	if not _counter_open.is_empty():
+		var k: Dictionary = _counter_open
+		var since_ms: float = (press_time() - k["opened"]) * 1000.0
+		if press_time() <= k["until"]:
+			_counter_open = {}
+			if creeps.has(k["ref"]) and k["ref"]["hp"] > 0.0:
+				on_streak_hit()
+				_sfx["parry_perfect" if k["perfect"] else "parry"].play()
+				var c := {"at": press_time(), "from": k["opened"], "ref": k["ref"], "state": "flying"}
+				_resolve_parry({"time": press_time(), "kind": "counter", "ref": c}, "Perfect" if k["perfect"] else "Good", since_ms)
+			return
+		_counter_open = {}
+		if since_ms < COUNTER_LATE_MS:
+			_show_feedback("Counter late (+%.0f ms)   tap right after the parry" % since_ms, Color(1, 1, 1, 0.5))
+			return
+	super._parry()
+
+
+## Option A (D-0041): a bolt is parried at the boss as it leaves, not at the Conductor.
+func _parry_candidates() -> Array[Dictionary]:
+	var out := super._parry_candidates()
+	for cand in out:
+		if cand["kind"] == "bolt":
+			cand["time"] = cand["ref"]["launch"]
+	return out
 
 
 ## A posture break rolls its Crescendo chart from a set, and bosses after wave 10
 ## summon a pack every third break (D-0040).
 func _posture_break() -> void:
+	# The quiet boss chart makes way for the Crescendo.
+	for n in notes.duplicate():
+		if n.get("quiet", false) and n["state"] == "open":
+			notes.erase(n)
+			_wave_notes -= 1
+			stats[n["type"]]["notes"] -= 1
 	var before := notes.size()
 	super._posture_break()
+	if TRICKLE_BREAKS.has(m5_stats["breaks"]):
+		_release_pack()
 	# Replace the fixed Q E Q E burst with a rolled pattern on the same beats and towers.
 	var burst: Array[Dictionary] = []
 	for n in notes.slice(before):
@@ -1165,6 +1350,55 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	super._draw()
 	var beat := clock.beat_length()
+	var font := ThemeDB.fallback_font
+	# The bar strip over the board (D-0041): what each beat asks for, the live beat lit.
+	if wave_active and state == "playing":
+		var cur := posmod(floori(beat_time() / beat), 4)
+		var labels: Array = ["1 parry"]
+		for i in 3:
+			labels.append("%d %s" % [i + 2, _wave_pattern[i].replace(".", "-")])
+		if boss_alive():
+			labels = ["1 parry", "2 -", "3 Q boss", "4 -"] if crescendo <= 0.0 else ["CRESCENDO", "", "", ""]
+		for i in 4:
+			var r := Rect2(_origin.x + i * 66.0, _origin.y - 24.0, 62.0, 18.0)
+			var lit := i == cur
+			var col := Color(1.0, 0.6, 0.35) if i > 0 else Color(1.0, 0.9, 0.3)
+			if i > 0 and _wave_pattern[i - 1] == "E":
+				col = Color(0.7, 0.45, 1.0)
+			draw_rect(r, col * Color(1, 1, 1, 0.35 if lit else 0.1))
+			draw_rect(r, col * Color(1, 1, 1, 0.9 if lit else 0.35), false, 1.0)
+			draw_string(font, r.position + Vector2(5, 13), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 1.0 if lit else 0.6))
+	# The counter window: a yellow flash on the parried enemy for the tap.
+	if not _counter_open.is_empty() and creeps.has(_counter_open["ref"]):
+		var a: float = clampf((_counter_open["until"] - press_time()) / (COUNTER_TAP_MS / 1000.0), 0.0, 1.0)
+		if a > 0.0:
+			var p := _to_screen(_counter_open["ref"]["pos"])
+			draw_arc(p, TILE * (0.6 + 0.5 * (1.0 - a)), 0, TAU, 32, Color(1.0, 0.9, 0.3, 0.3 + 0.7 * a), 3.0)
+			draw_string(font, p + Vector2(-16, -TILE * 0.8), "TAP", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.9, 0.3))
+	# Veils: a purple ring that fades as it cracks, with the damage it still blocks.
+	for c in creeps:
+		if c.get("veil", false) and c["hp"] > 0.0 and int(c.get("cracks", 0)) < VEIL_MULTS.size() - 1:
+			var p := _to_screen(c["pos"])
+			var cracks := int(c.get("cracks", 0))
+			draw_arc(p, TILE * 0.42, 0, TAU, 24, Color(0.6, 0.4, 1.0, 0.9 - 0.25 * cracks), 3.0 - 0.6 * cracks)
+			draw_string(font, p + Vector2(-9, TILE * 0.75), "%d%%" % roundi(VEIL_MULTS[cracks] * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.75, 0.6, 1.0))
+	# Boss bolts (D-0041 option A): the parry ring closes on the boss over the last beat
+	# before the throw; a bolt that got away flies red to the Conductor.
+	if boss_alive():
+		var bp := _to_screen(boss["pos"])
+		for b in bolts:
+			if b["state"] == "flying":
+				var to_launch: float = b["launch"] - beat_time()
+				if to_launch < beat and to_launch > -0.2:
+					var f: float = clampf(1.0 - to_launch / beat, 0.0, 1.0)
+					draw_arc(bp, TILE * (1.8 - 1.05 * f), 0, TAU, 40, Color(1.0, 0.9, 0.3, 0.4 + 0.6 * f), 2.0 + 2.0 * f)
+					draw_arc(bp, TILE * 0.75, 0, TAU, 48, Color(1.0, 0.9, 0.3, 0.9), 2.0)
+				break
+		for b in bolts:
+			if b["state"] == "loose":
+				var p := _to_screen(_bolt_pos(b))
+				draw_circle(p, TILE * 0.22, Color(1, 0.3, 0.3))
+				draw_circle(p, TILE * 0.1, Color.WHITE)
 	# Counters: a yellow ring closing on the parried enemy over one beat.
 	for k in counters:
 		if k["state"] != "flying" or not creeps.has(k["ref"]):
@@ -1223,6 +1457,13 @@ func run_lines() -> Array[String]:
 	lines.append("Type upgrades: %s   Unlocked: %s" % [", ".join(ranks) if not ranks.is_empty() else "none", ", ".join(unlocked.slice(4).map(func(t): return tower_name(t))) if unlocked.size() > 4 else "none"])
 	lines.append("Crits %d   Arcs %d   Poison %d   Counters %d of %d" % [m7_stats["crits"], m7_stats["arcs"], roundi(m7_stats["poison"]), m7_stats["counter_hits"], m7_stats["counters"]])
 	lines.append("Stats: " + stats_line())
+	if not wave_log.is_empty():
+		lines.append("")
+		lines.append("By wave (hit/offered):")
+		var i := 0
+		while i < wave_log.size():
+			lines.append("   |   ".join(wave_log.slice(i, i + 2)))
+			i += 2
 	return lines
 
 
@@ -1254,6 +1495,7 @@ func status_lines() -> Array[String]:
 	var hits := stat_total("hits")
 	var rate := 0 if notes == 0 else roundi(100.0 * hits / notes)
 	lines.append("Notes %d/%d (%d%%)   Perfects %d   streak %d" % [hits, notes, rate, stat_total("perfects"), streak])
+	lines.append("Bar: %s" % pattern_text())
 	var thrown: int = m4_stats["pulses"] + m4_stats["arrows"] + m5_stats["bolts"] + m6_stats["stomps"]
 	var parried: int = m4_stats["parried"] + m5_stats["parries"] + m6_stats["stomp_parries"]
 	lines.append("Parries %d/%d   Counters %d/%d   Locked %d   Shields lost %d" % [parried, thrown, m7_stats["counter_hits"], m7_stats["counters"], m4_stats["suppressed"], m4_stats["shields_lost"]])
@@ -1275,8 +1517,9 @@ func help_lines() -> Array[String]:
 	if selected_cell.x >= 0 or (hud != null and hud.panel.visible):
 		return []
 	return [
-		"Q / E  the key on a tower as its ring lands",
-		"Space  parry; yellow ring after = counter-attack",
+		"Q / E  the key on a tower as its ring lands (beats 2 to 4)",
+		"Space  parry on beat 1; tap again at once = counter-attack",
+		"Shades: 10% damage until notes crack the veil",
 		"Tab  talent tree   U / I  upgrade or fork the selected type",
 		"Click a tower for its panel.  Right click sells.  Esc twice  menu",
 		"",

@@ -25,7 +25,7 @@ const CARDS: Array[Dictionary] = [
 	# Stats
 	{"id": "dmg1", "name": "Whetstone", "text": "+15% tower damage", "rarity": "grey", "cat": "stats", "effects": {"damage_mult": 0.15}},
 	{"id": "crit1", "name": "Keen edge", "text": "+10% crit chance", "rarity": "grey", "cat": "stats", "effects": {"crit_chance": 0.1}},
-	{"id": "luck1", "name": "Rabbit's foot", "text": "+2 luck (rarer cards)", "rarity": "grey", "cat": "stats", "effects": {"luck": 2}},
+	{"id": "luck1", "name": "Rabbit's foot", "text": "+1 luck (rarer cards)", "rarity": "grey", "cat": "stats", "effects": {"luck": 1}},
 	{"id": "dmg2", "name": "Grindstone", "text": "+25% tower damage", "rarity": "green", "cat": "stats", "effects": {"damage_mult": 0.25}},
 	{"id": "critdmg", "name": "Executioner's oil", "text": "+80% crit damage", "rarity": "green", "cat": "stats", "effects": {"crit_mult": 0.8}},
 	{"id": "range1", "name": "Spyglass", "text": "+0.7 range on every tower", "rarity": "green", "cat": "stats", "effects": {"range_all": 0.7}},
@@ -126,8 +126,8 @@ const CARDS: Array[Dictionary] = [
 	{"id": "bias_abil", "name": "Grimoire", "text": "Ability cards show twice as often", "rarity": "green", "cat": "draft", "effects": {"bias_abilities": 2.0}},
 	{"id": "bias_econ", "name": "Ledger", "text": "Economy cards show twice as often", "rarity": "green", "cat": "draft", "effects": {"bias_economy": 2.0}},
 	{"id": "bias_enemy", "name": "Bestiary", "text": "Enemy cards show twice as often", "rarity": "green", "cat": "draft", "effects": {"bias_enemy": 2.0}},
-	{"id": "bias_stats", "name": "Training manual", "text": "Stat cards show twice as often", "rarity": "grey", "cat": "draft", "effects": {"bias_stats": 2.0}},
-	{"id": "four", "name": "Open hand", "text": "Drafts show four cards", "rarity": "green", "cat": "draft", "effects": {"draft_size": 4}},
+	{"id": "bias_stats", "name": "Training manual", "text": "Stat cards show twice as often", "rarity": "green", "cat": "draft", "effects": {"bias_stats": 2.0}},
+	{"id": "four", "name": "Open hand", "text": "Drafts show four cards", "rarity": "blue", "cat": "draft", "effects": {"draft_size": 4}},
 	{"id": "luck4", "name": "Horseshoe", "text": "+6 luck", "rarity": "purple", "cat": "draft", "effects": {"luck": 6}},
 ]
 

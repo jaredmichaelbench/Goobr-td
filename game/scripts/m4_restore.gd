@@ -210,11 +210,17 @@ func _arm_elites(s: int) -> void:
 		if targets.is_empty():
 			continue
 		c["pulse_from"] = bar_time
-		c["pulse_at"] = bar_time + clock.bar_length()
+		c["pulse_at"] = bar_time + clock.bar_length() * throw_wind_bars()
 		c["told"] = false
 		c["ticked"] = -1
 		c["pulse_targets"] = targets
 		m4_stats["pulses"] += 1
+
+
+## Hook: how long a pulse winds up, in bars. 1 lands it on the next downbeat; M7
+## lets late-run elites land on beat 3 (1.5 bars).
+func throw_wind_bars() -> float:
+	return 1.0
 
 
 func _cancel_pulse(c: Dictionary) -> void:

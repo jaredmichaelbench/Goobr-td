@@ -8,7 +8,20 @@ Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you p
 
 **Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
 
-## M7: the progression run (v2)
+## M7: the progression run (v3)
+
+New in v3 (round 3, after Jared's second 20-wave run, D-0041):
+
+- **One ask per beat.** Throws (Jammer pulses, arrows, boss bolts, stomps) land on **beat 1**. Notes sit on **beats 2 to 4**. A strip over the board shows the bar with the live beat lit: `1 parry  2 Q  3 -  4 E`. Waves 1 to 5 are Q only (beat 3, every other bar); 6 to 10 add E on beat 4; 11 to 15 roll one pattern per wave and late elites may land on beat 3; 16 and up re-roll every phrase and E can sit on the "and". A Crescendo has no throws.
+- **The counter is a tap.** Land a parry, then press **Space again within 150 ms**: no ring, no beat to wait for. A Perfect parry makes a Perfect counter. The target flashes "TAP" for the window; a late tap says so.
+- **Shades are never immune.** A veiled Shade takes **10%** damage (shown under it). Any landed note cracks every veil a step (20%, 30%, then stripped); a Perfect cracks two. The Light tower cracks a step per downbeat in reach.
+- **Early waves bite**: creeps start at 30 HP (was 18) and grow 1.15 a wave (was 1.19), so waves 1 to 3 are about 60% harder and wave 20 a little softer.
+- **Boss fights**: the escorts come as three big packs on posture breaks 1, 3 and 5 (a pack comes anyway after 20 s without a break); bosses after wave 10 summon on every second break. Between throws the boss plays a **quiet chart**: one Q a bar on the tower nearest it.
+- **Parry at the boss.** The parry ring closes on the boss as it throws; a bolt you miss flies red to the Conductor and lands. Your eyes stay on the boss.
+- **Per-wave log** on the end screen: notes, parries and counters hit of offered, and health lost, wave by wave. The same lines print to the Godot console as `WAVE LOG`.
+- Grey draft cards no longer carry run-long draft effects (Rabbit's foot +1 luck; Training manual is green; Open hand is blue).
+
+### Round 2 (v2)
 
 New in v2 (round 2, after Jared's first 20-wave run, D-0040):
 
