@@ -72,3 +72,4 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 - **Preloaded sound themes** (2026-10-25, Jared) Ship several named SFX packs (D-0031 contract) and let the player pick one, with the community pack feature on top. Pairs with custom music and SFX packs.
 - Boss stand tile (D-0041 option B): bosses walk to a marked mid-maze tile and fight from there. For the sim/view milestone maps.
 - Conductor in the centre map (D-0041 option C): spawns both sides, maze ends in the middle, towers ring the Conductor. A map of its own; fits mirrored 1v1.
+- Multiplayer camera (Jared, 2026-10-26, on the Demo 1 plan): fixed camera per board; Tab or keys to view an opponent's board, live thumbnails of the other boards for the glance (Tetris 99 style). No free camera or minimap: the rhythm needs every telegraph in view. Implication for the vision's "one rectangle, a corner per player": each corner is its own board at full screen when viewed.
