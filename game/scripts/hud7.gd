@@ -5,7 +5,6 @@ extends Hud
 ## and the rung 3 fork, the talent tree, a five-card draft with a reroll, and
 ## a Tree button that lights up when a point is waiting.
 
-var build_row: HBoxContainer
 var tree_button: Button
 var branch_button: Button
 var fork_row: HBoxContainer
@@ -18,37 +17,33 @@ var tree_nodes := {}  # id -> Button
 
 func _ready() -> void:
 	super._ready()
-	# Build buttons move to their own row above the action bar.
-	build_row = HBoxContainer.new()
-	build_row.add_theme_constant_override("separation", 6)
-	add_child(build_row)
+	# Build buttons stay in the one bar, in key order, one line each; lock conditions go to the tip.
 	var keys: Array = game.build_keys.keys()
-	keys.sort()  # Buttons in key order: 1 Wall, 2 Cannon ... 7 Light.
+	keys.sort()
+	var slot := 0
 	for k in keys:
-		var type: String = game.build_keys[k]
-		var b: Button = build_buttons[type]
-		b.get_parent().remove_child(b)
-		build_row.add_child(b)
-		b.custom_minimum_size = Vector2(106, 44)
+		var b: Button = build_buttons[game.build_keys[k]]
+		b.custom_minimum_size = Vector2(92, 36)
 		b.add_theme_font_size_override("font_size", 11)
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	tree_button = _button(_bar, Vector2(120, 44), func(): game.toggle_tree())
+		_bar.move_child(b, slot)
+		slot += 1
+	tree_button = _button(_bar, Vector2(84, 36), func(): game.toggle_tree())
 	# The fork: its own row of two buttons above Upgrade / Sell, so the panel stays narrow.
 	fork_row = HBoxContainer.new()
 	fork_row.add_theme_constant_override("separation", 6)
 	panel_row.get_parent().add_child(fork_row)
 	panel_row.get_parent().move_child(fork_row, panel_row.get_index())
-	fork_a_button = _button(fork_row, Vector2(150, 44), func(): game.upgrade_type(_panel_type(), 1))
-	branch_button = _button(fork_row, Vector2(150, 44), func(): game.upgrade_type(_panel_type(), 2))
-	upgrade_button.custom_minimum_size = Vector2(170, 44)
-	upgrade_button.add_theme_font_size_override("font_size", 13)
-	fork_a_button.add_theme_font_size_override("font_size", 13)
-	branch_button.add_theme_font_size_override("font_size", 13)
+	fork_a_button = _button(fork_row, Vector2(133, 36), func(): game.upgrade_type(_panel_type(), 1))
+	branch_button = _button(fork_row, Vector2(133, 36), func(): game.upgrade_type(_panel_type(), 2))
+	upgrade_button.custom_minimum_size = Vector2(150, 36)
+	upgrade_button.add_theme_font_size_override("font_size", 11)
+	fork_a_button.add_theme_font_size_override("font_size", 11)
+	branch_button.add_theme_font_size_override("font_size", 11)
 	# Cards four and five, and the reroll.
 	for i in [3, 4]:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(230, 170)
+		b.custom_minimum_size = Vector2(200, 150)
+		b.add_theme_font_size_override("font_size", 12)
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -59,7 +54,7 @@ func _ready() -> void:
 	for b in draft_buttons:
 		b.custom_minimum_size = Vector2(200, 180)
 		b.add_theme_font_size_override("font_size", 13)
-	reroll_button = _button(card_row.get_parent(), Vector2(160, 36), func(): game.reroll_draft())
+	reroll_button = _button(card_row.get_parent(), Vector2(140, 32), func(): game.reroll_draft())
 	# The tree.
 	tree_box = CenterContainer.new()
 	tree_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -75,7 +70,7 @@ func _ready() -> void:
 	head.add_theme_constant_override("separation", 16)
 	tv.add_child(head)
 	tree_title = Label.new()
-	tree_title.add_theme_font_size_override("font_size", 18)
+	tree_title.add_theme_font_size_override("font_size", 15)
 	tree_title.add_theme_color_override("font_color", Color(0.6, 1.0, 0.7))
 	tree_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(tree_title)
@@ -90,7 +85,7 @@ func _ready() -> void:
 		areas.add_child(col)
 		var name := Label.new()
 		name.text = TalentTree.AREA_NAMES[area]
-		name.add_theme_font_size_override("font_size", 15)
+		name.add_theme_font_size_override("font_size", 13)
 		name.add_theme_color_override("font_color", TalentTree.AREA_COLORS[area])
 		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(name)
@@ -106,7 +101,7 @@ func _ready() -> void:
 		col.add_child(_node_button(area + "_cap", nodes[area + "_cap"], Vector2(230, 44)))
 	var foot := Label.new()
 	foot.text = "A node needs one owned node in the row above it (same column or next to it). Dotted links let a neighbour area in. Hover a node for what it does."
-	foot.add_theme_font_size_override("font_size", 12)
+	foot.add_theme_font_size_override("font_size", 11)
 	foot.modulate = Color(1, 1, 1, 0.6)
 	tv.add_child(foot)
 
@@ -126,12 +121,10 @@ func _node_button(id: String, node: Dictionary, size: Vector2) -> Button:
 
 func _layout() -> void:
 	var view := get_viewport().get_visible_rect().size
-	var x := maxf(360.0, game.hud_left + (view.x - game.hud_left) * 0.5 - build_row.size.x * 0.5)
-	x = minf(x, view.x - build_row.size.x - 8)  # Never off the right edge on a narrow window.
-	_bar.position = Vector2(x, view.y - 56)
-	build_row.position = Vector2(x, view.y - 56 - 50)
-	tip.position = Vector2(x, view.y - 10 - 16)
-	panel.position = Vector2(24, view.y - 60 - panel.size.y)
+	var x := maxf(game.hud_left + 8.0, view.x - _bar.size.x - 12.0)
+	_bar.position = Vector2(x, view.y - 48)
+	tip.position = Vector2(x, view.y - 12 - 14)
+	panel.position = Vector2(24, _bar.position.y - 8 - panel.size.y)
 
 
 func _refresh() -> void:
@@ -147,11 +140,11 @@ func _refresh_bar() -> void:
 	for type in build_buttons:
 		var b: Button = build_buttons[type]
 		if not game.unlocked.has(type):
-			b.text = "%s  %s  %dg\n%s" % [_key(type), game.tower_name(type), game.builds[type]["cost"], game.unlock_text(type)]
+			b.text = "%s  %s  locked" % [_key(type), game.tower_name(type)]
 			b.disabled = true
 		elif game.type_rank.get(type, 0) > 0:
 			b.text += "  r%d" % game.type_rank[type]
-	tree_button.text = "Tree  (Tab)" + ("  +%d" % game.points if game.points > 0 else "")
+	tree_button.text = "Tree (Tab)" + ("  +%d" % game.points if game.points > 0 else "")
 	tree_button.modulate = Color(0.6, 1.0, 0.7) if game.points > 0 else Color.WHITE
 	tree_button.disabled = not playing
 
@@ -304,4 +297,10 @@ func _tip() -> String:
 		return "Pick a card: click it or press its number."
 	if game.points > 0 and not game.paused:
 		return "A talent point is waiting: Tab opens the tree."
+	var locked: Array[String] = []
+	for type in game.UNLOCKS:
+		if not game.unlocked.has(type):
+			locked.append("%s %s" % [game.tower_name(type), game.unlock_text(type)])
+	if not locked.is_empty() and not game.wave_active:
+		return "Locked: " + ",  ".join(locked) + ".  " + super._tip()
 	return super._tip()

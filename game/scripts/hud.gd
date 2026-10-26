@@ -41,32 +41,34 @@ func _ready() -> void:
 	_bar = bar
 	for type in game.builds:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(118, 44)
+		b.custom_minimum_size = Vector2(104, 36)
+		b.add_theme_font_size_override("font_size", 12)
 		b.toggle_mode = true
 		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(func(): game.selected = type; game.build_mode = true; _refresh())
 		bar.add_child(b)
 		build_buttons[type] = b
 	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(16, 1)
+	gap.custom_minimum_size = Vector2(12, 1)
 	bar.add_child(gap)
-	wave_button = _button(bar, Vector2(150, 44), func(): game.start_wave())
-	restore_button = _button(bar, Vector2(130, 44), func(): game._press_restore())
-	pause_button = _button(bar, Vector2(90, 44), func(): game.toggle_pause())
+	wave_button = _button(bar, Vector2(128, 36), func(): game.start_wave())
+	restore_button = _button(bar, Vector2(110, 36), func(): game._press_restore())
+	pause_button = _button(bar, Vector2(80, 36), func(): game.toggle_pause())
 
 	# Tower panel.
 	panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(330, 0)
+	panel.custom_minimum_size = Vector2(300, 0)
 	panel.add_theme_stylebox_override("panel", solid_style())
 	add_child(panel)
 	var vb := VBoxContainer.new()
 	panel.add_child(vb)
 	panel_title = Label.new()
-	panel_title.add_theme_font_size_override("font_size", 18)
+	panel_title.add_theme_font_size_override("font_size", 15)
 	vb.add_child(panel_title)
 	panel_body = Label.new()
 	panel_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	panel_body.custom_minimum_size = Vector2(310, 0)
+	panel_body.custom_minimum_size = Vector2(272, 0)
+	panel_body.add_theme_font_size_override("font_size", 12)
 	vb.add_child(panel_body)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -87,7 +89,7 @@ func _ready() -> void:
 	dv.add_theme_constant_override("separation", 10)
 	dp.add_child(dv)
 	draft_title = Label.new()
-	draft_title.add_theme_font_size_override("font_size", 18)
+	draft_title.add_theme_font_size_override("font_size", 15)
 	draft_title.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
 	dv.add_child(draft_title)
 	var cards := HBoxContainer.new()
@@ -96,7 +98,8 @@ func _ready() -> void:
 	card_row = cards
 	for i in 3:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(230, 170)
+		b.custom_minimum_size = Vector2(200, 150)
+		b.add_theme_font_size_override("font_size", 12)
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -117,10 +120,11 @@ func _ready() -> void:
 	ev.add_theme_constant_override("separation", 8)
 	ep.add_child(ev)
 	end_title = Label.new()
-	end_title.add_theme_font_size_override("font_size", 22)
+	end_title.add_theme_font_size_override("font_size", 18)
 	ev.add_child(end_title)
 	end_body = Label.new()
-	end_body.custom_minimum_size = Vector2(640, 0)
+	end_body.custom_minimum_size = Vector2(600, 0)
+	end_body.add_theme_font_size_override("font_size", 13)
 	end_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	ev.add_child(end_body)
 	var er := HBoxContainer.new()
@@ -133,7 +137,7 @@ func _ready() -> void:
 
 	# One-line tip under the bar.
 	tip = Label.new()
-	tip.add_theme_font_size_override("font_size", 13)
+	tip.add_theme_font_size_override("font_size", 11)
 	tip.modulate = Color(1, 1, 1, 0.7)
 	add_child(tip)
 	_refresh()
@@ -146,6 +150,7 @@ func _on_upgrade() -> void:
 func _button(parent: Control, size: Vector2, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = size
+	b.add_theme_font_size_override("font_size", 12)
 	b.focus_mode = Control.FOCUS_NONE  # Space stays the parry key after a click.
 	b.pressed.connect(on_press)
 	parent.add_child(b)

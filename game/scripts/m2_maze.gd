@@ -667,17 +667,17 @@ func _draw() -> void:
 		draw_arc(_to_screen(Vector2(hover)), tower_spec(hover)["range"] * TILE, 0, TAU, 48, Color(1, 1, 1, 0.4), 1.5)
 
 	# HUD: bright status lines, then dimmer help lines.
-	var y := 40.0
-	draw_string(font, Vector2(24, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20)
+	var y := 36.0
+	draw_string(font, Vector2(24, y), title, HORIZONTAL_ALIGNMENT_LEFT, -1, 17)
 	for line in status_lines():
-		y += 22.0
-		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 16)
-	y += 10.0
+		y += 18.0
+		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 13)
+	y += 8.0
 	for line in help_lines():
-		y += 21.0
-		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 1, 1, 0.55))
+		y += 17.0
+		draw_string(font, Vector2(24, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.55))
 	if _message_time > 0.0:
-		draw_string(font, Vector2(24, view.y - 40), _message, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.5, 0.4))
+		draw_string(font, Vector2(24, view.y - 40), _message, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 0.5, 0.4))
 	if state != "playing" and get("hud") == null:  # M6 shows this on its run screen instead.
 		var text := "Wave 10 cleared!  N for endless, R to restart" if state == "won" else "The goal fell.  R to try again"
 		draw_string(font, Vector2(_origin.x, _origin.y - 16), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color(1, 0.85, 0.3))

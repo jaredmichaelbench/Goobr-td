@@ -93,7 +93,7 @@ func _ready() -> void:
 	last_wave = 10 if quick else LONG_WAVES
 	boss_waves = [5, 10] if quick else [5, 10, 15, 20]
 	super._ready()
-	title = "M7 The progression run" + ("  (quick, 10 waves)" if quick else "")
+	title = "M7 Quick run (10 waves)" if quick else "M7 The progression run"
 	build_keys = {KEY_1: "wall", KEY_2: "kick", KEY_3: "bass", KEY_4: "slow", KEY_5: "poison", KEY_6: "lightning", KEY_7: "light"}
 	creep_hp_growth = CREEP_HP_GROWTH_M7
 	_reset_progression()
@@ -1083,10 +1083,10 @@ func _draw() -> void:
 			draw_arc(p, TILE * 0.3, 0, TAU, 16, Color(0.6, 1.0, 0.4, 0.8), 1.5)
 	# Level bar under the title.
 	var x := 24.0
-	var y := 48.0
-	draw_rect(Rect2(x + 270, y - 8, 120, 6), Color(1, 1, 1, 0.1))
-	draw_rect(Rect2(x + 270, y - 8, 120 * clampf(xp / xp_to_next(), 0.0, 1.0), 6), Color(0.6, 1.0, 0.7))
-	draw_string(ThemeDB.fallback_font, Vector2(x + 396, y), "Lv %d%s" % [level, ("   %d point%s (Tab)" % [points, "" if points == 1 else "s"]) if points > 0 else ""], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.6, 1.0, 0.7) if points > 0 else Color(1, 1, 1, 0.6))
+	var y := 42.0
+	draw_rect(Rect2(x + 330, y - 8, 100, 6), Color(1, 1, 1, 0.1))
+	draw_rect(Rect2(x + 330, y - 8, 100 * clampf(xp / xp_to_next(), 0.0, 1.0), 6), Color(0.6, 1.0, 0.7))
+	draw_string(ThemeDB.fallback_font, Vector2(x + 436, y), "Lv %d%s" % [level, ("   %d point%s (Tab)" % [points, "" if points == 1 else "s"]) if points > 0 else ""], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.6, 1.0, 0.7) if points > 0 else Color(1, 1, 1, 0.6))
 
 
 func run_lines() -> Array[String]:
