@@ -35,4 +35,4 @@ Active work. Each task has an id, status, and a link to the decision or prototyp
 | T-010 | Choose the engine | Godot 4 (D-0011) |
 | T-004 | Latency sandbox in both engines | Replaced by M1 in one engine |
 | T-008 | Stem-split test track | Replaced by procedural placeholder stems |
-| T-023 | Demo 1: the 3D build (`prototypes/demo-1-plan.md`): M8 look test, M9 sim/view split, M10 HUD and menus, M11 sound and music, M12 private demo package | active, M8 look test | Jared's go 2026-10-26 (D-0042): recommendations stand, one map, Conductor inside a keep model, RTS-style HUD |
+| T-023 | Demo 1: the 3D build (`prototypes/demo-1-plan.md`): M8 look test, M9 sim/view split, M10 HUD and menus, M11 sound and music, M12 private demo package | M8 done, M9 in thread "Build Demo 1 with graphics" | Jared's go 2026-10-26 (D-0042): recommendations stand, one map, Conductor inside a keep model, RTS-style HUD |
