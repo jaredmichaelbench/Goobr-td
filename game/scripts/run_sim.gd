@@ -106,3 +106,40 @@ func _load_song_choice() -> String:
 	if want == "" and songs.size() > 1:
 		return songs[1]["name"]
 	return want
+
+
+## The readability pass (D-0045): the line under the beat bar is one short word
+## (PERFECT, GOOD, MISS, PARRY) and the timing as a small "51 ms early"; the long
+## breakdown (damage, crossfire, veils) is kept in feedback_detail for the log.
+var feedback_ms := ""
+var feedback_detail := ""
+var _ms_re: RegEx
+
+
+func _show_feedback(text: String, color: Color) -> void:
+	super._show_feedback(text, color)
+	feedback_detail = text
+	if _ms_re == null:
+		_ms_re = RegEx.new()
+		_ms_re.compile("([+-]\\d+) ms")
+	feedback_ms = ""
+	var m := _ms_re.search(text)
+	if m != null:
+		var ms := int(m.get_string(1))
+		feedback_ms = "on the beat" if absi(ms) < 8 else ("%d ms %s" % [absi(ms), "early" if ms < 0 else "late"])
+	_feedback = short_feedback(text)
+
+
+static func short_feedback(text: String) -> String:
+	var up := text.to_upper()
+	if up.contains("COUNTER LATE"):
+		return "COUNTER LATE"
+	if up.contains("PARRY") and not up.begins_with("NOTHING"):
+		return "PERFECT PARRY" if up.begins_with("PERFECT") else "PARRY"
+	var crit := "CRIT " if up.begins_with("CRIT") else ""
+	for g in ["PERFECT", "GOOD"]:
+		if up.contains(" " + g + " ") or up.contains("  " + g):
+			return crit + g
+	if up.begins_with("MISS"):
+		return "MISS"
+	return text.split("   ")[0]

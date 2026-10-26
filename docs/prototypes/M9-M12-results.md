@@ -28,3 +28,11 @@ Built in one pass under Jared's go ("do it all if you can, take liberties if nec
 1. Mac: unzip "Goobr TD - Mac.zip", right-click the app, Open, then Open again (it isn't notarised). Or `git pull` and press Play in Godot.
 2. Calibrate from Settings, then play the 20-wave run.
 3. Notes as usual, plus: can you read the board at this camera; do the note badges, parry ring and lock marks read; do the towers tell apart; does the HUD feel like Legion TD; the new note sounds.
+
+## Readability pass (D-0045, 2026-10-26 evening)
+
+After Jared's first look, two outside reviews and his recording, the seven-item pass shipped with no rule change: slim top bar with icons and an always-on beat bar (playhead, judgment word, "ms early/late", streak); one number per target; a wave-clear card; command card with pictures (rendered from the models by `tests/t_icons.gd`), key badges, costs and shortfalls; creep pictures in the wave preview; a pause screen with the keys and run stats; a step strip in the tower panel; the talent tree as area lines with point gates and shared nodes drawn once; calmer ground, brick walls, mossy rocks, a spawn gate, rank bands and a fork pennant on towers. Calibration is fixed at 46 ms (Jared's M1 measurement) with no setting.
+
+Checks: `tests/t_ui.gd` (HUD states as screenshots), `tests/t_title.gd`, and the 3D bot quick run, all without script errors. The counter logic was read through and is unchanged; Jared's 0 of 11 in the recording should be re-checked with calibration back.
+
+Left for the backlog: a three-model upgrade line per tower, controller and key remapping, colour-blind palettes, text scaling, respec, beat-reactive grass, coin pop animations, a custom app icon. Tooltips in the talent tree can still cover a neighbour (Godot places them at the mouse).

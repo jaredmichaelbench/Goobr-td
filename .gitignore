@@ -6,5 +6,7 @@ game/assets/*
 # Free CC0 models and the OFL font ship with the game (D-0044).
 !game/assets/kaykit/
 !game/assets/fonts/
+# Build-card icons rendered from the KayKit models (game/tests/t_icons.gd).
+!game/assets/icons/
 .godot/
 export/

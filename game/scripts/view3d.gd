@@ -10,11 +10,14 @@ extends Node3D
 
 const TILT := 65.0
 const FOV := 32.0
-const TOP_MARGIN := 64.0  # Pixels kept clear for the top bar.
-const BOTTOM_MARGIN := 176.0  # Pixels kept clear for the bottom panel.
-const GRASS := Color(0.38, 0.56, 0.3)
-const GRASS_FAR := Color(0.33, 0.49, 0.28)
-const DIRT := Color(0.74, 0.6, 0.42)
+const TOP_MARGIN := 46.0  # Pixels kept clear for the top bar (D-0045: slim, see-through).
+const BOTTOM_MARGIN := 138.0  # Pixels kept clear for the bottom panel.
+const GRASS := Color(0.33, 0.44, 0.29)  # Calmer, darker ground so creeps and telegraphs pop (D-0045).
+const GRASS_FAR := Color(0.27, 0.36, 0.24)
+const DIRT := Color(0.66, 0.54, 0.38)
+const BRICK := Color(0.62, 0.36, 0.24)  # Player walls: warm brick, never the grey of the rocks.
+const RANK_COLORS := [Color(0.78, 0.5, 0.26), Color(0.85, 0.88, 0.93)]  # Rung 1 bronze, rung 2 silver.
+const BRANCH_COLORS := [Color(0.5, 0.9, 1.0), Color(1.0, 0.6, 0.3)]  # After the fork.
 const TOWER_TOP := 1.7  # Where shots leave a tower.
 const BODY := 0.45  # Where shots land on a creep.
 
@@ -179,8 +182,8 @@ func _build_ground() -> void:
 func _build_terrain() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 2026
-	var stone := [flat(Color(0.52, 0.5, 0.47)), flat(Color(0.47, 0.45, 0.43)), flat(Color(0.56, 0.53, 0.49))]
-	var top := flat(Color(0.62, 0.59, 0.54))
+	var stone := [flat(Color(0.42, 0.43, 0.46)), flat(Color(0.38, 0.39, 0.42)), flat(Color(0.46, 0.46, 0.49))]
+	var top := flat(Color(0.37, 0.45, 0.31))  # Moss: rocks are scenery, walls are brick.
 	for cell in sim.terrain:
 		var h := rng.randf_range(0.45, 0.7)
 		var block := BoxMesh.new()
@@ -252,6 +255,19 @@ func _build_landmarks() -> void:
 	var road := PlaneMesh.new()
 	road.size = Vector2(1.6, 0.9)
 	_mesh(road, flat(DIRT), Vector3(-0.6, 0.004, sim.SPAWN.y + 0.5))
+	# A red gate where the creeps come in (D-0045: mark the spawn).
+	var wood := flat(Color(0.32, 0.22, 0.15))
+	var red := flat(Color(0.85, 0.18, 0.2))
+	for side in [-1.0, 1.0]:
+		var post := BoxMesh.new()
+		post.size = Vector3(0.14, 1.5, 0.14)
+		_mesh(post, wood, Vector3(-0.2, 0.75, sim.SPAWN.y + 0.5 + side * 0.62))
+	var beam := BoxMesh.new()
+	beam.size = Vector3(0.16, 0.14, 1.5)
+	_mesh(beam, wood, Vector3(-0.2, 1.48, sim.SPAWN.y + 0.5))
+	var cloth := BoxMesh.new()
+	cloth.size = Vector3(0.04, 0.42, 1.0)
+	_mesh(cloth, red, Vector3(-0.2, 1.2, sim.SPAWN.y + 0.5))
 	# Goal: the Conductor's keep just past the right edge, the Conductor on its wall.
 	keep = Node3D.new()
 	keep.position = Vector3(sim.GRID_SIZE.x + 1.6, 0.0, sim.GOAL.y + 0.5)
@@ -371,11 +387,13 @@ func _sync_structures() -> void:
 		if type == "wall":
 			for n in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 				sig += "1" if sim.structures.has(cell + n) and sim.structures[cell + n]["type"] == "wall" else "0"
+		else:
+			sig += "%d%d" % [sim.type_rank.get(type, 0), sim.type_branch.get(type, 0)]
 		var entry: Dictionary = _structures.get(cell, {})
 		if entry.is_empty() or entry["sig"] != sig:
 			if not entry.is_empty():
 				entry["node"].queue_free()
-			var node := _make_wall(cell, sig) if type == "wall" else _make_tower(type)
+			var node := _make_wall(cell, sig) if type == "wall" else _make_tower(type, sim.type_rank.get(type, 0), sim.type_branch.get(type, 0))
 			node.position = world(Vector2(cell))
 			add_child(node)
 			entry = {"node": node, "type": type, "sig": sig, "meshes": node.find_children("*", "MeshInstance3D", true, false), "tint": null}
@@ -396,7 +414,42 @@ func _sync_structures() -> void:
 			_structures.erase(cell)
 
 
-func _make_tower(type: String) -> Node3D:
+## A tower: its type's model, bands at the base for each rung (bronze, silver, then
+## the fork's colour), and from the fork on it stands taller with a pennant
+## (D-0045: rank reads on the tower, not as dots beside it).
+func _make_tower(type: String, rank := 0, branch := 0) -> Node3D:
+	var outer := Node3D.new()
+	var model := _tower_model(type)
+	outer.add_child(model)
+	if rank >= 3:
+		model.scale = Vector3.ONE * 1.15
+	for i in rank:
+		var band := TorusMesh.new()
+		band.inner_radius = 0.4
+		band.outer_radius = 0.47
+		band.rings = 24
+		band.ring_segments = 6
+		var col: Color = RANK_COLORS[i] if i < 2 else BRANCH_COLORS[clampi(branch - 1, 0, 1)]
+		var mat := flat(col)
+		mat.emission_enabled = i >= 2
+		mat.emission = col
+		mat.emission_energy_multiplier = 0.35
+		_mesh(band, mat, Vector3(0, 0.05 + i * 0.075, 0), outer)
+	if rank >= 3:
+		var top := Art.aabb(model).end.y * model.scale.y
+		var pole := CylinderMesh.new()
+		pole.top_radius = 0.02
+		pole.bottom_radius = 0.02
+		pole.height = 0.5
+		_mesh(pole, flat(Color(0.3, 0.22, 0.15)), Vector3(0.0, top + 0.2, 0.0), outer)
+		var flag := PrismMesh.new()
+		flag.size = Vector3(0.32, 0.2, 0.02)
+		var fm := _mesh(flag, flat(BRANCH_COLORS[clampi(branch - 1, 0, 1)], true), Vector3(0.17, top + 0.36, 0.0), outer)
+		fm.rotation.z = -PI / 2.0
+	return outer
+
+
+func _tower_model(type: String) -> Node3D:
 	var spec: Dictionary = Art.TOWERS.get(type, {})
 	var node := Art.make(spec.get("model", ""), spec.get("fit", 0.9)) if not spec.is_empty() else null
 	if node == null:
@@ -431,10 +484,10 @@ func _make_wall(cell: Vector2i, sig: String) -> Node3D:
 	# A post in the middle hides the joins.
 	var post := BoxMesh.new()
 	post.size = Vector3(0.42, 0.62, 0.42)
-	_mesh(post, flat(Color(0.62, 0.6, 0.58)), Vector3(0, 0.31, 0), node)
+	_mesh(post, _brick_mat(), Vector3(0, 0.31, 0), node)
 	var cap := BoxMesh.new()
 	cap.size = Vector3(0.48, 0.08, 0.48)
-	_mesh(cap, flat(Color(0.7, 0.68, 0.65)), Vector3(0, 0.66, 0), node)
+	_mesh(cap, flat(Color(0.74, 0.46, 0.32)), Vector3(0, 0.66, 0), node)
 	return node
 
 
@@ -448,12 +501,23 @@ func _wall_piece(node: Node3D, dir: Vector2i, length: float, centred := false) -
 	else:
 		# The pack's wall is 2 m long, 1.1 high: scale it to the length, 0.55 high.
 		piece.scale = Vector3(length / 2.0, 0.5, 0.45)
+		for mi in piece.find_children("*", "MeshInstance3D", true, false):
+			mi.material_override = _brick_mat()
 	var holder := Node3D.new()
 	holder.add_child(piece)
 	holder.rotation.y = -atan2(float(dir.y), float(dir.x))
 	var off := 0.0 if centred else length * 0.5
 	holder.position = Vector3(dir.x * off, 0, dir.y * off)
 	node.add_child(holder)
+
+
+var _brick: StandardMaterial3D
+
+
+func _brick_mat() -> StandardMaterial3D:
+	if _brick == null:
+		_brick = flat(BRICK)
+	return _brick
 
 
 func _tint_mat(c: Color) -> StandardMaterial3D:
@@ -690,12 +754,9 @@ func _draw_fx() -> void:
 		if sim.is_tower(sim.structures[sim.selected_cell]["type"]):
 			_ring(sp, sim.tower_spec(sim.selected_cell)["range"], 0.06, Color(1, 1, 0.8, 0.6))
 			_disc(sp, sim.tower_spec(sim.selected_cell)["range"], Color(1, 1, 0.8, 0.06))
-	# Upgrade forks colour a ring round the tower's base.
-	for cell in sim.structures:
-		var type: String = sim.structures[cell]["type"]
-		var branch: int = sim.type_branch.get(type, 0)
-		if branch > 0 and sim.is_tower(type):
-			_ring(world(Vector2(cell), 0.03), 0.47, 0.05, Color(0.5, 0.9, 1.0, 0.8) if branch == 1 else Color(1.0, 0.6, 0.3, 0.8))
+	# The spawn tile breathes red on the beat.
+	var pulse := 1.0 - fposmod(bt / beat, 1.0)
+	_ring(world(Vector2(sim.SPAWN), 0.03), 0.38 + 0.1 * pulse, 0.06, Color(1.0, 0.25, 0.25, 0.35 + 0.4 * pulse))
 	# Warden domes.
 	for c in sim.creeps:
 		if c.get("covering", false) and c["hp"] > 0.0:

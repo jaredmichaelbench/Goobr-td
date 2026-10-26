@@ -62,6 +62,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 ## Changelog
 
+- 2026-10-26: v0.13 Demo 1 readability pass: beat bar, pictures instead of text, calmer board, rank on the towers, talent tree redrawn, calibration fixed for the demo (D-0045). Rules unchanged.
 - 2026-10-26: v0.12 Demo 1 built: the 20-wave run in 3D with KayKit models (skeleton creeps, medieval towers and keep), an RTS-style HUD, title screen and settings, synth note sounds, and Mac and Windows builds (D-0044). Rules unchanged.
 
 - 2026-10-26: v0.11 camera settled: fixed 65-degree perspective camera, indicators float above their owner (D-0043).

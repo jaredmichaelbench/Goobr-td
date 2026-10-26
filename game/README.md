@@ -15,6 +15,8 @@ Press Play (Cmd+B on Mac). The **title screen** offers the 20-wave run, the 10-w
 - The end screen has **Copy run log**: paste it back to us after a run.
 - F11 or Alt+Enter: full screen.
 - Builds: `export_presets.cfg` has Mac (universal, ad-hoc signed), Windows and Linux. Export from the editor (Project, Export) after installing the 4.5 export templates; builds land in `../export/` (not in git).
+- **Readability pass (D-0045):** slim see-through top bar with icons; the beat bar in the middle of it (what each beat asks for, a playhead, the judgment word and "51 ms early" under it, the streak beside it); one number per target over the board; a wave-clear card; command card with pictures, key badges, costs and the shortfall when you can't afford it; the next wave as creep pictures; the tower panel with a step strip (the 8 steps it fires on, the current one outlined); P opens a pause screen with all the keys and the run's numbers; the talent tree draws each area as a line with its point gates and the shared nodes once between two areas. On the board: calmer ground, brick walls, mossy rocks, a red gate and a pulsing ring at the spawn, rank bands at a tower's base (bronze, silver, then the fork's colour) and a taller tower with a pennant from the fork on. Timing calibration is fixed at 46 ms for the demo (`scripts/timing.gd`).
+- HUD pictures are rendered from the models by `tests/t_icons.gd` into `assets/icons/`; rerun it when `art.gd` changes.
 - The rules are the M7 run unchanged (`scripts/run_sim.gd` extends `M7Run`); the picture is `view3d.gd`, `indicators.gd` and `hud_rts.gd`; the art table is `art.gd`.
 ## M8: the look test (Demo 1, D-0042)
 

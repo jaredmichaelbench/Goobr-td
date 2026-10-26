@@ -106,16 +106,7 @@ func _draw_towers() -> void:
 			continue
 		var base := View3D.world(Vector2(cell), 0.0)
 		var ppm := _ppm(base)
-		# Rung pips along the tower's front foot.
-		var rank: int = sim.type_rank.get(type, 0)
-		if rank > 0:
-			var branch: int = sim.type_branch.get(type, 0)
-			var col := Color.WHITE if branch == 0 else (Color(0.5, 0.9, 1.0) if branch == 1 else Color(1.0, 0.6, 0.3))
-			var foot := _at(base + Vector3(0, 0, 0.5))
-			for i in rank:
-				var pp := foot + Vector2((i - (rank - 1) * 0.5) * ppm * 0.16, 0)
-				draw_circle(pp, maxf(2.0, ppm * 0.05) + 1.0, Color(0, 0, 0, 0.7))
-				draw_circle(pp, maxf(2.0, ppm * 0.05), col)
+		# Rank is on the tower itself now: bands at its base (View3D, D-0045).
 		# A locked tower: a red badge with a cross, and the time draining under it.
 		if sim.suppressed.has(cell):
 			var top := View3D.world(Vector2(cell), NOTE_LIFT - 0.3)
@@ -255,11 +246,18 @@ func _draw_boss(bt: float, beat: float) -> void:
 
 
 func _draw_popups() -> void:
+	# One number per target (D-0045): popups that start within half a tile of each
+	# other share a spot, and only the newest of them is drawn.
+	var newest := {}
 	for pop in sim._popups:
+		var key := Vector2i(roundi(pop["pos"].x * 2.0), roundi(pop["pos"].y * 2.0))
+		if not newest.has(key) or pop["ttl"] > newest[key]["ttl"]:
+			newest[key] = pop
+	for pop in newest.values():
 		var age: float = 1.0 - pop["ttl"] / 0.8
 		var w := View3D.world(pop["pos"], 1.2 + 0.8 * age)
 		if view.is_behind(w):
 			continue
 		var c: Color = pop["color"]
 		c.a *= clampf(pop["ttl"] / 0.3, 0.0, 1.0)
-		_text(_at(w), pop["text"], int(pop["size"] * 1.15), c, 5)
+		_text(_at(w), String(pop["text"]).to_upper(), int(pop["size"] * 1.0), c, 4)
