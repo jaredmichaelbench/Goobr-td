@@ -1,6 +1,6 @@
 # Demo 1 plan: the 3D build (proposed, 2026-10-26)
 
-Live copy for markup: Claude Doc "Demo 1 plan: the 3D build" (https://claude.ai/artifact/VvzwoiGexB1jCzuU2Cd35S). Status: proposed, waiting on Jared's answers to the open questions and his "go" (D-0042 proposed).
+Live copy for markup: Claude Doc "Demo 1 plan: the 3D build" (https://claude.ai/artifact/VvzwoiGexB1jCzuU2Cd35S). Status: GO (Jared, 2026-10-26, D-0042): all recommendations stand; one map; the Conductor is a character inside a keep or tower model; RTS-style HUD (Legion TD reference); multiplayer camera is tab-around with thumbnails.
 
 Jared's call after M7 playtest 3: Demo 0 is done, the core loop is liked, parries and counters may change with distance and graphics, balance after. Goal: a private demo for a few friends and colleagues, the 20 waves with graphics and music, synthy note sounds.
 
