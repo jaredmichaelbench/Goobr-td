@@ -681,7 +681,7 @@ func _summon_boss() -> void:
 	var had := boss_alive()
 	super._summon_boss()
 	if boss_alive() and not had:
-		_show_feedback("THE BOSS   parry at the boss as it throws; its notes play between", Color(1, 0.4, 0.5))
+		_show_feedback("THE BOSS   parry its bolts as they land; its notes play between", Color(1, 0.4, 0.5))
 
 
 ## Late-run elites may wind up for a bar and a half and land on beat 3.
@@ -832,14 +832,6 @@ func step(delta: float) -> void:
 	# The counter window closes: a parry nobody followed up.
 	if not _counter_open.is_empty() and press_time() > _counter_open["until"] and press_time() > _counter_open["until"] + COUNTER_LATE_MS / 1000.0:
 		_counter_open = {}
-	# Bolts whose parry moment (the throw) passed fly on and land unparried (D-0041 option A).
-	for b in bolts:
-		if b["state"] == "flying" and press_time() > b["launch"] + parry_good_ms() / 1000.0:
-			b["state"] = "loose"
-		elif b["state"] == "loose" and beat_time() >= b["arrive"]:
-			b["state"] = "hit"
-			_bolt_hit()
-			on_streak_miss()
 	_tick_m7(delta)
 
 
@@ -1151,13 +1143,8 @@ func _parry() -> void:
 	super._parry()
 
 
-## Option A (D-0041): a bolt is parried at the boss as it leaves, not at the Conductor.
-func _parry_candidates() -> Array[Dictionary]:
-	var out := super._parry_candidates()
-	for cand in out:
-		if cand["kind"] == "bolt":
-			cand["time"] = cand["ref"]["launch"]
-	return out
+## Bolts are parried as they land at the Conductor (option A, parry at the throw, was
+## tried in round 3 and pulled by Jared: "parry needs to be on when the attack lands").
 
 
 ## A posture break rolls its Crescendo chart from a set, and bosses after wave 10
@@ -1382,23 +1369,6 @@ func _draw() -> void:
 			var cracks := int(c.get("cracks", 0))
 			draw_arc(p, TILE * 0.42, 0, TAU, 24, Color(0.6, 0.4, 1.0, 0.9 - 0.25 * cracks), 3.0 - 0.6 * cracks)
 			draw_string(font, p + Vector2(-9, TILE * 0.75), "%d%%" % roundi(VEIL_MULTS[cracks] * 100), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(0.75, 0.6, 1.0))
-	# Boss bolts (D-0041 option A): the parry ring closes on the boss over the last beat
-	# before the throw; a bolt that got away flies red to the Conductor.
-	if boss_alive():
-		var bp := _to_screen(boss["pos"])
-		for b in bolts:
-			if b["state"] == "flying":
-				var to_launch: float = b["launch"] - beat_time()
-				if to_launch < beat and to_launch > -0.2:
-					var f: float = clampf(1.0 - to_launch / beat, 0.0, 1.0)
-					draw_arc(bp, TILE * (1.8 - 1.05 * f), 0, TAU, 40, Color(1.0, 0.9, 0.3, 0.4 + 0.6 * f), 2.0 + 2.0 * f)
-					draw_arc(bp, TILE * 0.75, 0, TAU, 48, Color(1.0, 0.9, 0.3, 0.9), 2.0)
-				break
-		for b in bolts:
-			if b["state"] == "loose":
-				var p := _to_screen(_bolt_pos(b))
-				draw_circle(p, TILE * 0.22, Color(1, 0.3, 0.3))
-				draw_circle(p, TILE * 0.1, Color.WHITE)
 	# Counters: a yellow ring closing on the parried enemy over one beat.
 	for k in counters:
 		if k["state"] != "flying" or not creeps.has(k["ref"]):
