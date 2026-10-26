@@ -1,98 +1,9 @@
 class_name HudParts
 extends RefCounted
-## Small drawn widgets for the Demo 1 HUD (readability pass, D-0045): the beat bar,
-## a tower's step strip, the vector icons on the top bar, and the lines of the
-## talent tree. Each one reads the sim every frame and redraws itself.
-
-
-## The bar in the top bar: four beats, what each asks for, the live beat lit and a
-## playhead sweeping across. Always on; between waves it shows the bar dimmed.
-class BeatBar extends Control:
-	var sim: Node
-	const W := 380.0
-	const H := 26.0
-
-	func _init(target: Node) -> void:
-		sim = target
-		custom_minimum_size = Vector2(W, H)
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _process(_d: float) -> void:
-		queue_redraw()
-
-	func _draw() -> void:
-		if sim == null or sim.clock == null:
-			return
-		var font := UiTheme.heading_font()
-		var beat: float = sim.clock.beat_length()
-		var bt: float = sim.beat_time()
-		var in_bar: float = fposmod(bt / beat, 4.0)
-		var cur := floori(in_bar)
-		var active: bool = sim.wave_active and sim.state == "playing"
-		var labels: Array = ["1 parry", "2", "3", "4"]
-		var kinds: Array = ["parry", "", "", ""]
-		if sim.boss_alive():
-			if sim.crescendo > 0.0:
-				labels = ["CRES", "CEN", "DO", "!"]
-				kinds = ["cres", "cres", "cres", "cres"]
-			else:
-				labels = ["1 parry", "2", "3 Q", "4"]
-				kinds = ["parry", "", "kick", ""]
-		else:
-			for i in 3:
-				var k: String = sim._wave_pattern[i] if i < String(sim._wave_pattern).length() else "."
-				if k == "Q":
-					labels[i + 1] = "%d Q" % (i + 2)
-					kinds[i + 1] = "kick"
-				elif k == "E":
-					labels[i + 1] = "%d E" % (i + 2)
-					kinds[i + 1] = "bass"
-		var cw := (W - 12.0) / 4.0
-		for i in 4:
-			var r := Rect2(i * (cw + 4.0), 0, cw, H)
-			var col := Color(0.55, 0.55, 0.6)
-			match kinds[i]:
-				"parry": col = Indicators.YELLOW
-				"kick": col = Indicators.ORANGE
-				"bass": col = Indicators.PURPLE
-				"cres": col = Color(1.0, 0.85, 0.35)
-			var lit := i == cur and active
-			var a := (0.55 if lit else 0.16) * (1.0 if active else 0.6)
-			draw_style_box(UiTheme.box(col * Color(1, 1, 1, a), col * Color(1, 1, 1, 0.95 if lit else 0.35), 2, 4, 0.0), r)
-			var size := 15
-			var tw := font.get_string_size(labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-			draw_string(font, Vector2(r.position.x + (cw - tw) * 0.5, 19), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(1, 1, 1, 1.0 if lit else (0.75 if active else 0.4)))
-		# The playhead: where in the bar the music is right now.
-		var x := in_bar / 4.0 * W
-		draw_line(Vector2(x, -3), Vector2(x, H + 3), Color(1, 1, 1, 0.9 if active else 0.35), 2.0)
-
-
-## A tower type's eight steps: lit where it fires, the current step outlined.
-class StepStrip extends Control:
-	var sim: Node
-	var type := ""
-
-	func _init(target: Node) -> void:
-		sim = target
-		custom_minimum_size = Vector2(8 * 15.0, 12)
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _process(_d: float) -> void:
-		if is_visible_in_tree():
-			queue_redraw()
-
-	func _draw() -> void:
-		if sim == null or type == "" or not sim.is_tower(type):
-			return
-		var steps: Array = sim.pattern_for(type)
-		var cur := posmod(floori(sim.beat_time() / sim.step_length()), 8)
-		var col: Color = sim.builds[type]["color"] if sim.builds[type].has("color") else Color(1, 0.8, 0.4)
-		for i in 8:
-			var r := Rect2(i * 15.0, 0, 12, 12)
-			var on := steps.has(i)
-			draw_rect(r, col if on else Color(1, 1, 1, 0.12))
-			if i == cur:
-				draw_rect(r.grow(1.5), Color.WHITE, false, 2.0)
+## Small drawn widgets for the Demo 1 HUD (readability pass D-0045, round 2 D-0046):
+## the vector icons, the XP bar, the instant tooltip, and the lines of the talent
+## tree. Each one reads the sim every frame and redraws itself. (The beat bar and
+## the step strip were removed in round 2: Jared, "they don't serve a purpose".)
 
 
 ## Plain vector icons for the top bar, so the numbers say what they are.
@@ -129,6 +40,22 @@ class Icon extends Control:
 			"lock":
 				draw_arc(c + Vector2(0, -2), 4, PI, TAU, 12, Color(0.8, 0.8, 0.8), 2.0)
 				draw_rect(Rect2(c + Vector2(-5.5, -1), Vector2(11, 8)), Color(0.8, 0.8, 0.8))
+			"talents":
+				var k := size.x / 20.0
+				var pts := PackedVector2Array()
+				for i in 10:
+					var r := (9.0 if i % 2 == 0 else 4.0) * k
+					var a := -PI / 2.0 + i * PI / 5.0
+					pts.append(c + Vector2(cos(a), sin(a)) * r)
+				draw_colored_polygon(pts, Color(0.55, 1.0, 0.65))
+				draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0, 0, 0, 0.5), 1.5)
+			"start":
+				var k := size.x / 20.0
+				draw_colored_polygon(PackedVector2Array([c + Vector2(-5, -8) * k, c + Vector2(8, 0) * k, c + Vector2(-5, 8) * k]), UiTheme.GOLD)
+			"restore_big":
+				var k := size.x / 20.0
+				draw_arc(c, 6.5 * k, -PI * 0.35, PI * 1.45, 32, Color(1.0, 0.9, 0.4), 2.5 * k)
+				draw_colored_polygon(PackedVector2Array([c + Vector2(3, -9) * k, c + Vector2(8, -5) * k, c + Vector2(2, -3) * k]), Color(1.0, 0.9, 0.4))
 
 
 ## Behind the talent buttons: each area's spine running down its column, lit as
@@ -172,3 +99,102 @@ class TreeLines extends Control:
 				var to: Vector2 = l[3 + (k - 1)]
 				var col: Color = TalentTree.AREA_COLORS[area]
 				draw_line(l[0], to, col * Color(1, 1, 1, 0.6), 2.0)
+
+
+## The XP bar, World of Warcraft style (D-0046): a long bar in twenty bubbles with
+## the level and the percent on it, and a green note when a point waits.
+class XPBar extends Control:
+	var sim: Node
+	const BUBBLES := 20
+
+	func _init(target: Node) -> void:
+		sim = target
+		custom_minimum_size = Vector2(300, 16)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _process(_d: float) -> void:
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size)
+		draw_rect(r, Color(0.03, 0.03, 0.05, 0.95))
+		var frac: float = clampf(sim.xp / sim.xp_to_next(), 0.0, 1.0)
+		var fill := Rect2(r.position + Vector2(1, 1), Vector2((r.size.x - 2) * frac, r.size.y - 2))
+		draw_rect(fill, Color(0.42, 0.22, 0.72))
+		draw_rect(Rect2(fill.position, Vector2(fill.size.x, fill.size.y * 0.45)), Color(0.62, 0.4, 0.95))
+		for i in range(1, BUBBLES):
+			var x := r.size.x * i / BUBBLES
+			draw_line(Vector2(x, 2), Vector2(x, r.size.y - 2), Color(0, 0, 0, 0.55), 1.0)
+		draw_rect(r, Color(0.62, 0.48, 0.28), false, 1.5)
+		var font := UiTheme.heading_font()
+		var text := "Level %d    %d%%" % [sim.level, floori(frac * 100.0)]
+		if sim.points > 0:
+			text += "    %d talent point%s (Tab)" % [sim.points, "" if sim.points == 1 else "s"]
+		var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+		var pos := Vector2((r.size.x - tw) * 0.5, r.size.y * 0.5 + 4.5)
+		draw_string_outline(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0, 0, 0, 0.9))
+		draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.6, 1.0, 0.7) if sim.points > 0 else Color.WHITE)
+
+
+## The tooltip (D-0046): shows the moment the mouse is over its control, next to
+## the cursor, as BBCode from Explain. The HUD hooks controls with a function that
+## returns the text, so the numbers stay live while it is open.
+class RichTip extends PanelContainer:
+	var label: RichTextLabel
+	var source: Callable
+	var owner_control: Control
+
+	func _init() -> void:
+		add_theme_stylebox_override("panel", UiTheme.box(Color(0.05, 0.06, 0.08, 0.97), UiTheme.EDGE, 1, 5, 10.0))
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label = RichTextLabel.new()
+		label.bbcode_enabled = true
+		label.fit_content = true
+		label.scroll_active = false
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.custom_minimum_size = Vector2(340, 0)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.add_theme_font_size_override("normal_font_size", 14)
+		label.add_theme_font_size_override("bold_font_size", 14)
+		label.add_theme_font_override("bold_font", UiTheme.heading_font())
+		add_child(label)
+		visible = false
+		top_level = true
+		z_index = 100
+
+	func hook(c: Control, text_source: Callable) -> void:
+		c.tooltip_text = ""
+		c.mouse_entered.connect(func(): show_for(c, text_source))
+		c.mouse_exited.connect(func(): if owner_control == c: hide_tip())
+
+	func show_for(c: Control, text_source: Callable) -> void:
+		owner_control = c
+		source = text_source
+		_update()
+		visible = label.text != ""
+
+	func hide_tip() -> void:
+		visible = false
+		owner_control = null
+
+	func _process(_d: float) -> void:
+		if not visible:
+			return
+		if owner_control == null or not is_instance_valid(owner_control) or not owner_control.is_visible_in_tree():
+			hide_tip()
+			return
+		_update()
+
+	func _update() -> void:
+		var text: String = source.call()
+		if text != label.text:
+			label.text = text
+		reset_size()
+		var view := get_viewport().get_visible_rect().size
+		var m := get_viewport().get_mouse_position()
+		var p := m + Vector2(18, 18)
+		if p.x + size.x > view.x - 6.0:
+			p.x = m.x - size.x - 12.0
+		if p.y + size.y > view.y - 6.0:
+			p.y = m.y - size.y - 12.0
+		position = Vector2(maxf(6.0, p.x), maxf(6.0, p.y))

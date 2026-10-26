@@ -3,7 +3,7 @@ class_name TalentTree
 ## ring (each borders two neighbours). Each area has three rows and a capstone:
 ## row 1 is three ranked nodes (0/3, the generic percentages, no repeats);
 ## row 2 is one node of its own plus one SHARED node with each neighbour (the
-## same node sits in both areas, so paths cross: counter-attack is Rhythm's and
+## same node sits in both areas, so paths cross: Counterpoint is Rhythm's and
 ## Defence's); row 3 is two stronger nodes. Rows gate on points spent in the
 ## area (a shared node counts for both): row 2 needs 4, row 3 needs 8, the
 ## capstone 12. First point at level 2.
@@ -39,7 +39,7 @@ const SHARED := {
 	"towers|economy": ["Trade routes", {"gold_mult": 0.1, "upgrade_discount": 0.05}],
 	"economy|walls": ["Toll road", {"kill_gold": 1, "wall_cheap": 1}],
 	"walls|defence": ["Keep", {"shield_cap": 1, "restore_charges": 1}],
-	"defence|rhythm": ["COUNTER-ATTACK", {"counter": true}],
+	"defence|rhythm": ["Counterpoint", {"counter_window_ms": 60.0}],
 }
 ## Row 3: two per area (one rank).
 const ROW3 := {
@@ -169,6 +169,7 @@ static func describe(effects: Dictionary) -> String:
 			"parry_splash": parts.append("parries also hit creeps within %d tiles of the target" % int(v))
 			"counter": parts.append("unlocks the counter-attack")
 			"counter_mult": parts.append("counters +%d%%" % int(v * 100))
+			"counter_window_ms": parts.append("counter tap window +%d ms" % int(v))
 			_:
 				if k.begins_with("range_"):
 					parts.append("+%.1f range for %s" % [v, k.substr(6)])

@@ -57,3 +57,29 @@ static func miss() -> AudioStreamWAV:
 		phase[1] += f * 1.03 / MIX_RATE
 		var env := minf(t * 200.0, 1.0) * exp(-t * 10.0)
 		return [(_saw(phase[0]) + _saw(phase[1])) * 0.3 * env, 0.12])
+
+
+## A nailed call (D-0046): a quick rising E major arpeggio with a bright tail.
+static func phrase() -> AudioStreamWAV:
+	return _render(0.7, func(t: float) -> Array:
+		var v := 0.0
+		var notes := [659.3, 830.6, 987.8, 1318.5]
+		for i in notes.size():
+			var t0 := i * 0.06
+			if t >= t0:
+				var u := t - t0
+				var env := minf(u * 300.0, 1.0) * exp(-u * 6.0)
+				v += (_saw(notes[i] * u) * 0.35 + sin(TAU * notes[i] * 2.0 * u) * 0.2) * env
+		return [v * 0.3, 0.12 + 0.4 * exp(-t * 4.0)])
+
+
+## A level-up (D-0046): two soft bell tones, a fifth apart, so a talent point is heard.
+static func level_up() -> AudioStreamWAV:
+	return _render(1.1, func(t: float) -> Array:
+		var v := 0.0
+		for pair in [[0.0, 987.8], [0.14, 1480.0]]:
+			if t >= pair[0]:
+				var u: float = t - pair[0]
+				var f: float = pair[1]
+				v += (sin(TAU * f * u) + 0.4 * sin(TAU * f * 2.01 * u) + 0.15 * sin(TAU * f * 3.0 * u)) * minf(u * 200.0, 1.0) * exp(-u * 3.5)
+		return [v * 0.22, 0.5])

@@ -10,6 +10,9 @@ func _init():
 func shot(name: String):
 	root.get_texture().get_image().save_png(out + "/" + name + ".png")
 	print("SHOT ", name)
+func tip(c: Control):
+	Input.warp_mouse(c.get_global_rect().get_center())
+	c.mouse_entered.emit()
 func _process(_d):
 	f += 1
 	if m == null: m = run.sim
@@ -34,14 +37,31 @@ func _process(_d):
 			m._show_feedback("CRIT  SNIPE  Good  -51 ms   52 damage   x2.00 crossfire   5 veils cracked", Color(1, 0.9, 0.3))
 			m.streak = 12; m.intensity = 2
 		95: shot("u2_judgment")
+		60: tip(m.hud.build_buttons["light"])
+		66: shot("u7_tip_tower")
+		67: m.hud.rich.hide_tip()
 		100:
 			m.points = 5; m.level = 6
 			m.toggle_tree()
 		110: shot("u3_tree")
-		112: m.toggle_tree()
-		115: m.toggle_pause()
-		125: shot("u4_pause")
-		127: m.toggle_pause()
+		111:
+			for k in m.hud.tree_nodes:
+				if k.ends_with(":accent"): tip(m.hud.tree_nodes[k])
+		116: shot("u8_tip_talent")
+		117:
+			m.hud.rich.hide_tip()
+			for k in m.hud.tree_nodes:
+				if k.ends_with(":resonance"): tip(m.hud.tree_nodes[k])
+		121: shot("u9_tip_shared")
+		122:
+			m.hud.rich.hide_tip()
+			m.toggle_tree()
+		124: m.toggle_pause()
+		128: shot("u4_pause")
+		129:
+			m.toggle_pause()
+			m.level_ups += 1
+		134: shot("u6_levelup")
 		130:
 			m.creeps.clear(); m.wave_active = false
 			m.wave_log.append("W1  notes 5/6  parries 1/1  counters 0/0  hp -0")

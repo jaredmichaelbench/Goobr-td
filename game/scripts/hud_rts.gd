@@ -1,21 +1,25 @@
 class_name HudRTS
 extends Hud7
-## Demo 1 HUD (M10, D-0044; readability pass D-0045), laid out like Warcraft 3 and
-## Legion TD (Jared's reference). A slim see-through top bar: resources with icons
-## on the left, the beat bar in the middle (what each beat asks for, a playhead,
-## the judgment and the streak under it), level and pause on the right. One short
-## bottom panel: the next wave as creep pictures on the left, the selected tower in
-## the middle (with its step strip), the command card on the right (pictures, key
-## badges, costs). B then a letter picks a build, as in WC3; the number keys still
-## work. Q, E and Space are never taken by the HUD. Key hints and run stats live on
-## the pause screen; each wave ends with a small summary card.
+## Demo 1 HUD (M10, D-0044; readability pass D-0045; round 2 D-0046), laid out
+## like Warcraft 3 and Legion TD (Jared's reference). A slim see-through top bar:
+## resources with icons on the left, the streak in the middle, pause on the right;
+## the judgment word sits under it. One bottom panel: the next wave as creep
+## pictures on the left; in the middle the selected tower, then the game controls
+## as round buttons (Talents, Restore, Start wave) and a WoW-style XP bar under
+## them (Jared's layout); the build card on the right holds only the wall, the
+## towers and Upgrade. B then a letter picks a build, as in WC3; the number keys
+## still work. Q, E and Space are never taken by the HUD. Every tooltip is
+## instant and laid out by Explain. Key hints and run stats live on the pause
+## screen; each wave ends with a small summary card.
 
-const BOTTOM_H := 132.0
+const BOTTOM_H := 150.0
 const TOP_H := 40.0
 const CARD := Vector2(96, 34)
 ## B-chain letters (Jared: "B then E, B then F, B then T").
 const BUILD_LETTERS := {KEY_W: "wall", KEY_C: "kick", KEY_S: "bass", KEY_F: "slow", KEY_V: "poison", KEY_L: "lightning", KEY_G: "light"}
 const BUILD_ORDER := ["wall", "kick", "bass", "slow", "poison", "lightning", "light"]
+## The note on one line for the tower panel; the tooltip has the whole story.
+const SHORT_NOTES := {"kick": "snipe x4 (x8 Perfect)", "bass": "wave x2 within 2 tiles", "slow": "freeze within 2 tiles", "poison": "spread poison within 2 tiles", "lightning": "storm on every creep", "light": "towers in its light fire"}
 ## Type scale: one display font, three sizes (Claude's review: "pick one system").
 const TITLE := 18
 const BODY := 14
@@ -27,10 +31,14 @@ var bottom: PanelContainer
 var grid: GridContainer
 var upgrade_cmd: Button
 var res_labels := {}
-var level_label: Label
-var xp_bar: ColorRect
-var xp_back: ColorRect
-var beat_bar: HudParts.BeatBar
+var xp: HudParts.XPBar
+var rich: HudParts.RichTip
+var round_buttons := {}  # "talents" / "restore" / "start" -> Button
+var restore_count: Label
+var levelup_label: Label
+var levelup_time := 0.0
+var _shake := 0.0
+var _seen_level_ups := 0
 var judgment: Label
 var judgment_ms: Label
 var streak_label: Label
@@ -39,7 +47,6 @@ var info_icons: HBoxContainer
 var info_body: Label
 var song_label: Label
 var placeholder: Label
-var step_strip: HudParts.StepStrip
 var key_badges := {}  # Button -> Label
 var cost_labels := {}
 var boss_box: PanelContainer
@@ -92,6 +99,7 @@ func _ready() -> void:
 	root.move_child(tip, root.get_child_count() - 1)
 	for box in [wave_card, pause_box, draft_box, end_box, tree_dim, tree_box]:
 		root.move_child(box, root.get_child_count() - 1)
+	_hook_tips()
 	_refresh()
 
 
@@ -137,26 +145,11 @@ func _build_top() -> void:
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(fill)
-	var lv := VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 2)
-	lv.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(lv)
-	level_label = _label(BODY, Color(0.6, 1.0, 0.7), true)
-	lv.add_child(level_label)
-	xp_back = ColorRect.new()
-	xp_back.color = Color(1, 1, 1, 0.15)
-	xp_back.custom_minimum_size = Vector2(150, 6)
-	lv.add_child(xp_back)
-	xp_bar = ColorRect.new()
-	xp_bar.color = Color(0.6, 1.0, 0.7)
-	xp_back.add_child(xp_bar)
 	# System button up here, out of the command card (Gemini's review).
 	remove_child_safe(pause_button)
 	pause_button.custom_minimum_size = Vector2(70, 28)
 	pause_button.add_theme_font_size_override("font_size", CAPTION)
 	row.add_child(pause_button)
-	beat_bar = HudParts.BeatBar.new(game)
-	root.add_child(beat_bar)
 
 
 # --- Bottom panel ------------------------------------------------------------------------
@@ -187,19 +180,47 @@ func _build_bottom() -> void:
 	song_label.clip_text = true
 	song_label.custom_minimum_size = Vector2(270, 0)
 	lv.add_child(song_label)
-	# Middle: the selected tower, text on the left, its buttons on the right.
+	# Middle: the selected tower on top, then the game controls and the XP bar
+	# (Jared: "these are the game controls, not build options").
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.add_theme_constant_override("separation", 4)
 	row.add_child(mid)
+	var info := Control.new()
+	info.custom_minimum_size = Vector2(0, 58)
+	info.clip_contents = true
+	mid.add_child(info)
 	remove_child_safe(panel)
-	mid.add_child(panel)
+	info.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_compact_panel()
-	placeholder = _label(BODY, Color(1, 1, 1, 0.5))
+	placeholder = _label(CAPTION + 1, Color(1, 1, 1, 0.5))
 	placeholder.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	placeholder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	placeholder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	placeholder.text = "Click a tower to see its type and upgrades. Build from the card on the right: click, press the number, or B then the letter."
-	mid.add_child(placeholder)
+	info.add_child(placeholder)
+	var controls := HBoxContainer.new()
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 22)
+	mid.add_child(controls)
+	round_buttons["talents"] = _round(controls, "talents", 46.0, "Tab", func(): game.toggle_tree())
+	round_buttons["restore"] = _round(controls, "restore_big", 54.0, "F", func(): game._press_restore())
+	round_buttons["start"] = _round(controls, "start", 46.0, "N", func(): game.start_wave())
+	restore_count = _label(CAPTION, Color.WHITE, true)
+	restore_count.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	restore_count.add_theme_constant_override("outline_size", 3)
+	restore_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	restore_count.position = Vector2(0, 54.0 - 17.0)
+	restore_count.size = Vector2(54.0, 14)
+	restore_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	round_buttons["restore"].add_child(restore_count)
+	var xp_row := CenterContainer.new()
+	mid.add_child(xp_row)
+	xp = HudParts.XPBar.new(game)
+	xp.custom_minimum_size = Vector2(420, 16)
+	xp_row.add_child(xp)
 	# Right: the command card.
 	grid = GridContainer.new()
 	grid.columns = 4
@@ -216,12 +237,38 @@ func _build_bottom() -> void:
 	upgrade_cmd.focus_mode = Control.FOCUS_NONE
 	upgrade_cmd.pressed.connect(_on_upgrade)
 	_card(upgrade_cmd, true)
+	# The old rectangular controls live on, hidden: the round ones call the same game functions.
 	for b in [wave_button, restore_button, tree_button]:
-		_card(b, true)
-	# Start wave is the main action: it looks like it.
-	var gold := UiTheme.box(Color(0.42, 0.32, 0.1), UiTheme.GOLD, 2, 5, 4.0)
-	wave_button.add_theme_stylebox_override("normal", gold)
-	wave_button.add_theme_stylebox_override("hover", UiTheme.box(Color(0.55, 0.42, 0.14), Color.WHITE, 2, 5, 4.0))
+		remove_child_safe(b)
+		b.visible = false
+
+
+## A round game-control button: a drawn icon, a key badge, a ring that lights up.
+func _round(parent: Control, icon: String, d: float, key: String, action: Callable) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(d, d)
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var r := int(d * 0.5)
+	b.add_theme_stylebox_override("normal", UiTheme.box(Color(0.12, 0.13, 0.16), UiTheme.EDGE, 2, r, 0.0))
+	b.add_theme_stylebox_override("hover", UiTheme.box(Color(0.2, 0.21, 0.25), Color.WHITE, 2, r, 0.0))
+	b.add_theme_stylebox_override("pressed", UiTheme.box(Color(0.3, 0.26, 0.15), UiTheme.GOLD, 3, r, 0.0))
+	b.add_theme_stylebox_override("disabled", UiTheme.box(Color(0.08, 0.09, 0.11), Color(0.35, 0.3, 0.25), 2, r, 0.0))
+	b.pressed.connect(action)
+	parent.add_child(b)
+	var ic := HudParts.Icon.new(icon)
+	ic.custom_minimum_size = Vector2(d * 0.55, d * 0.55)
+	ic.size = ic.custom_minimum_size
+	ic.position = (Vector2(d, d) - ic.size) * 0.5
+	b.add_child(ic)
+	var k := _label(10, Color(1, 1, 1, 0.9), true)
+	k.text = key
+	k.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	k.add_theme_constant_override("outline_size", 3)
+	k.position = Vector2(d - 14.0, -4.0)
+	k.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(k)
+	return b
 
 
 ## The tower panel: title and step strip, two lines of text, buttons to the right.
@@ -249,9 +296,6 @@ func _compact_panel() -> void:
 	panel_title.add_theme_font_override("font", UiTheme.heading_font())
 	panel_title.add_theme_font_size_override("font_size", BODY + 1)
 	panel_title.add_theme_color_override("font_color", UiTheme.GOLD)
-	step_strip = HudParts.StepStrip.new(game)
-	step_strip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(step_strip)
 	vb.remove_child(panel_body)
 	text_col.add_child(panel_body)
 	panel_body.custom_minimum_size = Vector2(200, 0)
@@ -261,10 +305,10 @@ func _compact_panel() -> void:
 		buttons.add_child(r)
 	for b in [upgrade_button, sell_button, fork_a_button, branch_button]:
 		b.add_theme_font_size_override("font_size", CAPTION)
-	upgrade_button.custom_minimum_size = Vector2(136, 34)
-	sell_button.custom_minimum_size = Vector2(90, 34)
-	fork_a_button.custom_minimum_size = Vector2(112, 34)
-	branch_button.custom_minimum_size = Vector2(112, 34)
+	upgrade_button.custom_minimum_size = Vector2(136, 26)
+	sell_button.custom_minimum_size = Vector2(90, 26)
+	fork_a_button.custom_minimum_size = Vector2(112, 26)
+	branch_button.custom_minimum_size = Vector2(112, 26)
 	fork_row.add_theme_constant_override("separation", 4)
 	vb.queue_free()
 
@@ -348,6 +392,13 @@ func _build_middle() -> void:
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(message)
+	# A level up: one line over the controls, and the Talents button shakes once.
+	levelup_label = _label(TITLE, Color(0.6, 1.0, 0.7), true)
+	levelup_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	levelup_label.add_theme_constant_override("outline_size", 6)
+	levelup_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	levelup_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(levelup_label)
 	# The wave-clear card: what that wave took, in one glance.
 	wave_card = PanelContainer.new()
 	wave_card.add_theme_stylebox_override("panel", UiTheme.box(Color(0.075, 0.085, 0.11, 0.9), UiTheme.GOLD, 2, 6, 12.0))
@@ -405,7 +456,7 @@ func _build_tree() -> void:
 	area_points.clear()
 	old.queue_free()
 	tree_dim = ColorRect.new()
-	tree_dim.color = Color(0, 0, 0, 0.6)
+	tree_dim.color = Color(0, 0, 0, 0.35)  # The run plays on behind it (D-0046).
 	tree_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	tree_dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	tree_dim.visible = false
@@ -498,7 +549,7 @@ func _build_tree() -> void:
 		var mid := Vector2(cx, y + TREE_NODE_H * 0.5)
 		tree_lines.links.append([mid, a, b_area, tree_lines.spines[a][1], tree_lines.spines[b_area][1]])
 	var foot := _label(CAPTION, Color(1, 1, 1, 0.55))
-	foot.text = "Numbers on a line: points the area needs to open the next row. A node between two areas counts for both. Hover a node for what it does."
+	foot.text = "The run keeps playing while this is open; Q, E and Space still work. Numbers on a line: points the area needs to open the next row. A node between two areas counts for both."
 	tv.add_child(foot)
 	tree_box = center
 	tree_box.visible = false
@@ -529,7 +580,6 @@ func _layout() -> void:
 	top_bar.size = Vector2(view.x, TOP_H)
 	bottom.position = Vector2(0, view.y - BOTTOM_H)
 	bottom.size = Vector2(view.x, BOTTOM_H)
-	beat_bar.position = Vector2(view.x * 0.5 - HudParts.BeatBar.W * 0.5, (TOP_H - HudParts.BeatBar.H) * 0.5)
 	var y := TOP_H + 4.0
 	boss_box.position = Vector2(view.x * 0.5 - boss_box.size.x * 0.5, y)
 	if boss_box.visible:
@@ -538,9 +588,13 @@ func _layout() -> void:
 	judgment.position = Vector2(0, y)
 	judgment_ms.size = Vector2(view.x, 16)
 	judgment_ms.position = Vector2(0, y + 32)
-	streak_label.position = Vector2(view.x * 0.5 + HudParts.BeatBar.W * 0.5 + 10.0, (TOP_H - 22) * 0.5)
+	streak_label.size = Vector2(240, 22)
+	streak_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	streak_label.position = Vector2(view.x * 0.5 - 120.0, (TOP_H - 22) * 0.5)
 	message.size = Vector2(view.x, 22)
 	message.position = Vector2(0, view.y - BOTTOM_H - 30.0)
+	levelup_label.size = Vector2(view.x, 26)
+	levelup_label.position = Vector2(0, view.y - BOTTOM_H - 62.0)
 	wave_card.position = Vector2(view.x * 0.5 - wave_card.size.x * 0.5, y + 52.0)
 	tip.position = Vector2(14, view.y - BOTTOM_H - 22.0)
 
@@ -556,7 +610,30 @@ func mouse_over_ui() -> bool:
 
 func _process(delta: float) -> void:
 	wave_card_time = maxf(0.0, wave_card_time - delta)
+	levelup_time = maxf(0.0, levelup_time - delta)
+	_shake = maxf(0.0, _shake - delta)
 	super._process(delta)
+	if root == null:
+		return
+	# Level up: a line, one shake of the Talents button, then a soft glow until spent.
+	if game.level_ups != _seen_level_ups:
+		_seen_level_ups = game.level_ups
+		if game.level > 1:
+			levelup_time = 2.5
+			_shake = 0.7
+			levelup_label.text = "LEVEL %d     a talent point to spend  (Tab)" % game.level
+	levelup_label.visible = levelup_time > 0.0
+	levelup_label.modulate.a = clampf(levelup_time / 0.5, 0.0, 1.0)
+	var tb: Button = round_buttons["talents"]
+	var icon: Control = tb.get_child(0)
+	icon.position = (tb.size - icon.size) * 0.5 + Vector2(sin(_shake * 60.0) * 5.0 * (_shake / 0.7), 0)
+	if game.points > 0:
+		var g := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 260.0)
+		tb.self_modulate = Color(1, 1, 1).lerp(Color(0.7, 1.0, 0.75), g)
+		tb.add_theme_stylebox_override("normal", UiTheme.box(Color(0.12, 0.2, 0.14), Color(0.55, 1.0, 0.65), 3, 23, 0.0))
+	else:
+		tb.self_modulate = Color.WHITE
+		tb.add_theme_stylebox_override("normal", UiTheme.box(Color(0.12, 0.13, 0.16), UiTheme.EDGE, 2, 23, 0.0))
 
 
 func _refresh() -> void:
@@ -590,8 +667,6 @@ func _refresh_top() -> void:
 	res_labels["wave"].text = wave_text
 	res_labels["shield"].text = "%d/%d" % [game.shields, game.shield_cap]
 	res_labels["restore"].text = "%d/%d" % [game.restore_charges, game.restore_cap()]
-	level_label.text = "Level %d" % game.level
-	xp_bar.size = Vector2(xp_back.size.x * clampf(game.xp / game.xp_to_next(), 0.0, 1.0), xp_back.size.y)
 	boss_box.visible = game.boss_alive()
 	if boss_box.visible:
 		var boss: Dictionary = game.boss
@@ -658,7 +733,7 @@ func _refresh_info() -> void:
 			if not counts.has(g["kind"]):
 				counts[g["kind"]] = 0
 				order.append(g["kind"])
-			counts[g["kind"]] += g["count"]
+			counts[g["kind"]] += game.group_count(g["kind"], g["count"])
 		if game.boss_waves.has(show):
 			order.push_front("boss2" if game.is_boss2_wave(show) else "boss")
 			counts[order[0]] = 1
@@ -681,7 +756,7 @@ func _refresh_info() -> void:
 	if game.wave_active:
 		info_body.text = hp_text
 	else:
-		info_body.text = "%s.  N or the gold button starts it." % hp_text
+		info_body.text = "%s.  N or the play button starts it." % hp_text
 	if not game.pending.is_empty():
 		info_body.text += "\nLocked card: %s" % game.card_name(game.pending["id"])
 	song_label.text = "Song: %s   [ ] switch" % game.songs[game.song_index]["name"]
@@ -692,8 +767,6 @@ func _refresh_panel() -> void:
 	if not panel.visible:
 		return
 	var type := _panel_type()
-	step_strip.type = type if game.is_tower(type) else ""
-	step_strip.visible = game.is_tower(type)
 	if type == "wall" or not game.is_tower(type):
 		return
 	var cell: Vector2i = game.selected_cell
@@ -702,21 +775,25 @@ func _refresh_panel() -> void:
 	var branch: int = game.type_branch.get(type, 0)
 	var spec: Dictionary = game.tower_spec(cell) if has_tower else game.type_spec(type)
 	panel_title.text = "%s  x%d   rung %d/5%s" % [game.tower_name(type), game.towers_of(type), rank, ("  " + game.BRANCHES[type][branch - 1][0]) if branch > 0 else ""]
-	var stats := "Damage %.0f   Range %.1f" % [spec["damage"], spec["range"]]
+	var stats := "Damage %.0f   Range %.1f" % [spec["damage"] * game.damage_scale(), spec["range"]]
+	if type == "light":
+		stats = "Boost +%d%% damage to towers within %.1f tiles" % [roundi(game.light_boost() * 100.0), game.light_radius()]
 	if spec.get("splash", 0.0) > 0.0:
 		stats += "   Splash %.1f" % spec["splash"]
 	if spec.has("slow"):
 		stats += "   Slows %.1f s" % spec["slow"]
-	var body := stats + "\nNote: " + note_text(type)
+	var body: String = stats + "\nNote: " + SHORT_NOTES.get(type, "")
 	if not game.unlocked.has(type):
-		body += "\nLOCKED: " + game.unlock_text(type)
+		body = stats + "\nLocked. To unlock: " + game.unlock_text(type)
 	elif has_tower and game.suppressed.has(cell):
-		body += "\nLocked for %.1f s. F to Restore." % game.suppressed[cell]
+		body = stats + "\nLocked for %.1f s. F to Restore." % game.suppressed[cell]
 	elif rank == 2:
 		var br: Array = game.BRANCHES[type]
-		body += "\nFork: %s or %s" % [br[0][0], br[1][0]]
+		body = stats + "\nFork: %s or %s (hover them)" % [br[0][0], br[1][0]]
 	panel_body.text = body
-	panel_body.tooltip_text = "Upgrades apply to every %s on the board." % game.tower_name(type)
+	# One line on the buttons; the rung's effect is in the line above and the tooltip.
+	upgrade_button.text = upgrade_button.text.split("\n")[0]
+
 
 
 func _refresh_bar() -> void:
@@ -728,7 +805,7 @@ func _refresh_bar() -> void:
 		var short: int = spec["cost"] - game.gold
 		var name: String = "Wall %d/%d" % [game.wall_count(), game.wall_limit] if type == "wall" and game.wall_limit > 0 else game.tower_name(type)
 		if locked:
-			b.text = "%s\nlocked" % name
+			b.text = "%s\n%s" % [name, game.unlock_short(type)]
 		elif short > 0:
 			b.text = "%s\n%dg  (-%d)" % [name, spec["cost"], short]
 		else:
@@ -737,19 +814,15 @@ func _refresh_bar() -> void:
 			key_badges[b].text = _letter(type) if build_armed else _key(type)
 		b.button_pressed = game.selected == type and game.build_mode
 		b.disabled = not playing or locked or short > 0
-		b.tooltip_text = _build_tooltip(type)
 		b.modulate = Color(1.0, 0.95, 0.7) if build_armed and not locked else (Color(0.6, 0.6, 0.65) if locked else Color.WHITE)
 		b.add_theme_color_override("font_disabled_color", Color(1, 0.55, 0.5) if short > 0 and not locked else Color(0.55, 0.55, 0.55))
-	wave_button.text = ("Wave %d\nrunning" % game.wave) if game.wave_active else "Start\nwave"
-	wave_button.disabled = game.wave_active or not playing or game.get("drafting") == true
-	restore_button.text = "Restore\n%d/%d" % [game.restore_charges, game.restore_cap()]
-	restore_button.disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
+	round_buttons["start"].disabled = game.wave_active or not playing or game.get("drafting") == true
+	round_buttons["restore"].disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
+	restore_count.text = "%d/%d" % [game.restore_charges, game.restore_cap()]
+	round_buttons["talents"].disabled = not playing
 	pause_button.text = "Resume" if game.paused else "Pause"
 	pause_button.disabled = not playing
-	tree_button.text = "Talents" + ("\n+%d" % game.points if game.points > 0 else "")
-	tree_button.modulate = Color(0.6, 1.0, 0.7) if game.points > 0 else Color.WHITE
-	tree_button.disabled = not playing
-	for pair in [[wave_button, "N"], [restore_button, "F"], [tree_button, "Tab"], [upgrade_cmd, "U"]]:
+	for pair in [[upgrade_cmd, "U"]]:
 		if key_badges.has(pair[0]):
 			key_badges[pair[0]].text = pair[1]
 	var type := _panel_type()
@@ -761,7 +834,6 @@ func _refresh_bar() -> void:
 		upgrade_cmd.icon = _icon("tower_" + type)
 		upgrade_cmd.text = ("Fork\nU / I" if game.type_rank.get(type, 0) == 2 else "Upgrade\n%dg" % cost)
 		upgrade_cmd.disabled = not playing or game.gold < cost or game.type_rank.get(type, 0) == 2
-		upgrade_cmd.tooltip_text = "%s rung %d: %s" % [game.tower_name(type), game.type_rank.get(type, 0) + 1, game.rung_text(type, game.type_rank.get(type, 0) + 1)]
 
 
 func _key(type: String) -> String:
@@ -778,14 +850,36 @@ func _letter(type: String) -> String:
 	return ""
 
 
-func _build_tooltip(type: String) -> String:
-	if type == "wall":
-		return "Wall: blocks the path, creeps reroute live. Key 1, or B then W."
-	var spec: Dictionary = game.type_spec(type)
-	var text := "%s  %dg\nDamage %.0f   Range %.1f\nIts note: %s\nKey %s, or B then %s." % [game.tower_name(type), game.builds[type]["cost"], spec["damage"], spec["range"], note_text(type), _key(type), _letter(type)]
-	if not game.unlocked.has(type):
-		text += "\nLOCKED: " + game.unlock_text(type)
-	return text
+## Every tooltip in the HUD: instant, laid out by Explain (D-0046).
+func _hook_tips() -> void:
+	rich = HudParts.RichTip.new()
+	root.add_child(rich)
+	for type in build_buttons:
+		var t: String = type
+		rich.hook(build_buttons[t], func(): return Explain.tower(game, t, "Key %s, or B then %s" % [_key(t), _letter(t)]))
+	rich.hook(upgrade_cmd, func():
+		var type := _panel_type()
+		return Explain.tower(game, type, "U upgrades every %s on the board" % game.tower_name(type)) if type != "" and game.is_tower(type) else "")
+	rich.hook(panel_body, func():
+		var type := _panel_type()
+		return Explain.tower(game, type) if type != "" and game.builds.has(type) else "")
+	for i in [1, 2]:
+		var bi: int = i
+		rich.hook(fork_a_button if bi == 1 else branch_button, func():
+			var type := _panel_type()
+			if type == "" or not game.BRANCHES.has(type):
+				return ""
+			var br: Array = game.BRANCHES[type][bi - 1]
+			var what: String = br[1]
+			return "\n".join([Explain.title(br[0], Explain.GOLD, "fork, key %s" % ("U" if bi == 1 else "I")),
+				Explain.c(Explain.WHITE, what[0].to_upper() + what.substr(1) + "."),
+				Explain.c(Explain.GREY, "Applies to every %s. The other branch closes for this run." % game.tower_name(type))]))
+	for k in round_buttons:
+		var which: String = k
+		rich.hook(round_buttons[which], func(): return Explain.control(game, which))
+	for key in tree_nodes:
+		var id: String = key.split(":")[1]
+		rich.hook(tree_nodes[key], func(): return Explain.talent(TalentTree.nodes()[id], TalentTree.ranks(id, game.owned), TalentTree.available(id, game.owned), game.points))
 
 
 ## B then a letter picks a build (WC3 style). Esc or B again backs out.

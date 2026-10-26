@@ -129,17 +129,34 @@ func _draw_towers() -> void:
 
 ## Each open note: a disc in the note's colour with its key, over its tower, and a
 ## ring closing on it over the two beats before it lands.
+## A call (D-0046) shows whole as soon as its first ring starts: the notes still
+## to come sit as small dim discs with their order, so the sequence can be read.
 func _draw_notes(bt: float) -> void:
 	var lead: float = sim.RING_LEAD_STEPS * sim.step_length()
+	var order := {}  # seq id -> note times in order
+	for n in sim.notes:
+		if n.has("seq"):
+			if not order.has(n["seq"]):
+				order[n["seq"]] = []
+			order[n["seq"]].append(n["time"])
+	for id in order:
+		order[id].sort()
 	for n in sim.notes:
 		if n["state"] != "open" or not (n["tower"] is Vector2i) or not sim.structures.has(n["tower"]):
-			continue
-		if n["time"] - bt > lead:
 			continue
 		var top := View3D.world(Vector2(n["tower"]), NOTE_LIFT)
 		var p := _at(top)
 		var ppm := _ppm(top)
 		var color: Color = ORANGE if n["type"] == "kick" else PURPLE
+		var num: int = (order[n["seq"]].find(n["time"]) + 1) if n.has("seq") and order[n["seq"]].size() > 1 else 0
+		if n["time"] - bt > lead:
+			var rs := ppm * 0.22
+			draw_circle(p, rs + 2.0, Color(0.1, 0.08, 0.12, 0.6))
+			draw_circle(p, rs, color * Color(1, 1, 1, 0.5))
+			_text(p, sim.NOTE_NAMES[n["type"]], maxi(11, int(rs * 1.2)), Color(0.12, 0.08, 0.1, 0.8), 0)
+			if num > 0:
+				_text(p + Vector2(rs + 8.0, -rs - 2.0), str(num), 13, Color(1, 1, 1, 0.75), 3)
+			continue
 		var left: float = clampf((n["time"] - bt) / lead, 0.0, 1.0)
 		var r := ppm * 0.3
 		draw_arc(p, r + ppm * 1.25 * left, 0, TAU, 48, color * Color(1, 1, 1, 0.45 + 0.55 * (1.0 - left)), maxf(3.0, ppm * 0.08))
@@ -148,6 +165,8 @@ func _draw_notes(bt: float) -> void:
 		if left <= 0.02:
 			draw_arc(p, r + 3.0, 0, TAU, 40, Color.WHITE, 3.0)
 		_text(p, sim.NOTE_NAMES[n["type"]], maxi(14, int(r * 1.25)), Color(0.12, 0.08, 0.1), 0)
+		if num > 0:
+			_text(p + Vector2(r + 9.0, -r - 3.0), str(num), 15, Color.WHITE, 3)
 
 
 ## Elite throws: the target tower's ring closing over the bar, four beat pips.
