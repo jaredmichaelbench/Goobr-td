@@ -43,6 +43,7 @@ func _ready() -> void:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(118, 44)
 		b.toggle_mode = true
+		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(func(): game.selected = type; game.build_mode = true; _refresh())
 		bar.add_child(b)
 		build_buttons[type] = b
@@ -56,6 +57,7 @@ func _ready() -> void:
 	# Tower panel.
 	panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(330, 0)
+	panel.add_theme_stylebox_override("panel", solid_style())
 	add_child(panel)
 	var vb := VBoxContainer.new()
 	panel.add_child(vb)
@@ -79,6 +81,7 @@ func _ready() -> void:
 	draft_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(draft_box)
 	var dp := PanelContainer.new()
+	dp.add_theme_stylebox_override("panel", solid_style())
 	draft_box.add_child(dp)
 	var dv := VBoxContainer.new()
 	dv.add_theme_constant_override("separation", 10)
@@ -94,6 +97,7 @@ func _ready() -> void:
 	for i in 3:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(230, 170)
+		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
@@ -107,6 +111,7 @@ func _ready() -> void:
 	end_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(end_box)
 	var ep := PanelContainer.new()
+	ep.add_theme_stylebox_override("panel", solid_style())
 	end_box.add_child(ep)
 	var ev := VBoxContainer.new()
 	ev.add_theme_constant_override("separation", 8)
@@ -141,9 +146,20 @@ func _on_upgrade() -> void:
 func _button(parent: Control, size: Vector2, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = size
+	b.focus_mode = Control.FOCUS_NONE  # Space stays the parry key after a click.
 	b.pressed.connect(on_press)
 	parent.add_child(b)
 	return b
+
+
+## A solid dark panel style, so a box over the board reads as a box.
+static func solid_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.08, 0.11, 0.97)
+	style.border_color = Color(0.3, 0.35, 0.45)
+	style.set_border_width_all(1)
+	style.set_content_margin_all(14)
+	return style
 
 
 ## Lays the controls out for the current window: bar along the bottom right

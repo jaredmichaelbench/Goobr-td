@@ -22,12 +22,17 @@ func _ready() -> void:
 	build_row = HBoxContainer.new()
 	build_row.add_theme_constant_override("separation", 6)
 	add_child(build_row)
-	for type in build_buttons:
+	var keys: Array = game.build_keys.keys()
+	keys.sort()  # Buttons in key order: 1 Wall, 2 Cannon ... 7 Light.
+	for k in keys:
+		var type: String = game.build_keys[k]
 		var b: Button = build_buttons[type]
 		b.get_parent().remove_child(b)
 		build_row.add_child(b)
-		b.custom_minimum_size = Vector2(120, 44)
-		b.add_theme_font_size_override("font_size", 12)
+		b.custom_minimum_size = Vector2(106, 44)
+		b.add_theme_font_size_override("font_size", 11)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	tree_button = _button(_bar, Vector2(120, 44), func(): game.toggle_tree())
 	# The fork: its own row of two buttons above Upgrade / Sell, so the panel stays narrow.
 	fork_row = HBoxContainer.new()
@@ -44,6 +49,7 @@ func _ready() -> void:
 	for i in [3, 4]:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(230, 170)
+		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
@@ -60,12 +66,7 @@ func _ready() -> void:
 	tree_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tree_box)
 	var tp := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.08, 0.11, 0.97)
-	style.border_color = Color(0.3, 0.35, 0.45)
-	style.set_border_width_all(1)
-	style.set_content_margin_all(14)
-	tp.add_theme_stylebox_override("panel", style)
+	tp.add_theme_stylebox_override("panel", solid_style())
 	tree_box.add_child(tp)
 	var tv := VBoxContainer.new()
 	tv.add_theme_constant_override("separation", 8)
@@ -126,6 +127,7 @@ func _node_button(id: String, node: Dictionary, size: Vector2) -> Button:
 func _layout() -> void:
 	var view := get_viewport().get_visible_rect().size
 	var x := maxf(360.0, game.hud_left + (view.x - game.hud_left) * 0.5 - build_row.size.x * 0.5)
+	x = minf(x, view.x - build_row.size.x - 8)  # Never off the right edge on a narrow window.
 	_bar.position = Vector2(x, view.y - 56)
 	build_row.position = Vector2(x, view.y - 56 - 50)
 	tip.position = Vector2(x, view.y - 10 - 16)
@@ -145,7 +147,7 @@ func _refresh_bar() -> void:
 	for type in build_buttons:
 		var b: Button = build_buttons[type]
 		if not game.unlocked.has(type):
-			b.text = "%s  %s  %dg\nneeds: %s" % [_key(type), game.tower_name(type), game.builds[type]["cost"], game.unlock_text(type)]
+			b.text = "%s  %s  %dg\n%s" % [_key(type), game.tower_name(type), game.builds[type]["cost"], game.unlock_text(type)]
 			b.disabled = true
 		elif game.type_rank.get(type, 0) > 0:
 			b.text += "  r%d" % game.type_rank[type]
@@ -223,9 +225,9 @@ func _refresh_panel() -> void:
 		body += "\nThe fork: %s (%s)  or  %s (%s)" % [br[0][0], br[0][1], br[1][0], br[1][1]]
 		upgrade_button.visible = false
 		fork_row.visible = true
-		fork_a_button.text = "%s  %dg" % [br[0][0], cost]
+		fork_a_button.text = "%s  %dg  (U)" % [br[0][0], cost]
 		fork_a_button.disabled = game.gold < cost or not playing
-		branch_button.text = "%s  %dg" % [br[1][0], cost]
+		branch_button.text = "%s  %dg  (I)" % [br[1][0], cost]
 		branch_button.disabled = game.gold < cost or not playing
 	else:
 		upgrade_button.text = "Upgrade  %dg  (U)\nrung %d: %s" % [cost, rank + 1, game.rung_text(type, rank + 1)]

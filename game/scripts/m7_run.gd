@@ -34,9 +34,9 @@ const PATTERNS7 := {"kick": [0, 4], "bass": [1, 3, 5, 7], "slow": [0, 2, 4, 6], 
 ## Rung 2 for these types adds steps to the pattern ("+rate"); the others get range.
 const RATE_STEPS := {"slow": [1, 3, 5, 7], "poison": [1, 3, 5, 7], "lightning": [2, 6]}
 const UNLOCKS := {
-	"poison": {"text": "build 3 Frost towers", "stat": "built_slow", "need": 3},
-	"lightning": {"text": "land 10 Perfects", "stat": "perfects", "need": 10},
-	"light": {"text": "kill a Shade", "stat": "kills_shade", "need": 1},
+	"poison": {"text": "needs 3 Frost", "stat": "built_slow", "need": 3},
+	"lightning": {"text": "needs 10 Perfects", "stat": "perfects", "need": 10},
+	"light": {"text": "needs a Shade kill", "stat": "kills_shade", "need": 1},
 }
 const RUNG_MULT := [1.5, 2.0, 3.0, 3.5, 4.0]  # Price = base cost x this x (1 + 0.1 x towers of the type).
 const PER_TOWER_PRICE := 0.1
@@ -224,7 +224,10 @@ func rung_text(type: String, rank: int) -> String:
 
 ## Buy the next rung for a whole type. At rung 3, `branch` (1 or 2) picks the fork.
 func upgrade_type(type: String, branch := 0) -> bool:
-	if not is_tower(type) or not unlocked.has(type) or state != "playing":
+	if not is_tower(type) or state != "playing":
+		return false
+	if not unlocked.has(type):
+		_say("%s is locked: %s" % [tower_name(type), unlock_text(type)])
 		return false
 	var rank: int = type_rank[type]
 	if rank >= RUNG_MULT.size():
@@ -1038,11 +1041,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		if drafting and [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5].has(event.keycode):
 			_pick([KEY_1, KEY_2, KEY_3, KEY_4, KEY_5].find(event.keycode))
 			return
-		if event.keycode == KEY_U and state == "playing":
+		if (event.keycode == KEY_U or event.keycode == KEY_I) and state == "playing":
 			var type := selected
 			if structures.has(selected_cell):
 				type = structures[selected_cell]["type"]
-			if is_tower(type) and type_rank.get(type, 0) != 2:
+			if not is_tower(type):
+				_say("Select a tower (or a tower button) to upgrade its type")
+			elif type_rank.get(type, 0) == 2:
+				upgrade_type(type, 2 if event.keycode == KEY_I else 1)  # The fork: U takes the first branch, I the second.
+			elif event.keycode == KEY_U:
 				upgrade_type(type)
 			return
 	if tree_open and event is InputEventMouseButton:
@@ -1116,12 +1123,12 @@ func status_lines() -> Array[String]:
 
 
 func help_lines() -> Array[String]:
-	if selected_cell.x >= 0:
+	if selected_cell.x >= 0 or (hud != null and hud.panel.visible):
 		return []
 	return [
 		"Q / E  press the key shown on a tower as its ring lands",
 		"Space  parry a landing projectile; yellow ring after = counter-attack (talent)",
-		"Tab  talent tree (pauses)    U  upgrade the selected type    Esc twice  menu",
+		"Tab  talent tree (pauses)    U  upgrade the selected type, U / I pick the fork    Esc twice  menu",
 		"",
 		"TEST  T speed %dx   Y auto-send %s   G +100g   H skip   O boss   [ ] song" % [SPEEDS[speed_index], "ON" if auto_send else "off"],
 		"Next wave: %s   (%.0f HP each)" % [wave_summary(wave + 1), creep_hp_at(wave + 1)],

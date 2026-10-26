@@ -388,9 +388,10 @@ func _process(delta: float) -> void:
 	if speed > 1:
 		_time_offset += delta * (speed - 1)
 		notes.clear()
-	for i in speed:
-		step(delta)
-	if auto_send and state == "playing" and not wave_active:
+	if not paused:
+		for i in speed:
+			step(delta)
+	if auto_send and state == "playing" and not wave_active and not paused:
 		_auto_timer -= delta
 		if _auto_timer <= 0.0:
 			_auto_timer = AUTO_SEND_DELAY

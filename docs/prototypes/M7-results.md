@@ -25,3 +25,7 @@ What the bot does not test: walls, the fork choices other than Pierce, the count
 - Balance is tuned only until the wall-less bot clears 20 waves.
 
 Waiting on Jared's test session (two 20-wave runs, one quick run; report in one pass, see the plan's section "The test session").
+
+## Playtest round 1 (2026-10-26)
+
+Jared's notes: `../notes/m7-playtest-2026-10-26.md` (13 points). Fixed the same night without discussion (bugs): pause let enemies keep moving (the M3 process loop ran the sim while paused, since M3; now held); HUD buttons kept keyboard focus so Space re-pressed Pause (focus off on every button); the build row spilled off narrower windows (smaller buttons, clamped to the window, in key order); the tower panel, draft and end boxes are solid so text under them no longer shows through; help lines hide under the panel. The fork: clicks work in a bot at 1280x720 and at 1250x688 (xvfb); added U / I as keyboard forks and a message on every silent failure path, and asked Jared how he reached the fork. Design points 4 to 13 go to discussion first (rule 6).
