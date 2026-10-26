@@ -42,7 +42,7 @@ A talent never adds randomness and never names a card.
 
 ## 5. The draft: rarity times category, rolled
 
-Three cards after each cleared wave; each is two weighted rolls (rarity, category). No guaranteed slot. Luck, talents and Draft-category cards shift the weights.
+Three cards; Jared (2026-10-26): every wave is too often for long runs, so every boss (recommended: six drafts in 30 waves, the reward beat after a boss) or every three levels. Each card is two weighted rolls (rarity, category). No guaranteed slot. Luck, talents and Draft-category cards shift the weights.
 
 Rarity (base weight, what it may do): Grey 50 one small stat; Green 28 one large stat or small rule; Blue 14 a rule for the run; Purple 6 a rule touching two systems; Orange 2 a run-defining special, once per run, not before wave 3.
 
@@ -58,7 +58,7 @@ Tower combinations: in a build phase, five towers plus gold become one unique to
 
 ## 7. Open questions
 
-Answered 2026-10-26: first point at level 2, XP from mobs/elites/bosses; unlocks in-run only; rung 3 branches; runs 20 to 35 waves plus endless, Demo 0 stays at 10. Still open: cut two of the eight towers, anything missing; counters during a Volley; keep the draft floor; when the run lengthens past 10.
+Answered 2026-10-26: first point at level 2, XP from mobs/elites/bosses; unlocks in-run only; rung 3 branches; runs 20 to 35 waves plus endless, Demo 0 stays at 10. Still open: cut two of the eight towers, anything missing; counters during a Volley; keep the draft floor; when the run lengthens past 10; draft cadence (every boss or every three levels). Build item: wave 1 is too short, notes only arrive as it ends (start the chart on the wave's first bar, a few more creeps).
 
 ## 8. Proposed order of work
 

@@ -48,3 +48,4 @@ Gaps to fill for variety (ideas): fast runners that skip towers, a shielded cree
 - **Tower combinations.** Combine 5 towers into one stronger tower for gold; the 4 leftovers become crumbling walls that break at the next build phase (so the wall cap holds). Poker-TD style hands for unique towers.
 - Not sold on the review's bizarre list, and blanking too. Still reading the doc.
 - **Draft composition (comment on 3.4):** no guaranteed slots. Each card is a roll for rarity and a roll for category; cards (and talents) shift those weights ("X cards show more often", luck raises rarity).
+- **Cadence and wave 1 (2026-10-26):** draft cards every wave is too often once runs are long; every three levels or every boss. Wave 1 is too short: notes don't arrive until the wave is almost over.
