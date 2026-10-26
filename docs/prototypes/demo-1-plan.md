@@ -24,7 +24,7 @@ Kenney Tower Defense Kit and Castle Kit (CC0); KayKit Medieval packs (CC0 free p
 
 ## Engineering notes
 
-Camera3D fixed, tilt from M8, one directional light, flat shading, no shadows at first; a tile is one metre; board clicks are a ray to the ground plane. Indicators (rings, locks, parry ring, counter flash, health bars) are billboards above their owner. HUD stays Controls, moved from code into scenes with a Theme. Risk: drift of a rule while its drawing moves; the bots and the run log catch it.
+Camera3D fixed, tilt from M8, one directional light, flat shading, no shadows at first; a tile is one metre; board clicks are a ray to the ground plane. Indicators (rings, locks, parry ring, counter flash, health bars) are billboards above their owner. HUD stays Controls, moved from code into scenes with a Theme, laid out RTS-style per Jared (WC3/StarCraft, Legion TD as reference): command card bottom right with hotkeys (B opens the build card, then a letter per tower; Q, E, Space reserved for the rhythm), tower panel bottom centre, resources top left, minimap slot bottom left (wave preview now, opponent thumbnails later). Multiplayer camera: fixed per board, Tab to view opponents, live thumbnails; no free camera or minimap. Risk: drift of a rule while its drawing moves; the bots and the run log catch it.
 
 ## Open questions for Jared (recommendation in brackets)
 
