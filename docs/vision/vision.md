@@ -62,6 +62,8 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 ## Changelog
 
+- 2026-10-26: v0.12 Demo 1 built: the 20-wave run in 3D with KayKit models (skeleton creeps, medieval towers and keep), an RTS-style HUD, title screen and settings, synth note sounds, and Mac and Windows builds (D-0044). Rules unchanged.
+
 - 2026-10-26: v0.11 camera settled: fixed 65-degree perspective camera, indicators float above their owner (D-0043).
 - 2026-10-26: v0.11 scope: Demo 0 closed after M7 (progression, 20 waves). Next is Demo 1, the same run in 3D with real assets, HUD and menus, packaged as a private demo for friends (D-0042 proposed). Bosses are parried as the bolt lands, not as it is thrown.
 - 2026-10-25: v0.10 maps are landscape (26x16, spawn left, goal right) and a 1v1v1v1 map is one rectangle with a corner per player; camera direction set as classic fixed TD view with a slight tilt, in 3D, binding at the sim/view split (D-0037 proposed). Mouse layer for the run (D-0036).

@@ -127,12 +127,12 @@ static func with_override(key: String, synth: AudioStreamWAV, pack := "") -> Aud
 	for candidate in ["res://audio/sfx/%s/%s.wav" % [pack, file], "res://audio/sfx/%s.wav" % file]:
 		if pack == "" and candidate.begins_with("res://audio/sfx//"):
 			continue
-		if FileAccess.file_exists(candidate):
+		if AudioFiles.exists(candidate):
 			path = candidate
 			break
 	if path == "":
 		return synth
-	var stream := AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(path))
+	var stream := AudioFiles.load_wav(path)
 	if stream == null:
 		push_warning("Could not read %s, using the synth voice" % path)
 		return synth

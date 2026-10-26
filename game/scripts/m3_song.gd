@@ -273,16 +273,9 @@ func _scan_songs() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(SONG_CFG)
 	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM, "sfx": str(cfg.get_value("sfx", "default", ""))}]
-	var dir := DirAccess.open(SONG_DIR)
-	if dir == null:
-		return
 	var re := RegEx.new()
 	re.compile("^\\s*(\\d+(?:\\.\\d+)?)[\\s_.-]*(.*)$")
-	var names := Array(dir.get_files())
-	names.sort()
-	for f in names:
-		if not f.to_lower().ends_with(".wav"):
-			continue
+	for f in AudioFiles.list_wavs(SONG_DIR):
 		var base: String = f.substr(0, f.length() - 4)
 		var bpm: float = float(cfg.get_value("bpm", "default", DEFAULT_BPM))
 		var m := re.search(base)
@@ -311,7 +304,7 @@ func _scan_songs() -> void:
 
 ## Loads a WAV at runtime (no import step) and loops it on a whole bar.
 func _load_song(path: String, bpm: float) -> AudioStreamWAV:
-	var stream := AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(path))
+	var stream := AudioFiles.load_wav(path)
 	if stream == null:
 		push_warning("Could not load song " + path)
 		return null

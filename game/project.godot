@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Goobr TD - Demo 0"
+config/name="Goobr TD"
 run/main_scene="res://menu.tscn"
 config/features=PackedStringArray("4.5")
 
@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.5")
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [input_devices]
 
@@ -27,3 +28,8 @@ buffering/agile_event_flushing=true
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+
+[autoload]
+
+PrefsNode="*res://scripts/prefs.gd"

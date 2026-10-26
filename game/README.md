@@ -1,13 +1,21 @@
-# Goobr TD: Demo 0
+# Goobr TD
 
-Greybox build of the game, made in milestones. The plan is in `../docs/prototypes/demo-0-plan.md`.
+The game, built in milestones. Demo 0 (greybox) plan: `../docs/prototypes/demo-0-plan.md`. Demo 1 (the 3D build) plan: `../docs/prototypes/demo-1-plan.md`.
 
-Engine: **Godot 4.5** (standard build, GDScript). No plugins or assets are needed, because all audio is generated in code.
+Engine: **Godot 4.5** (standard build, GDScript, no plugins). Models (KayKit, CC0) and the font (Lilita One, OFL) are in `assets/` and in git. Music and the HALFTONE sounds are copied by hand into `audio/` (never in git); without them the game uses its synth stems and synth sounds.
 
-Open the project, press Play (▶ top right, or Cmd+B on Mac). A menu lets you pick a milestone: **1** = M1 beat test, **2** = M2 maze, **3** = M3 the maze plays the song, **4** = M4 suppress and Restore, **5** = M5 first boss, **6** = M6 the run, **7** = M7 the progression run (20 waves), **8** = M7 quick run (10 waves). **Esc** returns to the menu.
+Press Play (Cmd+B on Mac). The **title screen** offers the 20-wave run, the 10-wave quick run, How to play, Settings (volumes, full screen, synth note sounds, key hints, calibration) and Credits. **D** on the title opens the developer menu with the Demo 0 milestones (keys 1 to 9). **Esc** twice leaves a run.
 
-**Real music for testing:** drop WAVs into `game/audio/` (kept out of git). In M3, M4 or M5, **]** and **[** switch songs, and the game plays through all of them as a playlist. Tempo comes from `game/audio/songs.cfg` (the SynthWave pack is all 130 BPM). See `game/audio/README.md`.
+## Demo 1: the run in 3D (D-0044)
 
+- The board under a fixed 65-degree camera: medieval towers, walls and a keep, skeleton creeps that walk, cast and die, the Conductor (a mage) at the keep. Note badges (Q orange, E purple) float above their tower; the ring closes on the beat.
+- HUD in the Warcraft 3 layout: resources top left, stats top right, the bar strip under the top bar, wave preview bottom left, tower panel bottom middle, command card bottom right. Build with a button, a number key, or **B** then a letter (**W** wall, **C** Cannon, **S** Splash, **F** Frost, **V** Poison, **L** Lightning, **G** Light).
+- A note avoids a tower right next to one already holding a ring (clutter off, D-0043).
+- New note sounds made in code (Settings can switch back to the pack's). The run starts on the first real song in `audio/` and plays on as a playlist; **[ ]** switch.
+- The end screen has **Copy run log**: paste it back to us after a run.
+- F11 or Alt+Enter: full screen.
+- Builds: `export_presets.cfg` has Mac (universal, ad-hoc signed), Windows and Linux. Export from the editor (Project, Export) after installing the 4.5 export templates; builds land in `../export/` (not in git).
+- The rules are the M7 run unchanged (`scripts/run_sim.gd` extends `M7Run`); the picture is `view3d.gd`, `indicators.gd` and `hud_rts.gd`; the art table is `art.gd`.
 ## M8: the look test (Demo 1, D-0042)
 
 Menu key **9**. Not a game: the 26 by 16 board in 3D at one metre a tile, built from flat-coloured primitives, with the things the look test has to answer on screen at once: three note rings in a row (the clutter case from the round 3 run), a locked tower, the parry ring on the Conductor's keep, the counter flash on a creep, a 3.6-tile range circle, creeps walking the path.

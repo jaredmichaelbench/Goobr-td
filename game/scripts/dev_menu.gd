@@ -1,5 +1,6 @@
 extends Node2D
-## Milestone picker. Esc in any milestone scene returns here.
+## Developer menu (D on the title screen): the Demo 0 milestone scenes. Esc in any
+## of them returns to the title screen.
 
 const SCENES := {
 	KEY_1: "res://m1_beat_test.tscn",
@@ -14,7 +15,14 @@ const SCENES := {
 }
 
 
+func _ready() -> void:
+	queue_redraw()
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		get_tree().change_scene_to_file("res://menu.tscn")
+		return
 	if event is InputEventKey and event.pressed and not event.echo and SCENES.has(event.keycode):
 		M7Run.quick = event.keycode == KEY_8
 		get_tree().change_scene_to_file(SCENES[event.keycode])
@@ -23,7 +31,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	var lines := [
-		"Goobr TD - Demo 0",
+		"Developer menu: the Demo 0 milestones",
 		"",
 		"1   M1 Beat test",
 		"2   M2 Maze",
@@ -35,7 +43,7 @@ func _draw() -> void:
 		"8   M7 quick run (10 waves)",
 		"9   M8 Look test (3D camera, rings above towers; Demo 1)",
 		"",
-		"Esc in any test returns here",
+		"Esc returns to the title screen",
 	]
 	for i in lines.size():
 		draw_string(font, Vector2(80, 120 + i * 40), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 28 if i == 0 else 22)

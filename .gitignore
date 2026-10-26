@@ -3,3 +3,8 @@ game/audio/*
 !game/audio/songs.cfg
 game/assets/*
 !game/assets/README.md
+# Free CC0 models and the OFL font ship with the game (D-0044).
+!game/assets/kaykit/
+!game/assets/fonts/
+.godot/
+export/
