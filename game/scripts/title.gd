@@ -266,23 +266,20 @@ func _show_settings() -> void:
 		var key: String = s[1]
 		c.toggled.connect(func(on): Prefs.set_value(key, on))
 		overlay_body.add_child(c)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	calib_label = Label.new()
-	calib_label.text = "Timing calibration: %+.0f ms" % Timing.load_calibration_ms()
-	calib_label.custom_minimum_size = Vector2(240, 0)
-	row.add_child(calib_label)
-	var cal := Button.new()
-	cal.text = "Calibrate (beat test)"
-	cal.pressed.connect(func(): get_tree().change_scene_to_file("res://m1_beat_test.tscn"))
-	row.add_child(cal)
-	overlay_body.add_child(row)
-	var note := Label.new()
-	note.text = "The beat test: tap Q, W, E or Space on the click, then C sets the calibration from your taps. Esc comes back here."
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.custom_minimum_size = Vector2(700, 0)
-	note.add_theme_color_override("font_color", Color(1, 1, 1, 0.6))
-	overlay_body.add_child(note)
+	# Calibration is fixed for the demo (Timing.FIXED_CALIBRATION); the setting
+	# comes back only when the constant is turned off.
+	if not Timing.FIXED_CALIBRATION:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		calib_label = Label.new()
+		calib_label.text = "Timing calibration: %+.0f ms" % Timing.load_calibration_ms()
+		calib_label.custom_minimum_size = Vector2(240, 0)
+		row.add_child(calib_label)
+		var cal := Button.new()
+		cal.text = "Calibrate (beat test)"
+		cal.pressed.connect(func(): get_tree().change_scene_to_file("res://m1_beat_test.tscn"))
+		row.add_child(cal)
+		overlay_body.add_child(row)
 
 
 func _start_music() -> void:
