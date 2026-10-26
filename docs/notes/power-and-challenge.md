@@ -47,3 +47,4 @@ Gaps to fill for variety (ideas): fast runners that skip towers, a shielded cree
 - **New mechanic: counter-attack.** Every parry leads to a counter press on the next beat (same visual, maybe a yellow ring) that lands on the enemy.
 - **Tower combinations.** Combine 5 towers into one stronger tower for gold; the 4 leftovers become crumbling walls that break at the next build phase (so the wall cap holds). Poker-TD style hands for unique towers.
 - Not sold on the review's bizarre list, and blanking too. Still reading the doc.
+- **Draft composition (comment on 3.4):** no guaranteed slots. Each card is a roll for rarity and a roll for category; cards (and talents) shift those weights ("X cards show more often", luck raises rarity).
