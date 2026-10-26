@@ -263,3 +263,9 @@ Alternatives: a timed counter ring copying the note ring (rejected by Jared: the
 Context: Three M7 playtests; the core loop is liked, balance and the parry and counter clutter depend on distances the flat board cannot show. D-0037 (camera and map shape) was waiting for this moment.
 Decision: Demo 1 = `prototypes/demo-1-plan.md`: M8 look test, M9 sim/view split in Godot 3D with the M2 to M7 chain collapsed into one run, M10 HUD and menus, M11 sound and music, M12 packaging for a private demo. D-0037's direction (fixed camera, whole board, slight tilt, landscape maps) stands; the exact tilt and perspective are picked from M8 screenshots. Free CC0 packs first. Balance continues from M9 on the 3D build, not before.
 Alternatives: art on top of the current scripts (rejected: every balance change would touch the picture); more enemies and bosses before the picture (deferred); multiplayer (out of the demo).
+
+## D-0043: Camera and indicators for Demo 1
+2026-10-26 · accepted (Jared, on the M8 look test: "These were the settings I liked for the camera and clutter and indicator", screenshot at tilt 65, perspective, rings above, clutter off)
+Context: D-0037 left the exact tilt and projection to a look test. M8 showed the board at 60/65/70 degrees, perspective and orthographic, rings above the towers or on the ground, and three rings in a row.
+Decision: (1) Fixed Camera3D at 65 degrees, perspective (35 degree vertical field of view), whole board in frame. (2) Note rings, lock marks, the parry ring and the counter flash float above their owner as billboards, as in Jared's sketch; the range circle stays on the ground. (3) Three rings on neighbouring towers is still clutter: the split keeps one ring per tower and spaces notes away from a tower whose neighbour already holds a ring when it can.
+Alternatives: orthographic (flatter, no depth cue, not picked); rings on the ground (Demo 0's way, not picked); tilt 60 or 70.
