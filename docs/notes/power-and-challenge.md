@@ -35,3 +35,15 @@ Gaps to fill for variety (ideas): fast runners that skip towers, a shielded cree
 
 - The first draft pool (D-0034) plays but feels samey: plain stat bumps and small rule tweaks. Jared wants picks that reach "even into the spectrum of the bizarre". Parked until the power progression review; the draft system and its hooks stay, the pool gets replaced.
 - Candidates for the bizarre end, to discuss: snipes ricochet off walls; a tower that fires only on Perfects but at x10; swarms count as one creep for splash; the Conductor walks (goal moves one tile a wave); a parry that freezes time for a beat; towers that trade range for a second note ring; a Shade of your own that hides a tower from Jammers; gold that decays unless spent; a wave played backwards (creeps spawn at the goal, walk to the start, you defend the start).
+
+## Jared's notes on the progression review (2026-10-26, discussion only, condensed)
+
+- **Way more towers.** Unlock them WC3-style (a requirement gates each) or outright. Wanted: poison / damage over time, land mine, cannon (have), single target (have), frost, light, void, lightning.
+- **Global upgrades instead of per-tower tiers.** Like the WC3 workshop: gold buys armour/damage for a whole tower type. Per-tower bumps fight the random-note play (you hope the upgraded tower gets the note). Keep the "build more or upgrade more" decision, just not on one tower. Need not be boring: an upgrade could turn poison towers into poison-splash towers.
+- **Talents are per run**: one point per level from level 5, a tree the size of WoW Midnight with the flavour of PoE 2 (where you start decides what you get). Areas: more notes / music, towers, economy (more gold, more bosses, more elites), walls, parries. Capstones for unique towers or abilities. Not a get-stronger-the-longer-you-play meta.
+- **Draft needs the most work.** Rarity (grey, green, blue, purple, orange) **and** category (enemy altering, economy, abilities, stats such as luck / crit / damage, special). Megabonk-style specials: killing an enemy spawns a ghost that haunts another; Joe's-dagger items; walls slow; walls have thorns. The grey examples in the review are too boring; Encore is broken strong; Breathing room unnoticeable.
+- **Stat ideas**: luck (card rarity), crit, crit damage, damage, enemy speed (bosses/elites separately if needed), enemy attack frequency.
+- **Talent and pick ideas**: parries hit 4 extra targets; parries add notes to a sequence; hit notes echo damage; notes appear more often; notes do effects; Perfect talents; wall talents; parry talents; rhythm talents; tower-or-economy lean.
+- **New mechanic: counter-attack.** Every parry leads to a counter press on the next beat (same visual, maybe a yellow ring) that lands on the enemy.
+- **Tower combinations.** Combine 5 towers into one stronger tower for gold; the 4 leftovers become crumbling walls that break at the next build phase (so the wall cap holds). Poker-TD style hands for unique towers.
+- Not sold on the review's bizarre list, and blanking too. Still reading the doc.
