@@ -38,6 +38,10 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 | Disruption sends: Frequency Jammers / Beat Breakers that break rivals' rhythm | parked | Prompt 4 | Depends on multiplayer. |
 | Skill "garbage" dumps to the leader on flawless play | parked | Prompt 3 | Depends on multiplayer. |
 
+| Tower combinations (five towers plus gold become one unique tower; leftovers become crumbling walls; poker hands) | planned | Jared 2026-10-26 | Flush only as M7 stretch; the rest after the roster |
+| Void and Land mine towers | planned | Jared 2026-10-26 | M7 stretch or after |
+| Difficulty tomes, XP cup, luck as draft cards | idea | Jared 2026-10-26 | Need levels (M7) |
+
 ## Later areas (own workstreams, not started)
 
 | Area | Status | Notes |
