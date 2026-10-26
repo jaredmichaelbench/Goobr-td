@@ -34,3 +34,7 @@ Not yet, and the deadline is clear: **the sim/view split milestone** (the next m
 What would move the deadline earlier: wanting a screenshot or trailer with real art before the loop is finished (then the split comes first and the progression work waits). What would move it later: nothing; after the split, every new feature is built twice (rules and view) if the view does not exist, so the split should not slide past the first asset.
 
 Open until the split: perspective vs orthographic (one number, try both), the ground tile size in metres, and whether towers are models or billboarded cards (models, unless pixel art is wanted).
+
+## HUD reference (Jared, 2026-10-26)
+
+Warcraft 3 / StarCraft layout, Legion TD 2 as the example (screenshot in the shared folder: screens/jared-hud-reference-legion-td-2026-10-26.png): wave banner top centre with both sides' health, player list with gold and record on the right, build and action command card bottom centre with hotkeys (B then a letter), resources bottom right, event log bottom left. Our mapping is in `prototypes/demo-1-plan.md` (M10): command card bottom right, tower panel bottom centre, resources top left, minimap slot bottom left. Tower reference: a low-poly wooden watchtower with the note ring floating above it (screens/jared-tower-reference-2026-10-26.png).
