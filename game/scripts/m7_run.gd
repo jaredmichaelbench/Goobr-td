@@ -934,7 +934,7 @@ func _nearest_tower(pos: Vector2) -> Vector2i:
 	var best := Vector2i(-1, -1)
 	var best_d := INF
 	for cell in structures:
-		if is_tower(structures[cell]["type"]) and Vector2(cell).distance_to(pos) < best_d:
+		if is_tower(structures[cell]["type"]) and tower_ready(cell) and Vector2(cell).distance_to(pos) < best_d:
 			best_d = Vector2(cell).distance_to(pos)
 			best = cell
 	return best

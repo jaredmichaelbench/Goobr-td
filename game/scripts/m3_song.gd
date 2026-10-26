@@ -415,8 +415,12 @@ func _process(delta: float) -> void:
 				n["state"] = "void"  # No towers at all: the note never existed.
 				stats[n["type"]]["notes"] -= 1
 				_wave_notes -= 1
-		elif n["tower"] is Vector2i and not structures.has(n["tower"]):
-			_assign_note(n)  # Its tower was sold.
+		elif n["tower"] is Vector2i and (not structures.has(n["tower"]) or not tower_ready(n["tower"])):
+			_assign_note(n)  # Its tower was sold or locked: the ring moves to a ready tower.
+			if n["tower"] == Vector2i(-1, -1) or not tower_ready(n["tower"]):
+				n["state"] = "void"  # Every tower is locked: the note is dropped, no miss.
+				stats[n["type"]]["notes"] -= 1
+				_wave_notes -= 1
 		# A note that slid past the ring is missed. It only costs the bonus.
 		if press_time() > n["time"] + Timing.GOOD_MS / 1000.0:
 			n["state"] = "missed"
