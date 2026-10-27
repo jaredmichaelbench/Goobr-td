@@ -19,6 +19,7 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 | Boss arena manipulation (temporary path cleaves, node lockdowns, shockwaves down straight corridors) | needs-proto | Prompt 2 | Expand after the first boss works. Must not permanently break mazes. |
 | Boss buffs itself unless the player keeps the rhythm (alternative boss model) | maybe | Prompt 3 | Superseded as the main model by D-0005; keep as a variant mechanic for one boss. |
 | Mutant unit behaviors / temporary lane modifiers per wave | parked | Prompt 2 | Content for the per-wave roll. |
+| Grace note: a special talent or card that adds one quick 8th note at the end of a call | idea | Jared, playtest 3 (2026-10-27) | Calls stay on the beat (D-0047); fast notes are kept for something special like this. Promote with the talent and card review (T-024). |
 
 ## Economy
 

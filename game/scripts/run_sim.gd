@@ -189,25 +189,21 @@ static func short_feedback(text: String) -> String:
 
 # --- Demo 1 round 2 (D-0046): calls, staggers, a tougher run --------------------------
 
-## Notes come as a short call once every four bars, then three bars of rest where
-## towers fire and parries happen (Jared: "sequence, nail it, pause"). The tempo
-## never rises; the shape of the call does. Each string is one bar of 8th-note
-## steps; step 0 (beat 1) stays free for elite throws.
+## Notes come as a short call once every four bars, then rests where towers fire
+## and parries happen (Jared: "sequence, nail it, pause"). Every note sits on a
+## beat and they alternate Kick, Snare (Q, E), starting on Kick (playtest 3: no
+## 8th notes in calls; fast notes are saved for something special). Beat 1 of a
+## bar stays free for elite throws. Calls grow longer with the wave, never faster.
 const CALL_BARS := 4
-const CALLS := {
-	1: ["..Q.E...", "..Q...E."],
-	2: ["..Q.E.Q.", "..Q.Q.E.", "..E.Q.E.", "..Q.E.E."],
-	3: ["..Q.EEQ.", "..QQE.E.", "..E.Q.QE", "..Q.E.QQ", ".QE.Q.E."],
-	4: [".QE.Q.EQ", "..EQ.QE.", "..QE.EQ.", ".E.QE.Q.", "..E.EQ.Q", "..QEQ.E."],
-}
-## A parried elite staggers and plays one of these, the boss feeling in short.
-## The elite holds until it ends; nailing it lands the finisher on that elite.
-const STAGGERS := {
-	1: ["Q.E.Q.E."],
-	2: ["Q.E.Q.E.", "Q.Q.E.E.", "E.Q.E.Q."],
-	3: ["Q.EQ.E..", "QE..Q.E.", "Q.E.QQE."],
-	4: ["QE.QE.Q.", "Q.EEQ.E.", "E.QQ.EQ."],
-}
+const CALL_SIZES := {1: [2, 3], 2: [3, 4], 3: [4, 5], 4: [5, 6]}
+const CALL_MAX := 6  # Extra-note talents and cards stop here.
+## A parried elite staggers and plays a short sequence of its own, the boss
+## feeling in short. The elite holds until it ends; nailing it lands the
+## finisher on that elite. It waits for a full bar of rest after a call.
+const STAGGER_SIZES := {1: 3, 2: 3, 3: 4, 4: 4}
+## No free mashing: a Q or E press that lands nothing locks that key briefly, and
+## pressing it again while locked starts the lock over.
+const MASH_LOCK_MS := 180.0
 const FINISHER_PER_NOTE := 2.0  # The finisher: the strongest tower's damage x this x notes in the call.
 const FINISHER_SPLASH := 1.5
 ## The tougher run (D-0046): more creeps, spaced wider, with more health, and
@@ -225,6 +221,8 @@ var _call_origin := 0
 var _seq_next := 1
 var _seqs := {}  # id -> {missed, target (a creep or empty), size, stagger}
 var _stagger_until := -1.0  # Beat time the current elite stagger ends.
+var _seq_last := {}  # Sequence id -> time of its last note (kept after its notes land).
+var _key_lock := {}  # Key -> press time the key frees up.
 var phrase_stats := {"calls": 0, "nailed": 0, "staggers": 0}
 var level_ups := 0  # Counts up on every level; the HUD nudges the Talents button.
 var _sfx_phrase: AudioStreamPlayer
@@ -249,6 +247,7 @@ func _reset_progression() -> void:
 		creep_hp_growth = CREEP_HP_GROWTH_D1
 	_seqs.clear()
 	_stagger_until = -1.0
+	_seq_last.clear()
 	phrase_stats = {"calls": 0, "nailed": 0, "staggers": 0}
 
 
@@ -298,7 +297,7 @@ func _summon_boss() -> void:
 
 
 ## Bosses keep M7's quiet chart and Crescendos. Other waves play one call per
-## four bars, unless an elite's stagger holds the floor.
+## four bars, unless an elite's stagger holds the floor (with a bar of rest after).
 func _schedule_bar(bar: int) -> void:
 	if boss_alive() or legacy:
 		super._schedule_bar(bar)
@@ -306,36 +305,44 @@ func _schedule_bar(bar: int) -> void:
 	if posmod(bar - _call_origin, CALL_BARS) != 0:
 		return
 	var bar_t := bar * STEPS_PER_BAR * step_length()
-	if _stagger_until > bar_t - step_length():
+	if _stagger_until > bar_t - clock.bar_length():
 		return
-	var shapes: Array = CALLS[band(wave)]
-	var shape: String = shapes[rng.randi() % shapes.size()]
-	_add_sequence(bar_t, _with_extra(shape, int(gstats.get("note_rate", 0))), {}, false)
+	# A bar of rest after whatever played last, even across a wave change.
+	var last := -INF
+	for id in _seq_last.keys():
+		if _seq_last[id] < beat_time() - 2.0 * clock.bar_length():
+			_seq_last.erase(id)
+		else:
+			last = maxf(last, _seq_last[id])
+	if bar_t + clock.beat_length() < last + clock.bar_length() - 0.001:
+		return
+	var sizes: Array = CALL_SIZES[band(wave)]
+	var size: int = sizes[rng.randi() % sizes.size()]
+	# Pulse (talent), Double time and Virtuoso (cards): a longer call, still on the beat.
+	size = mini(size + int(gstats.get("note_rate", 0)), CALL_MAX)
+	_add_sequence(_beats_from(bar_t + clock.beat_length(), size), {}, false)
 
 
-## Pulse (talent) and Virtuoso (card): an extra note in every call, on a free off-beat.
-func _with_extra(shape: String, extra: int) -> String:
-	var out := shape
-	for i in extra:
-		for step in [3, 5, 7, 1]:
-			if out[step] == ".":
-				out = out.substr(0, step) + ("Q" if i % 2 == 0 else "E") + out.substr(step + 1)
-				break
+## Note times on the beat from t0 on, skipping beat 1 of each bar (throws).
+func _beats_from(t0: float, count: int) -> Array:
+	var beat := clock.beat_length()
+	var t := roundf(t0 / beat) * beat
+	var out := []
+	while out.size() < count:
+		if posmod(roundi(t / beat), 4) != 0:
+			out.append(t)
+		t += beat
 	return out
 
 
-func _add_sequence(t0: float, shape: String, target: Dictionary, stagger: bool) -> int:
+func _add_sequence(times: Array, target: Dictionary, stagger: bool) -> int:
 	var id := _seq_next
 	_seq_next += 1
-	var size := 0
-	for i in shape.length():
-		var ch := shape[i]
-		if ch == ".":
-			continue
-		add_note(t0 + i * step_length(), "kick" if ch == "Q" else "bass")
+	for i in times.size():
+		add_note(times[i], "kick" if i % 2 == 0 else "bass")
 		notes[notes.size() - 1]["seq"] = id
-		size += 1
-	_seqs[id] = {"missed": false, "target": target, "size": size, "stagger": stagger}
+	_seqs[id] = {"missed": false, "target": target, "size": times.size(), "stagger": stagger}
+	_seq_last[id] = times[times.size() - 1]
 	if stagger:
 		phrase_stats["staggers"] += 1
 	else:
@@ -343,8 +350,9 @@ func _add_sequence(t0: float, shape: String, target: Dictionary, stagger: bool) 
 	return id
 
 
-## A parried elite staggers: it holds while its sequence plays, and a call that
-## would overlap gives way. One stagger at a time; a second parried elite just holds.
+## A parried elite staggers: it holds while its sequence plays. A call not yet on
+## the towers gives way; one already shown plays first, then a bar of rest.
+## One stagger at a time; a second parried elite just holds.
 func _stagger_notes(struck: Dictionary) -> void:
 	if legacy:
 		super._stagger_notes(struck)
@@ -353,31 +361,52 @@ func _stagger_notes(struck: Dictionary) -> void:
 	if _stagger_until > beat_time() or boss_alive():
 		return
 	var beat := clock.beat_length()
-	var step := step_length()
-	var shapes: Array = STAGGERS[band(wave)]
-	var shape: String = shapes[rng.randi() % shapes.size()]
+	var size: int = STAGGER_SIZES[band(wave)]
 	var t0 := (floorf(beat_time() / beat) + 2.0) * beat
-	var t1 := t0 + shape.length() * step
-	# Calls not shown yet give way; one already on the towers plays first.
-	var drop := {}
+	# A call with any note already on a tower plays out whole.
+	var shown := {}
 	for m in notes:
-		if m["state"] == "open" and m.has("seq") and m["time"] >= t0 - step and m["time"] <= t1 + step:
-			if m["tower"] == null:
-				drop[m["seq"]] = true
-			else:
-				t0 = maxf(t0, ceilf((m["time"] + beat) / beat) * beat)
+		if m.has("seq") and (m["tower"] != null or m["state"] != "open"):
+			shown[m["seq"]] = true
+	var drop := {}
+	var kept_end := -INF
+	for m in notes:
+		if not m.has("seq"):
+			continue
+		if m["state"] == "open" and not shown.has(m["seq"]):
+			drop[m["seq"]] = true
+	for id in _seq_last:
+		if not drop.has(id):
+			kept_end = maxf(kept_end, _seq_last[id])
+	t0 = maxf(t0, kept_end + clock.bar_length())
 	for m in notes.duplicate():
-		if m["state"] == "open" and drop.has(m.get("seq", -1)) and m["tower"] == null:
+		if m["state"] == "open" and drop.has(m.get("seq", -1)):
 			notes.erase(m)
 			_wave_notes -= 1
 			stats[m["type"]]["notes"] -= 1
 	for id in drop:
 		_seqs.erase(id)
+		_seq_last.erase(id)
 		phrase_stats["calls"] -= 1
-	t1 = t0 + shape.length() * step
-	_stagger_until = t1
-	struck["frozen_until"] = maxf(struck.get("frozen_until", 0.0), sim_time + (t1 - beat_time()) + beat)
-	_add_sequence(t0, shape, struck, true)
+	var times := _beats_from(t0, size)
+	_stagger_until = times[times.size() - 1] + beat
+	struck["frozen_until"] = maxf(struck.get("frozen_until", 0.0), sim_time + (_stagger_until - beat_time()) + beat)
+	_add_sequence(times, struck, true)
+
+
+func _play(key: Key) -> void:
+	if legacy:
+		super._play(key)
+		return
+	var now := press_time()
+	if now < _key_lock.get(key, -INF):
+		_key_lock[key] = now + MASH_LOCK_MS / 1000.0
+		_show_feedback("Locked", Color(1, 1, 1, 0.4))
+		return
+	var hits_before: int = stats["kick"]["hits"] + stats["bass"]["hits"]
+	super._play(key)
+	if stats["kick"]["hits"] + stats["bass"]["hits"] == hits_before:
+		_key_lock[key] = now + MASH_LOCK_MS / 1000.0
 
 
 func _on_miss(n: Dictionary) -> void:

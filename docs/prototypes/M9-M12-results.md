@@ -52,3 +52,7 @@ Balance bot (`tests/t_bal1.gd`, plays the 20-wave run in real time; hit rate and
 | New rules, 0.85 / 0.85 | won, 18 of 20 health | 16:51 | waves 26 to 107 s |
 
 Boss health is based on the old creep curve times 1.0 + 0.06 per wave. The new creep health is about 1.7 times higher by wave 5, and putting the boss multiplier on top of it walled the bot at the first boss. Late waves still offer many notes (65 on wave 19, down from 102). The bot's late hit rate is low because calls overlap with staggers. Jared's playtest decides the next tuning step. No Mac or Windows builds were made (Jared, 22:59Z).
+
+## Rhythm fix (D-0047, 2026-10-27)
+
+Calls and staggers now put every note on a beat, alternating Kick and Snare. Calls grow longer with the wave, not faster. A full bar of rest separates any two sequences, including across a wave change. A missed Q or E press locks that key for 180 ms. The balance bot now checks every sequence note as it appears: on the beat, never on beat 1, alternating, and a bar of rest between sequences. The last run had 0 faults over 20 waves and won with 20 of 20 health in 14:26 (bot at 0.85 / 0.85). A run at 0.6 / 0.65 won with 7 of 20 health in 17:50. The bots' note hit rate drops in waves 16 to 19 (both before and after this change). Not yet checked: whether that comes from suppressed towers or from the bot's frame rate under load.

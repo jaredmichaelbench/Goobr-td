@@ -9,6 +9,27 @@ var plan := {}  # note -> press offset in seconds, or null for a deliberate miss
 var parry_plan := {}
 var wave_t0 := 0.0; var run_t0 := -1.0; var base := {}
 var rng := RandomNumberGenerator.new()
+var checked := {}; var last_seq_t := -INF; var last_seq := -1; var last_type := ""; var bad := 0
+func check_rhythm():
+	# Playtest 3: seq notes on the beat, never beat 1, Kick/Snare alternating, a bar of rest between sequences.
+	var beat: float = m.clock.beat_length()
+	var list := []
+	for n in m.notes:
+		if n.has("seq") and n["tower"] != null and not checked.has("%d:%.4f" % [n["seq"], n["time"]]): list.append(n)
+	list.sort_custom(func(a, b): return a["time"] < b["time"])
+	for n in list:
+		checked["%d:%.4f" % [n["seq"], n["time"]]] = true
+		var b: float = n["time"] / beat
+		var why := ""
+		if absf(b - roundf(b)) > 0.01: why = "off the beat"
+		elif posmod(roundi(b), 4) == 0: why = "on beat 1"
+		elif n["seq"] == last_seq and n["type"] == last_type: why = "no alternation"
+		elif n["seq"] == last_seq and n["time"] - last_seq_t < beat - 0.01: why = "too close"
+		elif n["seq"] != last_seq and last_seq >= 0 and n["time"] - last_seq_t < m.clock.bar_length() - 0.01 and not m.boss_alive(): why = "no rest %.2fs" % (n["time"] - last_seq_t)
+		if why != "":
+			bad += 1
+			if bad <= 10: print("%s RHYTHM %s wave %d t %.2f stagger %s active %s" % [label, why, m.wave, n["time"], m._seqs.get(n["seq"], {}).get("stagger", "?"), m.wave_active])
+		last_seq = n["seq"]; last_seq_t = n["time"]; last_type = n["type"]
 func _init():
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0: p_hit = float(args[0])
@@ -69,6 +90,9 @@ func _process(_d):
 	f += 1
 	if f == 2:
 		m.auto_send = true; spend()
+		m._play(KEY_Q); m._play(KEY_Q)
+		print("%s MASH lock set %s" % [label, m._key_lock.has(KEY_Q)])
+	check_rhythm()
 	if run_t0 < 0.0 and m.wave_active: run_t0 = m.beat_time()
 	if m.drafting and f % 30 == 0:
 		var idx := 0
@@ -100,5 +124,5 @@ func _process(_d):
 		if parry_plan[key] and absf(pt - cand["time"]) < 0.012: m._parry(); break
 	if not m.suppressed.is_empty() and f % 60 == 0: m._press_restore()
 	if m.state != "playing" or m.wave > 20:
-		print("%s END state %s wave %d health %d time %.0fs nailed %d/%d staggers %d" % [label, m.state, m.wave, m.health, m.beat_time() - run_t0, m.phrase_stats["nailed"], m.phrase_stats["calls"], m.phrase_stats["staggers"]])
+		print("%s END state %s wave %d health %d time %.0fs nailed %d/%d staggers %d rhythm faults %d" % [label, m.state, m.wave, m.health, m.beat_time() - run_t0, m.phrase_stats["nailed"], m.phrase_stats["calls"], m.phrase_stats["staggers"], bad])
 		quit()

@@ -16,7 +16,7 @@ const GOLD := "#ffd95a"
 const GLOSSARY := {
 	"note": "A ring over a tower. Press its key (Q or E) as the ring closes.",
 	"snipe": "A landed note fires its tower across the whole board at the creep nearest the Conductor.",
-	"call": "The short sequence of notes every four bars. Land all of it for a finisher.",
+	"call": "The short sequence of notes every four bars, one per beat, Kick then Snare. Land all of it for a finisher.",
 	"finisher": "Every note of a call landed: the Conductor fires one big shot.",
 	"Perfect": "A note within 35 ms of the beat. It hits twice as hard as a Good.",
 	"parry": "Space as an enemy attack lands. It sends damage back and staggers elites.",
@@ -34,7 +34,7 @@ const GLOSSARY := {
 ## Talent and card effects: [kind, label, plain sentence, glossary words].
 ## {v} in the label is the value for the ranks in question.
 const EFFECTS := {
-	"note_rate": ["int", "{v} note in every call", "Each call gets an extra note on a free off-beat.", ["call"]],
+	"note_rate": ["int", "{v} note in every call", "Each call is one note longer, still on the beat (up to six).", ["call"]],
 	"perfect_mult": ["pct", "{v} damage on Perfect notes", "Notes you land Perfect hit harder still.", ["Perfect"]],
 	"damage_mult": ["pct", "{v} damage, every tower", "Every tower's shots and snipes deal more.", ["snipe"]],
 	"echo": ["pct", "{v} of the snipe again", "After a landed note, its target is hit a second time for a share of the snipe.", ["snipe"]],
