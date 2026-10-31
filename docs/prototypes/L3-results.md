@@ -199,3 +199,15 @@ W5  notes 66/89  parries 26/39  counters 0/0  hp -19
 ```
 
 Read (Claude): 19 of the 23 misses came in the boss fight, and 17 misses were no press at all, so the boss fight is where the night is lost, not timing. Before the boss: 4 misses all night. Won on 1 health. All 9 talents went to economy. The "by wave" line lumps the whole night into one row (W5), so the log needs a by-section breakdown instead.
+
+## Night 1 v3 (D-0052), built 2026-10-31
+
+What changed is in D-0052. Bot runs (`tests/t_level.gd`, towers only, no walls or maze):
+
+| Bot (notes, parries) | Result | By section |
+|---|---|---|
+| 70%, 70% | fell after the song, boss at 53% | first half lost 1 health in total; groove -12, finale -7 (missed bolts) |
+| 75%, 85% | survived | first half lost nothing; groove -3, finale -3 |
+| 50%, 50% | fell in the groove | first half lost 3 |
+
+The first half is now gentle; the boss fight is decided by parries, which is the point. A bolt you miss still costs 2 health (or a shield). `tests/t_v3_smoke.gd` loads the full scene (HUD and 3D view), builds a tower on a wall (charged the tower price minus the wall's) and prints the run log by section.

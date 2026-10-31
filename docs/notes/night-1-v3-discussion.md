@@ -8,3 +8,11 @@ Claude Doc for Jared's markup: https://claude.ai/artifact/1c91L7Lf7Y3TWBzkWWAofN
 4. Run log "By section" instead of "By wave" (agreed by Jared 15:21Z).
 5. Wall juggling: no change in v3; Jared tests first. If too strong, lean A: a sold tile is rubble for 2 bars (B: 25% refund during pushes; C: creeps commit).
 6. Not in v3: tower balance by cost, passive tower abilities, talent point rate, naming table, old-path fade, camp assets, sound pass.
+
+## Jared's markup (15:30Z), agreed
+1. Boss: agree on the approach; keep "closest enemy" as a watch item.
+2. Difficulty: agreed.
+3. Note colours: "a feel thing", try it; ask him about it at the next test if he doesn't mention it.
+4. Run log by section: agreed.
+5. Juggling: loves the rubble idea but backlog it; rubble needs controls (dead space from a misclick, or swapping a wall for a tower, is bad). Add: building a tower on a wall replaces the wall and refunds its gold, "like it's upgrading the wall".
+Recorded as D-0052, built as T-031.

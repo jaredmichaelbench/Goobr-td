@@ -130,7 +130,7 @@ func _draw_towers() -> void:
 ## Each open note: a disc in the note's colour with its key, over its tower, and a
 ## ring closing on it over the two beats before it lands.
 ## A call (D-0046) shows whole as soon as its first ring starts: the notes still
-## to come sit as small dim discs with their order, so the sequence can be read.
+## to come sit as hollow rings with their order, so the sequence can be read.
 func _draw_notes(bt: float) -> void:
 	var lead: float = sim.RING_LEAD_STEPS * sim.step_length()
 	var order := {}  # seq id -> note times in order
@@ -150,16 +150,17 @@ func _draw_notes(bt: float) -> void:
 		var color: Color = ORANGE if n["type"] == "kick" else PURPLE
 		var num: int = (order[n["seq"]].find(n["time"]) + 1) if n.has("seq") and order[n["seq"]].size() > 1 else 0
 		if n["time"] - bt > lead:
-			var rs := ppm * 0.22
-			draw_circle(p, rs + 2.0, Color(0.1, 0.08, 0.12, 0.6))
-			draw_circle(p, rs, color * Color(1, 1, 1, 0.5))
-			_text(p, sim.NOTE_NAMES[n["type"]], maxi(11, int(rs * 1.2)), Color(0.12, 0.08, 0.1, 0.8), 0)
-			if num > 0:
-				_text(p + Vector2(rs + 8.0, -rs - 2.0), str(num), 13, Color(1, 1, 1, 0.75), 3)
+			# Waiting (v3, D-0052): a hollow ring in the note's colour with its
+			# order. Never a dim fill: dim must not read as "not active".
+			var rs := ppm * 0.24
+			draw_arc(p, rs, 0, TAU, 32, Color(0.1, 0.08, 0.12, 0.8), maxf(5.0, ppm * 0.09))
+			draw_arc(p, rs, 0, TAU, 32, color, maxf(3.0, ppm * 0.05))
+			_text(p, str(num) if num > 0 else sim.NOTE_NAMES[n["type"]], maxi(13, int(rs * 1.2)), color, 3)
 			continue
+		# Live: solid, full brightness from the moment it goes live.
 		var left: float = clampf((n["time"] - bt) / lead, 0.0, 1.0)
 		var r := ppm * 0.3
-		draw_arc(p, r + ppm * 1.25 * left, 0, TAU, 48, color * Color(1, 1, 1, 0.45 + 0.55 * (1.0 - left)), maxf(3.0, ppm * 0.08))
+		draw_arc(p, r + ppm * 1.25 * left, 0, TAU, 48, color, maxf(3.0, ppm * 0.08))
 		draw_circle(p, r + 3.0, Color(0.1, 0.08, 0.12, 0.9))
 		draw_circle(p, r, color)
 		if left <= 0.02:

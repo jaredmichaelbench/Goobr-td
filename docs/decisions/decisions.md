@@ -334,3 +334,18 @@ Decision:
 7. The run log counts misses by reason (no press, early, late) and context (building, near a parry, boss fight).
 8. A level names its asks (q e parry stagger counter) and can mark a push "quiet". Night 1: Q calls and parries, quiet intro; tiers lowered to match (chorus 3, groove 4, finale 5).
 Alternatives: in the doc (no-build zone only; talents in the lulls).
+
+## D-0052: Night 1, version 3
+2026-10-31 · accepted (Jared, "Night 1 v3: discussion" doc, 15:30Z: agreed on every section; rubble backlogged; towers on walls added in his note)
+Context: three v2 runs (`prototypes/L3-results.md`): fell in the finale, fell in the groove, survived on 1 health with 19 of 23 misses in the boss fight (17 never pressed). Close in, the boss threw 8th and 16th note strings with no rest and half-second flights, and at the keep it took 1 health a bar whatever you parried. The first half was too hard for a first night.
+Decision:
+1. The boss walks in 8 bars before the finale (Night 1: bar 73, "boss at 16" in the groove). It is as strong as the night's hardest push whichever section it enters on.
+2. One readable pattern at every distance: on a walk bar it strides on beats 1 and 2 and plants on 3 and 4; on a throw bar it stands still and launches a bolt on each beat. Each bolt flies a whole number of beats (2 to 4, never less than 2), so every bolt lands on a beat. After a string come one walk bar (two while it is in the far half of the path). Stopping always means bolts are coming.
+3. At the keep there is no per-bar damage: it keeps throwing strings, and only the bolts you miss cost health.
+4. No note lands within one beat of a bolt during the boss fight.
+5. First night lighter: intro 4 walkers (from 7), verse 18 (from 27), chorus 25 (from 37); groove and finale unchanged. Lulls can carry a light trickle (rise: 3 walkers; breakdown: 3 walkers and a sprinter) while the music stays calm and no notes are asked. Start gold 150 and the 5% price step unchanged.
+6. Notes: a waiting note (later in a call) is a hollow ring in its colour with its order number; a live note is solid at full brightness from the moment it goes live (2 beats out, unchanged). Dim no longer means anything.
+7. The run log prints "By section" (notes, parries, health lost, boss) instead of "By wave".
+8. Building a tower on a wall replaces the wall: the wall's price comes off the tower, like upgrading the wall, and the tile never stands empty.
+9. "Notes hit the enemy nearest the camp" stays a watch item. The wall delete-and-rebuild trick (juggling) is not changed; Jared tests it first, and a "rubble" rule is backlogged with care for misclicks.
+Alternatives: in the doc (rubble, cheaper refunds during a push, creeps committing to a route).

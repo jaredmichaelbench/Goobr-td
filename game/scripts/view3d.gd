@@ -760,7 +760,8 @@ func _sync_reach() -> void:
 func _sync_ghost() -> void:
 	var want := ""
 	var hover := cell_from_screen(get_viewport().get_mouse_position())
-	var ok := sim.state == "playing" and sim.build_mode and sim.grid.in_bounds(hover) and not sim.structures.has(hover) and not sim.terrain.has(hover) and not _over_ui()
+	var swap: bool = sim is LevelRun and sim.wall_swap(hover, sim.selected)
+	var ok := sim.state == "playing" and sim.build_mode and sim.grid.in_bounds(hover) and (swap or not sim.structures.has(hover)) and not sim.terrain.has(hover) and not _over_ui()
 	if ok and sim.unlocked.has(sim.selected):
 		want = sim.selected
 	if want != _ghost_type:
@@ -807,8 +808,10 @@ func _draw_fx() -> void:
 	# Hover: the cell, green or red, and the range of what would be built.
 	var hover := cell_from_screen(get_viewport().get_mouse_position())
 	if sim.state == "playing" and sim.grid.in_bounds(hover) and not _over_ui():
-		if sim.build_mode and not sim.structures.has(hover):
-			var ok: bool = sim.unlocked.has(sim.selected) and sim.gold >= sim.builds[sim.selected]["cost"] and not sim.terrain.has(hover) and sim.grid.can_block([hover], sim._creep_cells())
+		var swap: bool = sim is LevelRun and sim.wall_swap(hover, sim.selected)
+		if sim.build_mode and (swap or not sim.structures.has(hover)):
+			var cost: int = sim.build_cost_at(hover, sim.selected) if sim is LevelRun else sim.builds[sim.selected]["cost"]
+			var ok: bool = sim.unlocked.has(sim.selected) and sim.gold >= cost and not sim.terrain.has(hover) and (swap or sim.grid.can_block([hover], sim._creep_cells()))
 			_quad(world(Vector2(hover), 0.02), 0.48, Color(0.3, 1.0, 0.4, 0.35) if ok else Color(1.0, 0.3, 0.3, 0.35))
 			if sim.builds[sim.selected].has("range"):
 				_ring(world(Vector2(hover), 0.03), sim.type_spec(sim.selected)["range"], 0.05, Color(1, 1, 1, 0.5))

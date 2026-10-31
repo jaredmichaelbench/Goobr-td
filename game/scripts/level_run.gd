@@ -37,7 +37,6 @@ var _booted := false
 var _told := {}  # Watchman tips already said.
 var _overtime_told := false
 var _boss_due := -1.0  # Song bar a "boss at N" boss walks in on, or -1.
-var _boss_hit_bar := -1  # Last bar the boss struck the camp from the keep.
 var _base_cost := {}  # Tower type -> its price with no towers built.
 var _arp_db := -80.0
 var _sweep := 0.0  # Seconds left of the posture-break filter sweep.
@@ -89,6 +88,8 @@ static func parse(text: String) -> Dictionary:
 		if words.size() > 3 and words[3].is_valid_int():
 			s["tier"] = int(words[3])
 			rest_at = 4
+		elif kind == "lull" and not out["sections"].is_empty():
+			s["tier"] = out["sections"][-1]["tier"]  # A lull's trickle is as strong as the push before it.
 		var what := " ".join(words.slice(rest_at))
 		for g in what.split(",", false):
 			var parts := g.strip_edges().split(" ", false)
@@ -344,12 +345,18 @@ func step(delta: float) -> void:
 		return
 	var b := song_bar()
 	while section + 1 < night["sections"].size() and b >= night["sections"][section + 1]["start"]:
+		_log_section()
 		section += 1
+		_section_base = _totals()
+		_section_base["health"] = health
+		_section_base["boss"] = false
 		_enter_section(night["sections"][section])
 	if _boss_due >= 0.0 and b >= _boss_due:
 		_boss_due = -1.0
 		_boss_enters()
 	_tick_boss_threat()
+	if boss_alive() and not _section_base.is_empty():
+		_section_base["boss"] = true
 	_sweep = maxf(0.0, _sweep - delta)
 	var s := current_section()
 	if s.get("kind", "") == "lull" and not _told.has("lift") and b >= s["start"] + s["bars"] - 1.0 and section + 1 < night["sections"].size():
@@ -376,7 +383,10 @@ func _enter_section(s: Dictionary) -> void:
 		if not _told.has("lull"):
 			_told["lull"] = true
 			_watchman("Quiet. Build while it lasts.", 3.5)
-		return
+		if s["groups"].is_empty():
+			return
+		# A lull can carry a light trickle (v3, D-0052): it spawns like a push
+		# but keeps the lull's calm music and its quiet chart.
 	_push_plan.clear()
 	var beat := clock.beat_length()
 	for g in s["groups"]:
@@ -400,7 +410,12 @@ func _enter_section(s: Dictionary) -> void:
 
 
 func _boss_enters() -> void:
+	# The boss is as strong as the night's hardest push, whichever section it walks in on.
+	var keep := wave
+	for s in night["sections"]:
+		wave = maxi(wave, s["tier"])
 	_summon_boss()
+	wave = keep
 	if not _told.has("boss"):
 		_told["boss"] = true
 		_watchman("That one's big. Not my department.", 3.5)
@@ -431,6 +446,7 @@ func clear_title() -> String:
 ## Morning: the XP earned fills up on the end screen, talents are spent there
 ## (Jared: out of the level, so nobody juggles building and spending), then the card.
 func _finish() -> void:
+	_log_section()
 	ending = true
 	night_phase = "summary"
 	_held_level_ups = 0
@@ -487,13 +503,56 @@ func try_place(cell: Vector2i, type: String) -> bool:
 		_say("Too far from the camp: build near the keep or what you have built" if not near_mine(cell) else "Too close to the mine")
 		return false
 	var cost: int = builds[type]["cost"] if builds.has(type) else 0
-	var ok := super.try_place(cell, type)
+	var ok := false
+	if wall_swap(cell, type):
+		ok = _build_on_wall(cell, type)
+	else:
+		ok = super.try_place(cell, type)
 	if ok:
 		_placed_at = beat_time()
 		if structures.has(cell) and type != "wall":
 			structures[cell]["paid"] = cost
 		_apply_prices()
 	return ok
+
+
+## A tower built on a wall replaces it (v3, D-0052): the wall's gold goes into
+## the tower, like upgrading the wall, and the tile never stands empty.
+func wall_swap(cell: Vector2i, type: String) -> bool:
+	return structures.has(cell) and structures[cell]["type"] == "wall" and is_tower(type)
+
+
+## What building `type` on `cell` costs after a wall's credit.
+func build_cost_at(cell: Vector2i, type: String) -> int:
+	var cost: int = builds[type]["cost"]
+	return maxi(0, cost - builds["wall"]["cost"]) if wall_swap(cell, type) else cost
+
+
+func _build_on_wall(cell: Vector2i, type: String) -> bool:
+	var wall: Dictionary = structures[cell]
+	var credit: int = builds["wall"]["cost"]
+	structures.erase(cell)
+	grid.blocked.erase(cell)
+	grid.rebuild()
+	gold += credit
+	if super.try_place(cell, type):
+		return true
+	gold -= credit
+	structures[cell] = wall
+	grid.blocked[cell] = true
+	grid.rebuild()
+	return false
+
+
+## A left click on a wall with a tower picked builds the tower there.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and state == "playing" and build_mode:
+		var cell := cell_at(event.position)
+		if wall_swap(cell, selected):
+			try_place(cell, selected)
+			get_viewport().set_input_as_handled()
+			return
+	super._unhandled_input(event)
 
 
 func sell(cell: Vector2i) -> void:
@@ -531,10 +590,6 @@ func _apply_prices() -> void:
 
 ## Night 1 asks less (D-0051): with no "e" every note is a Q; no "stagger" and a
 ## parried elite just takes the hit; "quiet" pushes and the count-off have no calls.
-func add_note(time: float, type: String, tower = null) -> void:
-	super.add_note(time, type if asks("e") else "kick", tower)
-
-
 func _stagger_notes(struck: Dictionary) -> void:
 	if asks("stagger"):
 		super._stagger_notes(struck)
@@ -604,37 +659,87 @@ func miss_line() -> String:
 # --- The boss ------------------------------------------------------------------------
 
 const BOSS_STRIDE_MAX := 4.0  # Tiles a second at most while striding.
-const BOSS_KEEP_DAMAGE := 1  # Health a bar once it stands at the keep.
+const BOSS_FLIGHT_MIN_BEATS := 2  # A bolt is in the air at least this long, even at the camp.
+const BOSS_FLIGHT_MAX_BEATS := 4
+const BOSS_NOTE_GAP_BEATS := 1.0  # No note lands this close to a bolt.
 
-## The boss strides on beats 1 and 2 and plants on 3 and 4, at a pace that
-## brings it to the keep as the song ends (D-0051). Frost still holds it; it
-## strides harder afterwards to catch up, up to a cap.
+var _throw_bar := -1
+var section_log: Array[String] = []  # One run-log row per section played.
+var _section_base := {}  # Totals when the current section began.  # The bar the boss stands still and throws in.
+
+## v3 (D-0052): the boss has one readable pattern at every distance. On a walk
+## bar it strides on beats 1 and 2 and plants on 3 and 4. On a throw bar it
+## stands still the whole bar and launches one bolt on each beat; each flies a
+## whole number of beats (2 to 4), so every bolt lands on a beat. After a
+## string comes at least one walk bar (two when it is far away), so stopping
+## always means "bolts are coming". Its pace still brings it to the camp as the
+## song ends; frost holds it and it strides harder to catch up, up to a cap.
 func _move_creeps(delta: float) -> void:
 	if boss_alive() and not boss.get("at_goal", false):
 		var beat := clock.beat_length()
-		var moving := posmod(floori(beat_time() / beat), 4) < 2
-		var left := maxf(song_start + song_seconds - beat_time(), 0.0) * 0.5
+		var bar := floori(beat_time() / clock.bar_length())
+		var moving := bar != _throw_bar and posmod(floori(beat_time() / beat), 4) < 2
+		var left := maxf(song_start + song_seconds - beat_time(), 0.0) * 0.35
 		var want := boss_path_left() / maxf(left, 0.5)
 		boss["speed"] = clampf(want, BOSS_SPEED, BOSS_STRIDE_MAX) if moving else 0.0
 	super._move_creeps(delta)
 
 
-## At the keep it hits the camp every bar until it falls.
+func _call_string(bar: int) -> void:
+	var beat := clock.beat_length()
+	var start := bar * clock.bar_length()
+	_throw_bar = bar
+	var flight := clampi(ceili(boss_path_left() / BOLT_SPEED / beat - 0.001), BOSS_FLIGHT_MIN_BEATS, BOSS_FLIGHT_MAX_BEATS)
+	var landings: Array[float] = []
+	for i in 4:
+		var launch := start + i * beat
+		var arrive := launch + flight * beat
+		bolts.append({"launch": launch, "arrive": arrive, "from": boss["pos"], "state": "flying", "told": false})
+		m5_stats["bolts"] += 1
+		landings.append(arrive)
+	_clear_notes_near(landings)
+	var far := boss_path_left() > 0.5 * float(maxi(grid.dist(SPAWN), 1))
+	var rest_bars := 2 if far else 1
+	_next_string_bar = bar + 1 + rest_bars
+
+
+## Notes already on the board that would land within a beat of a bolt are
+## taken back, so a note never sits on top of a parry.
+func _clear_notes_near(landings: Array[float]) -> void:
+	var gap := BOSS_NOTE_GAP_BEATS * clock.beat_length() - 0.001
+	var keep: Array[Dictionary] = []
+	for n in notes:
+		var clash := false
+		if n["state"] == "open":
+			for t in landings:
+				if absf(n["time"] - t) < gap:
+					clash = true
+					break
+		if clash:
+			stats[n["type"]]["notes"] -= 1
+			_wave_notes -= 1
+		else:
+			keep.append(n)
+	notes = keep
+
+
+## Boss notes in a bar the boss will throw in are not scheduled at all.
+func add_note(time: float, type: String, tower = null) -> void:
+	if boss_alive():
+		var gap := BOSS_NOTE_GAP_BEATS * clock.beat_length() - 0.001
+		for b in bolts:
+			if b["state"] == "flying" and absf(b["arrive"] - time) < gap:
+				return
+	super.add_note(time, type if asks("e") else "kick", tower)
+
+
+## At the camp it keeps throwing; only the bolts you miss cost health (v3, D-0052).
 func _tick_boss_threat() -> void:
-	if not boss_alive() or not boss.get("at_goal", false) or crescendo > 0.0:
+	if not boss_alive() or not boss.get("at_goal", false):
 		return
-	var bar := floori(beat_time() / clock.bar_length())
-	if bar == _boss_hit_bar:
-		return
-	if _boss_hit_bar >= 0:
-		health -= BOSS_KEEP_DAMAGE
-		_punch = PUNCH_SECONDS * 2.0
-		_sfx_hit.play()
-		_show_feedback("THE BOSS HITS THE CAMP", Color(1, 0.35, 0.4))
-		if not _told.has("keep"):
-			_told["keep"] = true
-			_watchman("It's at the camp! Break it, quick!", 3.0)
-	_boss_hit_bar = bar
+	if not _told.has("keep"):
+		_told["keep"] = true
+		_watchman("It's at the camp! Parry it, break it!", 3.0)
 
 
 func _posture_break() -> void:
@@ -718,7 +823,30 @@ func run_lines() -> Array[String]:
 		else:
 			lines[0] = "THE CAMP FELL   in the %s, bar %d of %d" % [s.get("name", "count-off"), maxi(1, floori(song_bar()) + 1), night["bars"]]
 	lines.insert(mini(4, lines.size()), miss_line())
+	# By section, not by wave (v3, D-0052): one row per part of the song.
+	_log_section()
+	var at := lines.find("By wave (hit/offered):")
+	if at >= 0:
+		lines.resize(at)
+	elif lines.is_empty() or lines[-1] != "":
+		lines.append("")
+	lines.append("By section (notes hit/offered, parries, health lost):")
+	lines.append_array(section_log)
 	return lines
+
+
+## One row of the run log for the section that just ended.
+func _log_section() -> void:
+	if _section_base.is_empty() or section < 0:
+		return
+	var t := _totals()
+	var name: String = night["sections"][section]["name"]
+	section_log.append("%-10s notes %d/%d   parries %d/%d   hp -%d%s" % [name,
+		t["hits"] - _section_base["hits"], t["notes"] - _section_base["notes"],
+		t["parried"] - _section_base["parried"], t["throws"] - _section_base["throws"],
+		maxi(0, _section_base["health"] - health), "   boss" if _section_base["boss"] else ""])
+	print("SECTION LOG  " + section_log[-1])
+	_section_base = {}
 
 
 # --- Synth voices for the level -------------------------------------------------------
