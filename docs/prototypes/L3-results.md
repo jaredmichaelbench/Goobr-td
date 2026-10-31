@@ -246,3 +246,24 @@ finale     notes 22/38   parries 23/39   hp -16   boss
 
 - Hollow waiting rings: they read differently, "but it wasnt really helpful". Jared would rather not show waiting notes at all, only the closing ring; the waiting display is what confuses him. The stacking adds to it.
 - Read (Claude): the first half cost nothing; the finale is where the night is decided (38 notes and 39 bolts in 16 bars, 16 health lost). Groove with the boss was fine (-1).
+
+## Night 1 v3 playtest, run 2 (Jared, 2026-10-31 17:12Z), collected, not acted on
+
+```
+THE CAMP FELL   in the finale, bar 90 of 96
+Time 2:45   Health 0/20   Gold earned 171
+Notes 43 hit of 51 (84%)   Perfects 16
+Parries 16 of 32   Towers locked 1   Shields lost 3   Restores 0
+Misses 8: no press 7, early 1 (avg 98 ms), late 0; while building 3, near a parry 0, in the boss fight 4
+Calls nailed 11 of 13   Boss: 20 bolts, 1 break   Level 7   XP 109
+intro      notes 0/0   parries 0/0   hp -0
+verse      notes 8/8   parries 0/0   hp -0
+rise       notes 0/0   parries 1/1   hp -0
+chorus     notes 10/10   parries 1/2   hp -0
+breakdown  notes 0/0   parries 0/2   hp -0
+groove     notes 20/27   parries 8/12   hp -4   boss
+finale     notes 4/4   parries 6/15   hp -16   boss
+```
+
+- Jared's note ask, in his words: "we shouldnt pre-load notes at all during the phrase ... it seems like we pre load the phrase/crescendo marking every note that will be in it, and then rings show the order live, but instead I want to drop the pre-load, let everything read live." That is the D-0046 call preview: when a call's first note is near, all its notes are assigned to towers and shown. Proposal: drop it; each note appears only when its ring starts (2 beats out) and picks its tower then.
+- Read (Claude): notes were 84% this run; the finale was all bolts (6 of 15 parried, 9 missed at 2 health each = the 16 lost). The boss fight's parries decide the night.
