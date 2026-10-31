@@ -358,3 +358,12 @@ Decision:
 2. A missed boss bolt costs 1 health in a level (2 in the run).
 3. The boss rests two walk bars after every string, near or far.
 Alternatives: keep the preview with a different look (the v3 hollow rings; Jared: not helpful).
+
+## D-0054: Night 1, version 3.2
+2026-10-31 · accepted (Jared, thread 18:04Z: "go")
+Context: first v3.1 win (17/20). Notes still stacked; Jared's 14 s video showed it was the Crescendo: a posture break dropped a note on every beat for 6 s across the towers, all pinned and shown at once, Q and E mixed on a Q-only night. The boss's own quiet notes were also pinned to the tower nearest the boss two bars early. Jared also asked for the price rise to count per tower type.
+Decision:
+1. In a level no note is ever pinned to a tower ahead of time: every note, including the boss's and the Crescendo's, picks its tower when its ring starts (two beats out).
+2. The Crescendo burst in a level is every other beat, and Q only unless the night asks for E.
+3. Each tower of a type on the board makes the next of that type dearer (7% on Night 1, from 5% across all towers). Walls stay 4 g (a real choice under time pressure; revisit with the economy).
+Alternatives: free or cheaper walls (parked for the economy pass); keep the all-tower price rise.

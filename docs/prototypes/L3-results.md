@@ -304,3 +304,14 @@ Jared's notes:
 5. UI and UX: he loses track of gold and menus. Wants a minimalist look, information at the eyeline (like WeakAuras in WoW), not data in the corners: "this game requires a different type of attention closer to live combat". Maybe the Warcraft 3 / Legion TD direction was misguided.
 
 Read (Claude), from the video (crops: screens/night1-v31-crescendo-stack-2026-10-31.png): the pile-up is the Crescendo. A posture break drops a note on every beat for 6 seconds across the towers, all assigned and shown at once, with Q and E rolled by M7's pattern even though Night 1 asks only Q; on a tight block of eight towers that is six rings side by side. Normal notes were showing one at a time. The finale cost only 1 health.
+
+## Night 1 v3.2 (D-0054), built 2026-10-31
+
+Crescendo notes live, every other beat, Q only on Night 1; no note pinned to a tower ahead; price rise per tower type (7%). `tests/t_level.gd` now also prints the most notes shown ahead of their ring at once and any E notes on a Q-only night.
+
+| Bot (notes, parries) | Result | Notes shown ahead (max) | E notes |
+|---|---|---|---|
+| 70%, 70% | survived | 1 | 0 |
+| 75%, 85% | survived | 0 | 0 |
+
+(v3.1 showed up to 2 ahead and the Crescendo's E notes. The 50% run was cut off by the test time limit.)

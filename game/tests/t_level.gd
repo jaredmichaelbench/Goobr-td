@@ -52,7 +52,14 @@ func talents():
 			if not ids.is_empty():
 				took = m.take_talent(ids[0]); break
 		if not took: break
+var ahead_max := 0; var e_seen := 0
 func _process(_d):
+	if m.started:
+		var lead: float = m.RING_LEAD_STEPS * m.step_length(); var ahead := 0
+		for n in m.notes:
+			if n["state"] == "open" and n["tower"] is Vector2i and n["time"] - m.beat_time() > lead + 0.05: ahead += 1
+			if n["state"] == "open" and n["type"] != "kick" and not m.asks("e"): e_seen += 1
+		ahead_max = maxi(ahead_max, ahead)
 	f += 1
 	if f == 2:
 		var n: Dictionary = m.night
@@ -99,6 +106,7 @@ func _process(_d):
 		if parry_plan[key] and absf(pt - cand["time"]) < 0.012: m._parry(); break
 	if not m.suppressed.is_empty() and f % 60 == 0: m._press_restore()
 	if m.state != "playing" or m.beat_time() - m.song_start > 400.0:
+		print("NOTES shown ahead of their ring (max at once) %d, E notes on a Q-only night %d" % [ahead_max, e_seen])
 		print("END state %s at song %.1f s (song is %.1f s) health %d notes %d/%d nailed %d/%d boss breaks %d" % [m.state, m.beat_time() - m.song_start, m.song_seconds, m.health, m.stat_total("hits"), m.stat_total("notes"), m.phrase_stats["nailed"], m.phrase_stats["calls"], m.m5_stats["breaks"]])
 		for l in m.run_lines().slice(0, 6): print("  " + l)
 		quit()

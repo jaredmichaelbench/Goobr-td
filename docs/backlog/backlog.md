@@ -39,6 +39,7 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 - **Talent point rate** (Jared, 2026-10-31, v2 run 3): 10 talent points at the end of one night is a lot. Review with the talent rework (T-024).
 - **Tower balance by cost** (Jared, 2026-10-31, v2 run 3): single target spam wins, splash and chain feel unclear, poison is strong. Balance pass where 1 gold is about 1 power, each tower a different profile, splash scaling down with targets.
 - **Passive tower abilities** (Jared, 2026-10-31): not actives, but "every 5 attacks, do X" style effects, folded into the talent tree as tower enhancements.
+- **Wall price** (Jared, 2026-10-31, v3.1): free or cheaper walls? 4 g each (cap 20) vs an extra tower is a real choice under time pressure (instant tower value vs a maze that pays off later), possibly good player expression; more gold makes wall cost irrelevant. Decide with the economy pass (D-0054 keeps 4 g).
 
 ## Economy
 

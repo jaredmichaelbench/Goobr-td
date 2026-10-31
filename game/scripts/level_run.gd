@@ -584,14 +584,16 @@ func in_reach(cell: Vector2i) -> bool:
 	return false
 
 
+## Each tower of a type on the board makes the next of that type dearer
+## (v3.2, D-0054: per type, so mixing types pays; walls never).
 func _apply_prices() -> void:
-	var towers := 0
+	var count := {}
 	for c in structures:
-		if structures[c]["type"] != "wall":
-			towers += 1
+		var t: String = structures[c]["type"]
+		count[t] = count.get(t, 0) + 1
 	for t in builds:
 		if t != "wall" and _base_cost.has(t):
-			builds[t]["cost"] = roundi(_base_cost[t] * (1.0 + night["price_step"] * towers))
+			builds[t]["cost"] = roundi(_base_cost[t] * (1.0 + night["price_step"] * count.get(t, 0)))
 
 
 # --- Asks --------------------------------------------------------------------------
@@ -747,7 +749,9 @@ func add_note(time: float, type: String, tower = null) -> void:
 		for b in bolts:
 			if b["state"] == "flying" and absf(b["arrive"] - time) < gap:
 				return
-	super.add_note(time, type if asks("e") else "kick", tower)
+	# Live notes (D-0053/D-0054): a level never pins a note to a tower ahead;
+	# every note picks its tower when its ring starts.
+	super.add_note(time, type if asks("e") else "kick", null)
 
 
 ## At the camp it keeps throwing; only the bolts you miss cost health (v3, D-0052).
@@ -760,7 +764,28 @@ func _tick_boss_threat() -> void:
 
 
 func _posture_break() -> void:
+	var had := {}
+	for n in notes:
+		had[n] = true
 	super._posture_break()
+	# The Crescendo burst in a level (v3.2, D-0054): every other beat, Q only
+	# unless the night asks for E, and live like every other note: no tower
+	# until its ring starts, so the burst never shows as a pile of rings.
+	var burst: Array[Dictionary] = []
+	for n in notes:
+		if not had.has(n) and n["state"] == "open":
+			burst.append(n)
+	burst.sort_custom(func(a, b): return a["time"] < b["time"])
+	for i in burst.size():
+		var n: Dictionary = burst[i]
+		if i % 2 == 1:
+			notes.erase(n)
+			_wave_notes -= 1
+			stats[n["type"]]["notes"] -= 1
+			continue
+		if not asks("e") and n["type"] != "kick":
+			_retype_note(n, "kick")
+		n["tower"] = null
 	_sweep = clock.bar_length()
 	_sfx_hit.play()
 
