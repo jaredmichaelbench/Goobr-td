@@ -29,6 +29,9 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 - **Board buffer from the HUD** (Jared, 2026-10-31): the top and bottom paths run right up to the HUD bars.
 - **Build range** (Jared, 2026-10-31, for discussion): only build near the base and near walls, to stop spawn camping.
 
+- **Old paths fade** (Jared, 2026-10-31, Night 1 v2): when the maze changes, keep the old route drawn under creeps still walking it; dim it one step at once, then fade it tile by tile as the last creep leaves each tile.
+- **Camp assets for the watchman theme** (Jared, 2026-10-31): new camp and theme art, build animations (with the WC3 construction idea).
+
 ## Economy
 
 | Item | Status | Source | Notes |

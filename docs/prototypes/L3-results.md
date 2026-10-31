@@ -143,3 +143,22 @@ What changed is in D-0051. Bot runs (`tests/t_level.gd`; the bot builds towers o
 The bot never builds walls, so it cannot reach past 4 tiles from the keep and fights a short straight path. Expect a player who mazes to do much better; Jared's run decides whether 150 gold and the 5% price step are right. All of it is in the level file: `gold`, `price_step`, `reach`, `mine`, the tiers.
 
 The boss now strides on the beat at 2.3 tiles a second, 4 when it is behind, and reached the keep after the song in the bot run, then hit the camp each bar.
+
+## Night 1 v2 playtest, run 1 (Jared, 2026-10-31 14:48Z), collected, not acted on
+
+```
+THE CAMP FELL   in the finale, bar 89 of 96
+Time 2:42   Health 0/20   Gold earned 154
+Notes 36 hit of 52 (69%)   Perfects 19
+Parries 7 of 19   Towers locked 2   Shields lost 3   Restores 0
+Misses 14: no press 7, early 5 (avg 116 ms), late 2 (avg 129 ms); while building 3, near a parry 2, in the boss fight 4
+Calls nailed 12 of 18   Staggers 0
+Boss: 8 bolts, 0 stomps, 0 breaks
+Level 7   XP 105   Talents 0 (none)
+```
+
+1. Pathing: when the maze changes, creeps already past a decision point keep walking their old route with no path drawn under them. The behaviour is fine; the old path should stay drawn and fade: one step dimmer at once (no longer the main path), then tile by tile as the last creep leaves it.
+2. Ranged parries may be harder now that the fight is near the camp (a lot happens by the keep), but it fixes the left/right vision split. Unsure yet.
+3. Backlog: new assets for the camp and the night-watchman theme, build animations.
+
+Read (Claude): the early and late misses average 116 and 129 ms, just past the 90 ms Good window. Parries were 7 of 19, the weak spot this run.
