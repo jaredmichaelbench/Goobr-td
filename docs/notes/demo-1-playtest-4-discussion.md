@@ -78,3 +78,7 @@ The counter-attack is a second Space within about 150 ms of a landed parry (a qu
 4. **Bundle 4:** cards, talents and XP, still waiting on your sketches.
 
 Say "go" for step 1 and I'll build it, and tell me your enemy picks and counter answer when you can.
+
+## Handoff (2026-10-31)
+
+Jared changed direction on single player (one song per level, D-0048 and D-0049, `notes/single-player-journey-2026-10-31.md` on branch `claude/project-thread-ifc428`) and chose the coordinator's recommendation. The thread "Write single-player journey discussion doc" now owns step 1 (melee parry timing fix, level chime on the end-of-level card) and the performance pass (step 2). Nothing from this doc was built on this branch. Parked until the template level exists: the 20-wave difficulty bump (step 1 balance), the centre keep map, the Light change and new enemies (step 3), and Bundle 4 (T-024). The parry bug detail is in section 1: `M7Run.throw_wind_bars` returns 1.5 bars from wave 11 while the pips count 4 beats.
