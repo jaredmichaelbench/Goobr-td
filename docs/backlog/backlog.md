@@ -31,6 +31,14 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 
 - **Old paths fade** (Jared, 2026-10-31, Night 1 v2): when the maze changes, keep the old route drawn under creeps still walking it; dim it one step at once, then fade it tile by tile as the last creep leaves each tile.
 - **Camp assets for the watchman theme** (Jared, 2026-10-31): new camp and theme art, build animations (with the WC3 construction idea).
+- **Lull enemy load** (Jared, 2026-10-31, Night 1 v2 run 2): a first night is too hard before gold flows in. Ease the early pushes and let lulls carry a light load of basic threats (walkers, the odd sprinter), so pacing reads like fight design. To discuss in the v3 doc.
+- **Enemy and asset naming table** (Jared, 2026-10-31): one table of every enemy and asset with its real name, so we stop saying "grunt" and "runner" and Jared can choose models. Pairs with the asset review (T-030).
+- **Wall delete and rebuild exploit** (Jared, 2026-10-31, v2 run 3): deleting a wall to let creeps walk a long way round, then rebuilding it, makes them turn back. Needs a rule (sell delay, creeps keep their committed route, or a rebuild cooldown). Jared will make an easy test first.
+- **Boss at the camp** (Jared, 2026-10-31, v2 run 3): the boss gets to melee fast and its hits by the keep are near impossible to parry. Ideas: more stops, show up earlier, attacks on a fixed readable beat pattern. Today it also takes 1 health a bar at the keep even if every hit is parried; parries should matter there.
+- **Note colour language** (Jared, 2026-10-31, v2 run 3): notes later in a call show early as small dim discs, which reads as "not active". Lead time is fixed at 2 beats; make the waiting notes clearly different (shape or outline), not just darker.
+- **Talent point rate** (Jared, 2026-10-31, v2 run 3): 10 talent points at the end of one night is a lot. Review with the talent rework (T-024).
+- **Tower balance by cost** (Jared, 2026-10-31, v2 run 3): single target spam wins, splash and chain feel unclear, poison is strong. Balance pass where 1 gold is about 1 power, each tower a different profile, splash scaling down with targets.
+- **Passive tower abilities** (Jared, 2026-10-31): not actives, but "every 5 attacks, do X" style effects, folded into the talent tree as tower enhancements.
 
 ## Economy
 

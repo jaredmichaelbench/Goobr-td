@@ -162,3 +162,21 @@ Level 7   XP 105   Talents 0 (none)
 3. Backlog: new assets for the camp and the night-watchman theme, build animations.
 
 Read (Claude): the early and late misses average 116 and 129 ms, just past the 90 ms Good window. Parries were 7 of 19, the weak spot this run.
+
+## Night 1 v2 playtest, runs 2 and 3 (Jared, 2026-10-31 15:17Z), collected, not acted on
+
+Run 2: the camp fell in the groove, bar 82. Misses 10: no press 6, early 1 (avg 99 ms), late 3 (avg 140 ms); while building 4.
+
+- Definitely harder. Ease the enemy count until some economy flows in; as a first stage it is probably too hard for a first-time player.
+- Judging wave and lull cadence is hard, "basically like fight design". The lull may be too long and the waves too hard; lulls could take some enemy load (basic walkers, the odd sprinter, nothing massive).
+- Build a table of assets and enemies, to choose models and to call things by their real names.
+
+Run 3 (won, but hard):
+
+1. Maze manipulation works: delete a wall so creeps take a long walk-around, rebuild to make them turn back. Jared will make an easy test first.
+2. The new boss is "insane": erratic movement, awesome. Maybe more stops, and show up earlier, since it got to melee fast. Parries near impossible when it is close: normalise, or slow its attacks so they always land on a readable beat pattern. Question: parrying every hit at the camp, do you still take damage? Answer: yes, in v2 the boss takes 1 health a bar at the keep regardless of parries.
+3. Dim notes: some notes show dark, some light, which reads as "not active". Answer: the lead is always 2 beats (about 0.9 s at 130 BPM); later notes of a call show earlier as small dim numbered discs (`scripts/indicators.gd`), likely the inconsistency. Recommend a clear colour language for waiting vs live notes.
+4. The end card was satisfying. Watch talent point acquisition (10 at the end); backlog with the talent rework.
+5. Level 1 is possible but hard. Towers are not balanced: unclear if splash or chain helps, poison strong, single target spam wins. Balance pass around cost (1 gold about 1 power, different profiles, splash scaling down).
+
+Also backlogged: passive tower abilities ("every 5 attacks do X") as talent tree enhancements.
