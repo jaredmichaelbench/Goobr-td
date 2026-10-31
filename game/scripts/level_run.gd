@@ -768,7 +768,7 @@ func _posture_break() -> void:
 	for n in notes:
 		had[n] = true
 	super._posture_break()
-	# The Crescendo burst in a level (v3.2, D-0054): every other beat, Q only
+	# The Crescendo burst in a level (D-0054, D-0055): every beat, Q only
 	# unless the night asks for E, and live like every other note: no tower
 	# until its ring starts, so the burst never shows as a pile of rings.
 	var burst: Array[Dictionary] = []
@@ -778,11 +778,6 @@ func _posture_break() -> void:
 	burst.sort_custom(func(a, b): return a["time"] < b["time"])
 	for i in burst.size():
 		var n: Dictionary = burst[i]
-		if i % 2 == 1:
-			notes.erase(n)
-			_wave_notes -= 1
-			stats[n["type"]]["notes"] -= 1
-			continue
 		if not asks("e") and n["type"] != "kick":
 			_retype_note(n, "kick")
 		n["tower"] = null

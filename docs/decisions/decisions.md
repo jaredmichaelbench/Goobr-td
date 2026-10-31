@@ -367,3 +367,8 @@ Decision:
 2. The Crescendo burst in a level is every other beat, and Q only unless the night asks for E.
 3. Each tower of a type on the board makes the next of that type dearer (7% on Night 1, from 5% across all towers). Walls stay 4 g (a real choice under time pressure; revisit with the economy).
 Alternatives: free or cheaper walls (parked for the economy pass); keep the all-tower price rise.
+
+## D-0055: Crescendo back to every beat in levels
+2026-10-31 · accepted (Jared, thread 19:48Z: "go")
+Context: v3.2 run 1 fell at bar 90 with 92% notes: only 50 notes all night (82-87 before), 9 in the finale. Halving the Crescendo (D-0054 point 2) cut the snipes that kill, so creeps leaked and the boss broke less. With live notes at most two rings show at once, so the halving is not needed.
+Decision: the Crescendo burst in a level is a note on every beat again, still Q only unless the night asks for E, still live. Rest of D-0054 stands.

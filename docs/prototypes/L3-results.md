@@ -332,3 +332,5 @@ finale     notes 9/9   parries 6/9   hp -8   boss
 Jared: "Feels better, but not enough notes maybe, and the ability to kill reflects it."
 
 Read (Claude): 50 notes all night against 82-87 in v3/v3.1; the finale offered 9 (was 38-43). Halving the Crescendo cut most of them, and notes are the snipes that kill, so creeps leaked in the groove (12 lost with only 4 bolts missed) and the boss broke twice instead of 4-5 times. Since notes are now live (at most two rings show at once), the Crescendo can go back to every beat without stacking.
+
+D-0055 (Crescendo every beat again): bot 75%/85% survived on 17 health, 80 notes offered, 6 breaks, groove -2, finale -0; at most 1 note shown ahead, no E notes.
