@@ -315,3 +315,20 @@ Crescendo notes live, every other beat, Q only on Night 1; no note pinned to a t
 | 75%, 85% | survived | 0 | 0 |
 
 (v3.1 showed up to 2 ahead and the Crescendo's E notes. The 50% run was cut off by the test time limit.)
+
+## Night 1 v3.2 playtest, run 1 (Jared, 2026-10-31 18:42Z), collected, not acted on
+
+```
+THE CAMP FELL   in the finale, bar 90 of 96
+Time 2:46   Health 0/20   Gold earned 158
+Notes 46 hit of 50 (92%)   Perfects 25
+Parries 20 of 27   Towers locked 1   Shields lost 1   Restores 0
+Misses 4: no press 1, early 1 (avg 122 ms), late 2 (avg 176 ms); in the boss fight 1
+Calls nailed 11 of 13   Boss: 16 bolts, 2 breaks   Level 7   XP 115   Type upgrades: Cannon 1
+groove     notes 18/19   parries 9/13   hp -12   boss
+finale     notes 9/9   parries 6/9   hp -8   boss
+```
+
+Jared: "Feels better, but not enough notes maybe, and the ability to kill reflects it."
+
+Read (Claude): 50 notes all night against 82-87 in v3/v3.1; the finale offered 9 (was 38-43). Halving the Crescendo cut most of them, and notes are the snipes that kill, so creeps leaked in the groove (12 lost with only 4 bolts missed) and the boss broke twice instead of 4-5 times. Since notes are now live (at most two rings show at once), the Crescendo can go back to every beat without stacking.
