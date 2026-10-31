@@ -34,9 +34,9 @@ const PATTERNS7 := {"kick": [0, 4], "bass": [1, 3, 5, 7], "slow": [0, 2, 4, 6], 
 ## Rung 2 for these types adds steps to the pattern ("+rate"); the others get range.
 const RATE_STEPS := {"slow": [1, 3, 5, 7], "poison": [1, 3, 5, 7], "lightning": [2, 6]}
 const UNLOCKS := {
-	"poison": {"text": "needs 3 Frost", "stat": "built_slow", "need": 3},
-	"lightning": {"text": "needs 10 Perfects", "stat": "perfects", "need": 10},
-	"light": {"text": "needs a Shade kill", "stat": "kills_shade", "need": 1},
+	"poison": {"text": "build 3 Frost towers", "short": "Frost", "stat": "built_slow", "need": 3},
+	"lightning": {"text": "land 10 Perfect notes", "short": "Perfects", "stat": "perfects", "need": 10},
+	"light": {"text": "kill a Shade", "short": "Shades", "stat": "kills_shade", "need": 1},
 }
 const COUNTER_BURST := 2.0  # Tiles a counter on a creep reaches (D-0040).
 const EXTRA_DRAFT_WAVES := [3, 8, 13, 18]  # Drafts between bosses (D-0040).
@@ -63,7 +63,7 @@ const BRANCHES := {
 	"slow": [["Deep freeze", "every third hit freezes for a beat"], ["Brittle", "frozen creeps always take crits"]],
 	"poison": [["Poison-splash", "hits poison every creep within a tile"], ["Virulent", "poison never wears off"]],
 	"lightning": [["Fork", "one more jump"], ["Static", "arcs reach 4 tiles"]],
-	"light": [["Beacon", "double buff radius"], ["Flare", "its pulse cracks every veil on the board"]],
+	"light": [["Beacon", "doubles the light's radius"], ["Flare", "its pulse cracks every veil on the board"]],
 }
 const XP := {"grunt": 1.0, "runner": 1.0, "swarm": 0.5, "brute": 3.0, "shade": 3.0, "jammer": 8.0, "archer": 8.0, "warden": 8.0, "boss": 40.0}
 const XP_BASE := 10.0
@@ -110,6 +110,7 @@ var ghosts: Array[Dictionary] = []  # target (creep), ttl
 var burning: Array[Dictionary] = []  # pos, until
 var kills := {}
 var _gold_frac := 0.0
+var _note_mult := 1.0  # Perfects are worth more while a note resolves (perfect_mult).
 var m7_stats := {"xp": 0.0, "levels": 0, "talents": 0, "upgrades": 0, "unlocks": 0, "counters": 0, "counter_hits": 0, "crits": 0, "poison": 0.0, "arcs": 0, "rerolls": 0}
 
 
@@ -166,6 +167,10 @@ func _reset_progression() -> void:
 	kills = {}
 	_gold_frac = 0.0
 	m7_stats = {"xp": 0.0, "levels": 0, "talents": 0, "upgrades": 0, "unlocks": 0, "counters": 0, "counter_hits": 0, "crits": 0, "poison": 0.0, "arcs": 0, "rerolls": 0}
+	# The counter-attack is part of the base game since Demo 1 playtest 2 (D-0046):
+	# Jared took no card or talent for it and saw 0 counters in a whole run.
+	gstats["counter"] = true
+	card_taken["counter_card"] = true
 	_apply_stats()
 
 
@@ -184,12 +189,24 @@ func tower_spec(cell: Vector2i) -> Dictionary:
 		var buff := 0.0
 		for other in structures:
 			if structures[other]["type"] == "light" and other != cell and tower_ready(other):
-				var radius := LIGHT_RADIUS * (2.0 if type_branch["light"] == 1 else 1.0)
-				if Vector2(other).distance_to(Vector2(cell)) <= radius:
-					buff += LIGHT_BUFF
+				if Vector2(other).distance_to(Vector2(cell)) <= light_radius():
+					buff += light_boost()
 		if buff > 0.0:
 			spec["damage"] *= 1.0 + buff
 	return spec
+
+
+## The Light tower deals no damage: its rungs grow the boost it gives towers in
+## its light (Jared, playtest 2: "+40% damage, to what?"), and its range is the
+## light's radius (Beacon doubles it).
+func light_boost() -> float:
+	var rank: int = type_rank.get("light", 0)
+	var mult := 1.0 + (0.4 if rank >= 1 else 0.0) + (0.4 if rank >= 4 else 0.0) + (0.4 if rank >= 5 else 0.0)
+	return LIGHT_BUFF * (mult + gstats.get("damage_light", 0.0))
+
+
+func light_radius() -> float:
+	return type_spec("light")["range"] * (2.0 if type_branch.get("light", 0) == 1 else 1.0)
 
 
 func type_spec(type: String) -> Dictionary:
@@ -243,6 +260,13 @@ func type_upgrade_cost(type: String) -> int:
 
 ## What the next rung does, for the panel. Rung 3 is the fork: pick 1 or 2.
 func rung_text(type: String, rank: int) -> String:
+	if type == "light":
+		match rank:
+			1, 4: return "its boost to towers in its light +40% of base"
+			2: return "+1 light radius"
+			3: return "the fork: %s or %s" % [BRANCHES[type][0][0], BRANCHES[type][1][0]]
+			5: return "its boost +40% of base, +0.5 light radius"
+		return "maxed"
 	match rank:
 		1: return "+40% damage"
 		2: return "fires on the off-beats too" if RATE_STEPS.has(type) else "+1 range"
@@ -318,6 +342,14 @@ func unlock_text(type: String) -> String:
 	return "%s (%d/%d)" % [u["text"], mini(unlock_progress(type), u["need"]), u["need"]]
 
 
+## "Frost 2/3": what the locked build button says (D-0046).
+func unlock_short(type: String) -> String:
+	if not UNLOCKS.has(type):
+		return ""
+	var u: Dictionary = UNLOCKS[type]
+	return "%s %d/%d" % [u["short"], mini(unlock_progress(type), u["need"]), u["need"]]
+
+
 func unlock_progress(type: String) -> int:
 	var u: Dictionary = UNLOCKS[type]
 	if u["stat"] == "perfects":
@@ -391,7 +423,7 @@ func _cancel_pulse(c: Dictionary) -> void:
 ## Every hit on a creep goes through here: M7 adds crits (and Joe's dagger,
 ## Brittle frost) on top of cover, veil and armour.
 func damage(c: Dictionary, amount: float) -> float:
-	amount *= veil_mult(c)
+	amount *= veil_mult(c) * _note_mult
 	var chance: float = gstats.get("crit_chance", 0.0)
 	var forced: bool = (gstats.get("first_crit", false) and not c.get("struck", false)) or (type_branch.get("slow", 0) == 2 and c.get("frozen_until", 0.0) > sim_time)
 	c["struck"] = true
@@ -696,10 +728,12 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	var type: String = structures[cell]["type"] if cell is Vector2i and structures.has(cell) else ""
 	var crit := g == "Perfect"
 	_crack_steps = 2 if crit else 1
+	_note_mult = 1.0 + (gstats.get("perfect_mult", 0.0) if crit else 0.0)
 	if type in ["poison", "lightning", "light"]:
 		_resonance_new(n, type, g, offset_ms)
 	else:
 		super._resonance(n, g, offset_ms)
+	_note_mult = 1.0
 	_check_unlocks()
 	# Echo: the note's target takes a share again.
 	var echo: float = gstats.get("echo", 0.0)
@@ -757,7 +791,7 @@ func _resonance_new(n: Dictionary, type: String, g: String, offset_ms: float) ->
 			what = "STORM  %d struck" % struck
 			_punch = PUNCH_SECONDS
 		"light":
-			var radius := LIGHT_RADIUS * (2.0 if type_branch["light"] == 1 else 1.0)
+			var radius := light_radius()
 			var fired := 0
 			for other in structures:
 				if other != cell and is_tower(structures[other]["type"]) and structures[other]["type"] != "light" and tower_ready(other) and Vector2(other).distance_to(Vector2(cell)) <= radius:
@@ -866,6 +900,7 @@ func _on_kill(c: Dictionary) -> void:
 			gold += roundi(ELITE_GOLD * mult)
 	elif kind == "shade":
 		xp_gain *= 1.0 + gstats.get("shade_reward_mult", 0.0)
+	gold += int(gstats.get("kill_gold", 0))
 	gain_xp(xp_gain)
 	if gstats.get("ghost", false):
 		var target := _nearest_creep(c["pos"], c)
@@ -1038,6 +1073,23 @@ func _apply_stats() -> void:
 	crescendo_seconds = CRESCENDO_SECONDS + gstats.get("crescendo", 0.0)
 
 
+## Talents and cards that were shown but never read until Demo 1 playtest 2.
+func damage_scale() -> float:
+	return super.damage_scale() * (1.0 + gstats.get("damage_mult", 0.0))
+
+
+func crossfire_bonus() -> float:
+	return CROSSFIRE_BONUS + gstats.get("crossfire", 0.0)
+
+
+func note_good_ms() -> float:
+	return Timing.GOOD_MS + gstats.get("note_window_ms", 0.0)
+
+
+func counter_tap_ms() -> float:
+	return COUNTER_TAP_MS + gstats.get("counter_window_ms", 0.0)
+
+
 func parry_damage() -> float:
 	return PARRY_DAMAGE * (1.0 + gstats.get("parry_mult", 0.0))
 
@@ -1095,12 +1147,7 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	if (cand["kind"] == "elite" or cand["kind"] == "arrow") and not struck.is_empty() and creeps.has(struck) and struck["hp"] > 0.0:
 		var beat := clock.beat_length()
 		struck["frozen_until"] = maxf(struck.get("frozen_until", 0.0), sim_time + beat * STAGGER_BEATS)
-		var tower := _nearest_tower(struck["pos"])
-		if tower.x >= 0:
-			var first := (floorf(beat_time() / beat) + 2.0) * beat
-			add_note(first, "kick", tower)
-			add_note(first + beat, "bass", tower)
-			_popup(struck["pos"], "STAGGER", Color(1.0, 0.9, 0.3), 13)
+		_stagger_notes(struck)
 	# Wide guard: creeps near the struck one take half the return.
 	var splash: float = gstats.get("parry_splash", 0.0)
 	if splash > 0.0 and not struck.is_empty() and struck.has("pos"):
@@ -1119,8 +1166,19 @@ func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	# The counter (D-0041): a second Space within COUNTER_TAP_MS of this parry, no ring,
 	# no beat to wait for. A Perfect parry makes a Perfect counter. Not during a Volley.
 	if gstats.get("counter", false) and not struck.is_empty() and creeps.has(struck) and struck["hp"] > 0.0 and not (cand["kind"] == "bolt" and boss2()):
-		_counter_open = {"ref": struck, "until": press_time() + COUNTER_TAP_MS / 1000.0, "opened": press_time(), "perfect": perfect}
+		_counter_open = {"ref": struck, "until": press_time() + counter_tap_ms() / 1000.0, "opened": press_time(), "perfect": perfect}
 		m7_stats["counters"] += 1
+
+
+## The two-note phrase after a parried elite throw, on the tower nearest it.
+func _stagger_notes(struck: Dictionary) -> void:
+	var beat := clock.beat_length()
+	var tower := _nearest_tower(struck["pos"])
+	if tower.x >= 0:
+		var first := (floorf(beat_time() / beat) + 2.0) * beat
+		add_note(first, "kick", tower)
+		add_note(first + beat, "bass", tower)
+		_popup(struck["pos"], "STAGGER", Color(1.0, 0.9, 0.3), 13)
 
 
 ## Space: the tap after a landed parry fires the counter; otherwise a parry as before.
@@ -1357,7 +1415,7 @@ func _draw() -> void:
 			draw_string(font, r.position + Vector2(5, 13), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 1.0 if lit else 0.6))
 	# The counter window: a yellow flash on the parried enemy for the tap.
 	if not _counter_open.is_empty() and creeps.has(_counter_open["ref"]):
-		var a: float = clampf((_counter_open["until"] - press_time()) / (COUNTER_TAP_MS / 1000.0), 0.0, 1.0)
+		var a: float = clampf((_counter_open["until"] - press_time()) / (counter_tap_ms() / 1000.0), 0.0, 1.0)
 		if a > 0.0:
 			var p := _to_screen(_counter_open["ref"]["pos"])
 			draw_arc(p, TILE * (0.6 + 0.5 * (1.0 - a)), 0, TAU, 32, Color(1.0, 0.9, 0.3, 0.3 + 0.7 * a), 3.0)

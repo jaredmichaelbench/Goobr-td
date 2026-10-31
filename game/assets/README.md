@@ -1,9 +1,8 @@
-# Assets (kept out of git)
+# Assets
 
-Model packs live here on each machine, never in the repo (size and licences; see `docs/notes/asset-licenses.md`). Only this README is committed.
+- `kaykit/hex/`: KayKit Medieval Hexagon Pack (towers, walls, keep, mine, rocks, trees). `kaykit/chars/`: KayKit Skeletons (creeps and bosses) and the Adventurers Mage (the Conductor). All CC0 by Kay Lousberg; licences beside them. Only the models the game uses are kept.
+- `fonts/`: Lilita One (SIL OFL 1.1, licence beside it).
+- These are in git (D-0044). Which model stands for what is in `scripts/art.gd`: change a line there to swap a look.
+- `models/` (not in git) is the M8 look test's swap folder: `tower.glb`, `creep.glb`, `keep.glb`, `rock.glb`, `wall.glb`, press **S** in the look test.
 
-For the M8 look test, drop glTF files into `assets/models/` with these names and press **S** in the look test to swap the primitives for them:
-
-- `tower.glb`, `creep.glb`, `keep.glb`, `rock.glb`, `wall.glb`
-
-Free CC0 sources: Kenney Tower Defense Kit and Castle Kit (kenney.nl), KayKit medieval packs (kaylousberg.itch.io), Quaternius creatures (quaternius.com). Rename a model from the pack to the names above; one metre is one tile.
+Licences: `docs/notes/asset-licenses.md`.

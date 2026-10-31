@@ -273,16 +273,9 @@ func _scan_songs() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(SONG_CFG)
 	songs = [{"name": "synth stems", "path": "", "bpm": DEFAULT_BPM, "sfx": str(cfg.get_value("sfx", "default", ""))}]
-	var dir := DirAccess.open(SONG_DIR)
-	if dir == null:
-		return
 	var re := RegEx.new()
 	re.compile("^\\s*(\\d+(?:\\.\\d+)?)[\\s_.-]*(.*)$")
-	var names := Array(dir.get_files())
-	names.sort()
-	for f in names:
-		if not f.to_lower().ends_with(".wav"):
-			continue
+	for f in AudioFiles.list_wavs(SONG_DIR):
 		var base: String = f.substr(0, f.length() - 4)
 		var bpm: float = float(cfg.get_value("bpm", "default", DEFAULT_BPM))
 		var m := re.search(base)
@@ -311,7 +304,7 @@ func _scan_songs() -> void:
 
 ## Loads a WAV at runtime (no import step) and loops it on a whole bar.
 func _load_song(path: String, bpm: float) -> AudioStreamWAV:
-	var stream := AudioStreamWAV.load_from_file(ProjectSettings.globalize_path(path))
+	var stream := AudioFiles.load_wav(path)
 	if stream == null:
 		push_warning("Could not load song " + path)
 		return null
@@ -422,7 +415,7 @@ func _process(delta: float) -> void:
 				stats[n["type"]]["notes"] -= 1
 				_wave_notes -= 1
 		# A note that slid past the ring is missed. It only costs the bonus.
-		if press_time() > n["time"] + Timing.GOOD_MS / 1000.0:
+		if press_time() > n["time"] + note_good_ms() / 1000.0:
 			n["state"] = "missed"
 			_on_miss(n)
 	var keep: Array[Dictionary] = []
@@ -533,6 +526,16 @@ func _fire_towers_on(pattern_step: int) -> void:
 		shots.append({"from": Vector2(cell), "to": target["pos"], "color": spec["color"], "ttl": 0.12, "splash": spec["splash"]})
 
 
+## Snipe bonus per extra tower covering the target (a talent raises it in M7).
+func crossfire_bonus() -> float:
+	return CROSSFIRE_BONUS
+
+
+## How late or early a note still counts as Good (a talent widens it in M7).
+func note_good_ms() -> float:
+	return Timing.GOOD_MS
+
+
 ## Global tower damage multiplier. M5's Crescendo raises it.
 func damage_scale() -> float:
 	return 1.0
@@ -612,7 +615,7 @@ func _play(key: Key) -> void:
 		_show_feedback("No note", Color(1, 1, 1, 0.4))
 		return
 	var offset_ms: float = (press_time() - best["time"]) * 1000.0
-	var g := Timing.grade(offset_ms)
+	var g := Timing.grade_parry(offset_ms, note_good_ms())
 	if g == "Miss":
 		_show_feedback("Too early", Color(1, 1, 1, 0.5))
 		return  # The note is still yours to hit.
@@ -644,7 +647,7 @@ func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 		_show_feedback("%s   nothing to hit" % g, color)
 		return
 	var spec: Dictionary = tower_spec(cell)
-	var crossfire := 1.0 + CROSSFIRE_BONUS * maxi(0, _coverage(target["pos"]) - 1)
+	var crossfire := 1.0 + crossfire_bonus() * maxi(0, _coverage(target["pos"]) - 1)
 	var is_freeze: bool = spec.has("slow")
 	var is_wave: bool = spec["splash"] > 0.0 or is_freeze
 	var mult: float

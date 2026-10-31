@@ -19,6 +19,7 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 | Boss arena manipulation (temporary path cleaves, node lockdowns, shockwaves down straight corridors) | needs-proto | Prompt 2 | Expand after the first boss works. Must not permanently break mazes. |
 | Boss buffs itself unless the player keeps the rhythm (alternative boss model) | maybe | Prompt 3 | Superseded as the main model by D-0005; keep as a variant mechanic for one boss. |
 | Mutant unit behaviors / temporary lane modifiers per wave | parked | Prompt 2 | Content for the per-wave roll. |
+| Grace note: a special talent or card that adds one quick 8th note at the end of a call | idea | Jared, playtest 3 (2026-10-27) | Calls stay on the beat (D-0047); fast notes are kept for something special like this. Promote with the talent and card review (T-024). |
 
 ## Economy
 
@@ -73,3 +74,8 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 - Boss stand tile (D-0041 option B): bosses walk to a marked mid-maze tile and fight from there. For the sim/view milestone maps.
 - Conductor in the centre map (D-0041 option C): spawns both sides, maze ends in the middle, towers ring the Conductor. A map of its own; fits mirrored 1v1.
 - Multiplayer camera (Jared, 2026-10-26, on the Demo 1 plan): fixed camera per board; Tab or keys to view an opponent's board, live thumbnails of the other boards for the glance (Tetris 99 style). No free camera or minimap: the rhythm needs every telegraph in view. Implication for the vision's "one rectangle, a corner per player": each corner is its own board at full screen when viewed.
+- Collapse the M2 to M7 scripts into one run (D-0044, deferred from M9): the 3D build runs the chain unchanged behind `RunSim`. Do it when a rule change keeps tripping over the inheritance, with the bots as the regression check.
+- Compare Kenney TD Kit and Quaternius monsters against the KayKit look (D-0044): blocked from the cloud machine, can be downloaded by hand into `game/assets/` and swapped in `art.gd`.
+- Name and theme: "Goobr TD", skeletons and a medieval keep are placeholders (D-0044).
+- Custom app icon for the exported builds (Jared, 2026-10-26): the Demo 1 Mac and Windows builds show the Godot icon. Needs an icon image once the name and theme settle; set it in project settings and the export presets.
+- From the Demo 1 UI review (D-0045, not in the demo): a three-model upgrade line per tower (Base, Fortified, Ascended); controller support and key remapping (keybinds to be worked on separately, Jared); colour-blind palettes and shapes; text scaling and reduced flash; talent respec; the world pulsing on the beat (grass, towers); coin pops and count-ups on gold; talent tooltips anchored so they never cover a neighbour.
