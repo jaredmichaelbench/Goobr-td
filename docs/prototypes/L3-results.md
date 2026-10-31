@@ -71,3 +71,36 @@ W6  notes 68/114  parries 28/40  counters 0/28  hp -6
 ```
 
 Read (Claude): about 55 s past the song's end, so the boss fight ran long. Nine talent points unspent, counters 0 of 28. Only one wave line: the board never fully cleared between pushes, so the whole night logged as one wave.
+
+## Playtest 1, attempt 2 (Jared, 2026-10-31 13:45Z), collected, not acted on
+
+UI and look:
+1. The opening "N or the play button starts the night" line should be a pop-up: Start the night as its button, the explainer text, a way to minimise it to study the map and an easy way to bring it back. The line can stay as the "why you can't build" message, but the first load must make it clear you are locked until you start.
+2. UI pass needed, later: tower upgrades are hard to see without studying, the upgrade button is in two places, and every menu item shares one look so nothing stands out.
+3. The top and bottom paths run right up to the HUD bars; the board may need a buffer.
+4. Grid lines only while building (WC3 style). Art decision, later pass.
+5. Watch item: maybe too much start gold; he built 9 towers quickly at the start.
+
+Gameplay:
+1. Easier this time, probably because he built near the spawn. Discussion only: a build range (for example within 5 tiles of the base and 3 of a wall) to stop spawn camping. Limited build time does not solve it: even 1 second is enough for most players.
+2. Still missing many notes, even as the designer: the window, or juggling parries and two note types at once? The boss still does not feel exciting (as in attempt 1).
+3. Talents felt distracting, and the card shown in a lull (the push-cleared card with "LEVEL n, talent points to spend") made him think the level had ended or he was in the wrong mode. Something needs to change.
+
+```
+NIGHT SURVIVED   Night 1: Night Life
+Time 2:27   Health 18/20   Gold earned 461
+Notes 40 hit of 60 (66%)   Perfects 25
+Parries 13 of 23   Towers locked 8   Shields lost 3   Restores 0
+Calls nailed 10 of 17   Staggers 3
+Boss: 16 bolts, 0 stomps, 1 breaks
+Picks: Tar walls
+Level 10   XP 237   Talents 8 (Sharpen 3, Reach 3, Workshop, Resonance)
+Type upgrades: none   Unlocked: Poison, Lightning, Light
+Crits 0   Arcs 0   Poison 0   Counters 0 of 10
+Stats: damage +15%, range +0.4
+W1  notes 1/6  parries 0/0  counters 0/0  hp -0   |   W2  notes 3/5  parries 1/1  counters 0/1  hp -0
+W4  notes 9/11  parries 2/2  counters 0/1  hp -0   |   W5  notes 14/14  parries 2/4  counters 0/1  hp -0
+W6  notes 13/24  parries 8/16  counters 0/7  hp -2
+```
+
+Read (Claude): the boss went down in one break this time (16 bolts vs 32). Counters 0 of 38 across both runs: nobody lands the tap after a parry, so either it is not seen or the window is too tight. The intro push gave 6 notes and he hit 1, while building.

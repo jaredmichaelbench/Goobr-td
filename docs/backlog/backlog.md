@@ -25,6 +25,10 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 - **Boss music on misses** (Jared, 2026-10-31, Night 1 playtest): missed notes in a boss fight drop the music and the epic feel; a boss should sound epic win or lose, streaks add to it. To discuss.
 - **Sound pass** (Jared, 2026-10-31): notes, parries and the rest need carefully chosen sounds; the game is not satisfying without them (with the parked sounds item).
 
+- **Grid lines only while building** (Jared, 2026-10-31, Night 1 playtest): like WC3. Art decision for a later pass.
+- **Board buffer from the HUD** (Jared, 2026-10-31): the top and bottom paths run right up to the HUD bars.
+- **Build range** (Jared, 2026-10-31, for discussion): only build near the base and near walls, to stop spawn camping.
+
 ## Economy
 
 | Item | Status | Source | Notes |
