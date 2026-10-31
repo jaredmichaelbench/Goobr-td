@@ -180,3 +180,22 @@ Run 3 (won, but hard):
 5. Level 1 is possible but hard. Towers are not balanced: unclear if splash or chain helps, poison strong, single target spam wins. Balance pass around cost (1 gold about 1 power, different profiles, splash scaling down).
 
 Also backlogged: passive tower abilities ("every 5 attacks do X") as talent tree enhancements.
+
+Run 3 log (Jared, 15:19Z; screenshot in the shared folder at screens/night1-v2-run3-2026-10-31.png):
+
+```
+NIGHT SURVIVED   Night 1: Night Life
+Time 3:20   Health 1/20   Gold earned 318
+Notes 66 hit of 89 (74%)   Perfects 44
+Parries 26 of 39   Towers locked 2   Shields lost 3   Restores 0
+Misses 23: no press 17, early 4 (avg 117 ms), late 2 (avg 148 ms); while building 0, near a parry 1, in the boss fight 19
+Calls nailed 14 of 18   Staggers 0
+Boss: 28 bolts, 0 stomps, 3 breaks
+Picks: Grindstone
+Level 10   XP 226   Talents 9 (Scholar 3, Lucky coin 2, Interest, Trade routes, Toll road, Hoard)
+Type upgrades: none   Unlocked: Lightning, Light
+Stats: damage +25%, luck +2, gold +10%, XP +24%
+W5  notes 66/89  parries 26/39  counters 0/0  hp -19
+```
+
+Read (Claude): 19 of the 23 misses came in the boss fight, and 17 misses were no press at all, so the boss fight is where the night is lost, not timing. Before the boss: 4 misses all night. Won on 1 health. All 9 talents went to economy. The "by wave" line lumps the whole night into one row (W5), so the log needs a by-section breakdown instead.
