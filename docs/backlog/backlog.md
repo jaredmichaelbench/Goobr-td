@@ -21,6 +21,10 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 | Mutant unit behaviors / temporary lane modifiers per wave | parked | Prompt 2 | Content for the per-wave roll. |
 | Grace note: a special talent or card that adds one quick 8th note at the end of a call | idea | Jared, playtest 3 (2026-10-27) | Calls stay on the beat (D-0047); fast notes are kept for something special like this. Promote with the talent and card review (T-024). |
 
+- **Boss walk** (Jared, 2026-10-31, Night 1 playtest): the boss walks very slowly and, once the pushes are done, just creeps toward the towers. Idea: faster steps with pauses, same total time down the map. To analyse before changing.
+- **Boss music on misses** (Jared, 2026-10-31, Night 1 playtest): missed notes in a boss fight drop the music and the epic feel; a boss should sound epic win or lose, streaks add to it. To discuss.
+- **Sound pass** (Jared, 2026-10-31): notes, parries and the rest need carefully chosen sounds; the game is not satisfying without them (with the parked sounds item).
+
 ## Economy
 
 | Item | Status | Source | Notes |

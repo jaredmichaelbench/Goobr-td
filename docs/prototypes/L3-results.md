@@ -44,3 +44,12 @@ Collect the feedback here, as for the other milestones (INDEX rule 6). Things to
 2. Do you hear the lulls without being told (muffled, quieter), and does the lift into the chorus feel like "here they come"?
 3. Is the finale boss too strong for a first night?
 4. Does the level file make sense to edit?
+
+## Playtest 1 (Jared, 2026-10-31 13:27Z), collected, not acted on
+
+- "This new direction feels a lot better than a 20 second wave."
+- Difficulty felt right: a bad build, panicking, missed notes, tight, but he made it. No balancing asked for.
+- The boss lasted forever (partly his play). It still walks very slowly and, once the pushes are done, creeps toward the towers. Idea: move faster but pause now and then, same time down the map. **To analyse: boss behaviour.**
+- Missing notes in a boss fight drops the music and kills the epic feel. A boss should feel epic whether you are winning or losing; streaks are meant to add to it, misses should not take away. **To discuss.**
+- Sound effects still off: notes, parries and the rest need a proper sound pass to make the game satisfying.
+- He may have played without copying Night Life into `game/audio` (it was likely already there from Demo 1); next test confirms.
