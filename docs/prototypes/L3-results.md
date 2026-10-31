@@ -104,3 +104,25 @@ W6  notes 13/24  parries 8/16  counters 0/7  hp -2
 ```
 
 Read (Claude): the boss went down in one break this time (16 bolts vs 32). Counters 0 of 38 across both runs: nobody lands the tap after a parry, so either it is not seen or the window is too tight. The intro push gave 6 notes and he hit 1, while building.
+
+## Playtest 1, attempt 3 (Jared, 2026-10-31 14:05Z), collected, not acted on
+
+- Same problems. Tower spam saves you from danger, so the economy is the biggest feedback now.
+- The slow boss stands out more each run: it is still far from the base, there is no danger, and you just hope to land notes so it ends sooner.
+- He did not try the counter at all (so the 0 counters across all runs are not a window problem).
+- Asked: is the boss timed to reach the end with the song, and how do slow towers change that? Answer (Claude): no. The boss walks 0.4 tiles a second whatever the song, Frost slows and freezes it like any creep, it stops during a Crescendo, and it never leaks (at the keep it stands and fights). On a long maze it needs minutes, while the finale is about 30 s.
+
+```
+NIGHT SURVIVED   Night 1: Night Life
+Time 3:12   Health 20/20   Gold earned 640
+Notes 71 hit of 100 (71%)   Perfects 37
+Parries 20 of 29   Towers locked 1   Shields lost 3   Restores 0
+Calls nailed 14 of 16   Staggers 6
+Boss: 20 bolts, 0 stomps, 2 breaks
+Picks: Treasure chest
+Level 10   XP 237   Talents 5 (Pulse 2, Accent 3)
+Type upgrades: none   Unlocked: Lightning, Light
+Crits 0   Arcs 0   Poison 0   Counters 0 of 19
+W2  notes 16/16  parries 1/1  counters 0/1  hp -0   |   W4  notes 15/18  parries 2/2  counters 0/2  hp -0
+W6  notes 40/66  parries 17/26  counters 0/16  hp -0
+```
