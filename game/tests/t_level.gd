@@ -20,7 +20,7 @@ func best_cell(range_: float) -> Vector2i:
 	for x in m.GRID_SIZE.x:
 		for y in m.GRID_SIZE.y:
 			var c := Vector2i(x, y)
-			if m.terrain.has(c) or m.structures.has(c) or c == m.SPAWN or c == m.GOAL or route.has(c): continue
+			if m.terrain.has(c) or m.structures.has(c) or c == m.SPAWN or c == m.GOAL or route.has(c) or not m.in_reach(c): continue
 			var n := 0
 			for r in route:
 				if Vector2(r).distance_to(Vector2(c)) <= range_: n += 1
@@ -74,11 +74,16 @@ func _process(_d):
 		if calm_seen >= 0.0: calm_seen = maxf(calm_seen, m.calm()); cut_seen = minf(cut_seen, m._lowpass.cutoff_hz if m._lowpass else 20000.0)
 		if m.song_bar() > m.current_section()["start"] + m.current_section()["bars"] - 0.05 and calm_seen >= 0.0:
 			print("  LULL calm max %.2f cutoff min %.0f Hz, now calm %.2f" % [calm_seen, cut_seen, m.calm()]); calm_seen = -1.0
+	if m.night_phase == "summary" and f % 60 == 0:
+		talents()
+		print("SUMMARY level %d points left %d  %s" % [m.level, m.points, m.miss_line()])
+		m.begin_card()
+	if m.boss_alive() and f % 120 == 0:
+		print("  BOSS bar %.1f path left %.1f speed %.2f at keep %s health %d hp %.0f%%" % [m.song_bar(), m.boss_path_left(), m.boss["speed"], m.boss.get("at_goal", false), m.health, 100.0 * m.boss["hp"] / m.boss["max_hp"]])
 	if m.drafting and f % 30 == 0 and not picked:
 		picked = true
 		print("CARD offered %s" % [m.draft_cards.map(func(c): return c["name"])])
 		m._pick(0)
-	if f % 90 == 0: talents()
 	if f % 200 == 0: spend()
 	var pt: float = m.press_time()
 	for n in m.notes:
@@ -95,5 +100,5 @@ func _process(_d):
 	if not m.suppressed.is_empty() and f % 60 == 0: m._press_restore()
 	if m.state != "playing" or m.beat_time() - m.song_start > 400.0:
 		print("END state %s at song %.1f s (song is %.1f s) health %d notes %d/%d nailed %d/%d boss breaks %d" % [m.state, m.beat_time() - m.song_start, m.song_seconds, m.health, m.stat_total("hits"), m.stat_total("notes"), m.phrase_stats["nailed"], m.phrase_stats["calls"], m.m5_stats["breaks"]])
-		for l in m.run_lines().slice(0, 3): print("  " + l)
+		for l in m.run_lines().slice(0, 6): print("  " + l)
 		quit()

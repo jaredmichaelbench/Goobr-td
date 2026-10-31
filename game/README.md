@@ -14,6 +14,7 @@ Press Play (Cmd+B on Mac). The **title screen** offers Night 1 (the song level),
 - Pushes send exactly what the file says. Lulls send nothing; the music dips and goes muffled, and opens up again on the lull's last bar. The finale here brings a field boss.
 - When the song ends and the board is clear: one card, then the results. If enemies are still up, the finale loops until they are gone.
 - The watchman's tips show as one line over the board ("WATCHMAN ..."), each once.
+- **Version 2 (D-0051):** a start panel (Start the night, or Study the map; Tab brings it back). The camp grows outward: build within 4 tiles of the keep or of anything you built, never near the mine (the allowed cells glow while building). Each tower makes the next one 5% dearer. Night 1 asks for Q and parries only. The boss strides on the beat to reach the keep as the song ends, then hits the camp every bar. No card during the night: talents and the card come on the morning screen, after an XP fill. The run log now says why notes were missed.
 - Bot: `godot --headless --path game -s tests/t_level.gd -- 0.7 0.7` plays it and prints each section with the song bar it started on.
 
 ## Demo 1: the run in 3D (D-0044)

@@ -36,16 +36,28 @@ var _lowpass: AudioEffectLowPassFilter
 var _booted := false
 var _told := {}  # Watchman tips already said.
 var _overtime_told := false
+var _boss_due := -1.0  # Song bar a "boss at N" boss walks in on, or -1.
+var _boss_hit_bar := -1  # Last bar the boss struck the camp from the keep.
+var _base_cost := {}  # Tower type -> its price with no towers built.
+var _arp_db := -80.0
+var _sweep := 0.0  # Seconds left of the posture-break filter sweep.
+var _sfx_whoosh: AudioStreamPlayer
+var _sfx_hit: AudioStreamPlayer
+var _xp_start := {"level": 1, "xp": 0.0}  # Where XP stood when the night started.
+var night_phase := ""  # "" during the night; "summary" (XP fill and talents), "card".
+var misses: Array[Dictionary] = []  # One per missed note: why (none, early, late), ms, building, parry.
+var _placed_at := -INF  # Beat time of the last tower or wall built.
 
 
 # --- The level file ------------------------------------------------------------
 
-## Reads a level file. Header lines are "key = value" (name, song, count, gold);
-## every other line is a section: name kind bars [tier] [what comes]. What comes
-## is groups split by commas, each "kind count @beats" ("grunt 8 @2": eight
-## grunts, one every two beats); "boss" in a finale brings a field boss.
+## Reads a level file. Header lines are "key = value" (name, song, count, gold,
+## price_step, reach, mine, asks); every other line is a section: name kind bars
+## [tier] [what comes]. What comes is groups split by commas, each "kind count
+## @beats" ("grunt 8 @2": eight grunts, one every two beats); "boss" (or "boss at
+## 4", four bars in) brings a field boss; "quiet" means no calls in that push.
 static func parse(text: String) -> Dictionary:
-	var out := {"name": "Night", "song": "", "count": 2, "gold": 150, "sections": [], "bars": 0, "problems": []}
+	var out := {"name": "Night", "song": "", "count": 2, "gold": 150, "price_step": 0.0, "reach": 0.0, "mine": 0.0, "asks": ["q", "e", "parry", "stagger", "counter"], "sections": [], "bars": 0, "problems": []}
 	var bar := 0
 	for raw in text.split("\n"):
 		var line := raw.split(";")[0].strip_edges()
@@ -57,6 +69,10 @@ static func parse(text: String) -> Dictionary:
 			var value := kv[1].strip_edges()
 			if key in ["count", "gold"]:
 				out[key] = int(value)
+			elif key in ["price_step", "reach", "mine"]:
+				out[key] = float(value)
+			elif key == "asks":
+				out[key] = Array(value.to_lower().split(" ", false))
 			else:
 				out[key] = value
 			continue
@@ -68,7 +84,7 @@ static func parse(text: String) -> Dictionary:
 		if not kind in ["push", "lull", "finale"]:
 			out["problems"].append("%s: kind must be push, lull or finale" % words[0])
 			continue
-		var s := {"name": words[0], "kind": kind, "bars": int(words[2]), "tier": 1, "start": bar, "groups": [], "boss": false}
+		var s := {"name": words[0], "kind": kind, "bars": int(words[2]), "tier": 1, "start": bar, "groups": [], "boss": false, "boss_at": 0, "quiet": false}
 		var rest_at := 3
 		if words.size() > 3 and words[3].is_valid_int():
 			s["tier"] = int(words[3])
@@ -80,6 +96,11 @@ static func parse(text: String) -> Dictionary:
 				continue
 			if parts[0] == "boss":
 				s["boss"] = true
+				if parts.size() >= 3 and parts[1] == "at":
+					s["boss_at"] = int(parts[2])
+				continue
+			if parts[0] == "quiet":
+				s["quiet"] = true
 				continue
 			var group := {"kind": parts[0], "count": 1, "gap": 2.0}
 			for p in parts.slice(1):
@@ -126,8 +147,16 @@ func _ready() -> void:
 	boss_waves = []  # Bosses come from the file, not from wave numbers.
 	last_wave = 1000000  # The night ends with the song, not on a wave count.
 	gold = night["gold"]
+	for t in builds:
+		_base_cost[t] = builds[t]["cost"]
+	if not asks("counter"):
+		gstats["counter"] = false  # Taught on a later night.
 	clock.set_stem_volume_db(stem_index["hat"], -80.0)
 	stem_db["hat"] = -80.0
+	# The streak layer for boss fights: an arp in E, silent until earned.
+	stem_index["arp"] = clock.add_stem(_arp(clock.bar_length()), -80.0)
+	_sfx_whoosh = _player(_whoosh(clock.beat_length()), -6.0)
+	_sfx_hit = _player(StemSynth.thud(), 0.0)
 	_level_stream = _build_level_stream()
 	var bus := AudioServer.get_bus_index("Music")
 	if bus >= 0:
@@ -140,9 +169,21 @@ func _ready() -> void:
 		_watchman("Can't find %s in game/audio. Playing on the drum machine." % night["song"], 6.0)
 	elif not night["problems"].is_empty():
 		_watchman("The level file has a problem: " + night["problems"][0], 6.0)
-	else:
-		_watchman("%s.  Study the map, then N or the play button starts the night. The sticks count you in: build fast." % night["name"], 8.0)
 	_booted = true
+
+
+## Which asks this night makes: q, e, parry, stagger, counter (header "asks").
+func asks(what: String) -> bool:
+	return night["asks"].has(what)
+
+
+func _player(stream: AudioStream, db: float) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.stream = stream
+	p.volume_db = db
+	p.bus = "SFX"
+	add_child(p)
+	return p
 
 
 func _exit_tree() -> void:
@@ -262,6 +303,7 @@ func start_wave() -> void:
 
 func _start_level() -> void:
 	started = true
+	_xp_start = {"level": level, "xp": xp}
 	clock.swap_stem(stem_index["hat"], _level_stream)
 	song_start = clock._offset + night["count"] * clock.bar_length()
 	_last_step = -1
@@ -304,6 +346,11 @@ func step(delta: float) -> void:
 	while section + 1 < night["sections"].size() and b >= night["sections"][section + 1]["start"]:
 		section += 1
 		_enter_section(night["sections"][section])
+	if _boss_due >= 0.0 and b >= _boss_due:
+		_boss_due = -1.0
+		_boss_enters()
+	_tick_boss_threat()
+	_sweep = maxf(0.0, _sweep - delta)
 	var s := current_section()
 	if s.get("kind", "") == "lull" and not _told.has("lift") and b >= s["start"] + s["bars"] - 1.0 and section + 1 < night["sections"].size():
 		_told["lift"] = true
@@ -346,10 +393,17 @@ func _enter_section(s: Dictionary) -> void:
 		start_wave()
 		_pushing = false
 	if s["boss"]:
-		_summon_boss()
-		if not _told.has("boss"):
-			_told["boss"] = true
-			_watchman("That one's big. Not my department.", 3.5)
+		if s["boss_at"] > 0:
+			_boss_due = s["start"] + s["boss_at"]
+		else:
+			_boss_enters()
+
+
+func _boss_enters() -> void:
+	_summon_boss()
+	if not _told.has("boss"):
+		_told["boss"] = true
+		_watchman("That one's big. Not my department.", 3.5)
 
 
 ## A push sends exactly what the file says (no run multipliers).
@@ -374,12 +428,46 @@ func clear_title() -> String:
 	return ("%s CLEARED" % s["name"].to_upper()) if not s.is_empty() else "CLEARED"
 
 
+## Morning: the XP earned fills up on the end screen, talents are spent there
+## (Jared: out of the level, so nobody juggles building and spending), then the card.
 func _finish() -> void:
 	ending = true
-	_watchman("Made it to morning. Take something for the road.", 4.0)
+	night_phase = "summary"
+	_held_level_ups = 0
+	tree_open = false
+	_watchman("Made it to morning. Hey, I just work here.", 4.0)
+
+
+## The end screen's Continue: the card, then the results.
+func begin_card() -> void:
+	if night_phase != "summary":
+		return
+	tree_open = false
+	night_phase = "card"
 	_open_draft()
 	if not drafting:
 		state = "won"
+
+
+func xp_start() -> Dictionary:
+	return _xp_start
+
+
+## Level-ups stay silent during the night; the end screen plays them.
+func _announce_levels() -> void:
+	pass
+
+
+## Talents are for after the night; before Start, Tab brings the start panel back.
+func toggle_tree() -> void:
+	if not started:
+		if hud != null and hud.has_method("show_start"):
+			hud.show_start()
+		return
+	if night_phase != "summary":
+		_say("Talents are spent after the night")
+		return
+	tree_open = not tree_open
 
 
 func _pick(i: int) -> void:
@@ -388,12 +476,171 @@ func _pick(i: int) -> void:
 		state = "won"
 
 
-## Nothing is built before Start level: the count-off is the build phase.
+## Nothing is built before Start level: the count-off is the build phase. The
+## camp grows outward (D-0051): a cell within reach of the keep or of anything
+## built, never near the mine. Each tower on the board makes the next one dearer.
 func try_place(cell: Vector2i, type: String) -> bool:
 	if not started:
 		_say("N or the play button starts the night; build during the count-off")
 		return false
-	return super.try_place(cell, type)
+	if not structures.has(cell) and not in_reach(cell):
+		_say("Too far from the camp: build near the keep or what you have built" if not near_mine(cell) else "Too close to the mine")
+		return false
+	var cost: int = builds[type]["cost"] if builds.has(type) else 0
+	var ok := super.try_place(cell, type)
+	if ok:
+		_placed_at = beat_time()
+		if structures.has(cell) and type != "wall":
+			structures[cell]["paid"] = cost
+		_apply_prices()
+	return ok
+
+
+func sell(cell: Vector2i) -> void:
+	super.sell(cell)
+	_apply_prices()
+
+
+func near_mine(cell: Vector2i) -> bool:
+	return night["mine"] > 0.0 and Vector2(cell).distance_to(Vector2(SPAWN)) <= night["mine"]
+
+
+func in_reach(cell: Vector2i) -> bool:
+	if near_mine(cell):
+		return false
+	var r: float = night["reach"]
+	if r <= 0.0 or Vector2(cell).distance_to(Vector2(GOAL)) <= r:
+		return true
+	for c in structures:
+		if Vector2(c).distance_to(Vector2(cell)) <= r:
+			return true
+	return false
+
+
+func _apply_prices() -> void:
+	var towers := 0
+	for c in structures:
+		if structures[c]["type"] != "wall":
+			towers += 1
+	for t in builds:
+		if t != "wall" and _base_cost.has(t):
+			builds[t]["cost"] = roundi(_base_cost[t] * (1.0 + night["price_step"] * towers))
+
+
+# --- Asks --------------------------------------------------------------------------
+
+## Night 1 asks less (D-0051): with no "e" every note is a Q; no "stagger" and a
+## parried elite just takes the hit; "quiet" pushes and the count-off have no calls.
+func add_note(time: float, type: String, tower = null) -> void:
+	super.add_note(time, type if asks("e") else "kick", tower)
+
+
+func _stagger_notes(struck: Dictionary) -> void:
+	if asks("stagger"):
+		super._stagger_notes(struck)
+
+
+func _schedule_bar(bar: int) -> void:
+	if not boss_alive() and current_section().get("quiet", false):
+		return
+	super._schedule_bar(bar)
+
+
+# --- The miss log ------------------------------------------------------------------
+
+## Why each note was missed (D-0051): no press, early or late (by how much), and
+## whether a build or a parry was close. Printed in the run log.
+func _play(key: Key) -> void:
+	var type: String = KEY_TYPE.get(key, "")
+	var near := {}
+	var near_off := INF
+	for n in notes:
+		if n["type"] == type and n["tower"] is Vector2i and absf(press_time() - n["time"]) < near_off and n["state"] in ["open", "missed"]:
+			near = n
+			near_off = absf(press_time() - n["time"])
+	super._play(key)
+	if near.is_empty() or near_off > 0.3:
+		return
+	var off: float = (press_time() - near["time"]) * 1000.0
+	if near["state"] == "open" and off < 0.0:
+		near["early_ms"] = off  # Pressed too early; the note stayed open.
+	elif near["state"] == "missed" and off > 0.0 and near.has("_miss"):
+		var m: Dictionary = near["_miss"]
+		if m["why"] == "none":
+			m["why"] = "late"
+			m["ms"] = off
+
+
+func _on_miss(n: Dictionary) -> void:
+	super._on_miss(n)
+	if not started:
+		return
+	var m := {"why": "early" if n.has("early_ms") else "none", "ms": n.get("early_ms", 0.0),
+		"building": beat_time() - _placed_at < 2.0, "parry": false, "boss": boss_alive()}
+	for cand in _parry_candidates():
+		if absf(cand["time"] - n["time"]) < clock.beat_length():
+			m["parry"] = true
+	n["_miss"] = m
+	misses.append(m)
+
+
+func miss_line() -> String:
+	var c := {"none": 0, "early": 0, "late": 0}
+	var ms := {"early": 0.0, "late": 0.0}
+	var building := 0
+	var parry := 0
+	var boss_n := 0
+	for m in misses:
+		c[m["why"]] += 1
+		if ms.has(m["why"]):
+			ms[m["why"]] += absf(m["ms"])
+		building += 1 if m["building"] else 0
+		parry += 1 if m["parry"] else 0
+		boss_n += 1 if m["boss"] else 0
+	return "Misses %d: no press %d, early %d (avg %d ms), late %d (avg %d ms); while building %d, near a parry %d, in the boss fight %d" % [
+		misses.size(), c["none"], c["early"], roundi(ms["early"] / maxi(c["early"], 1)), c["late"], roundi(ms["late"] / maxi(c["late"], 1)), building, parry, boss_n]
+
+
+# --- The boss ------------------------------------------------------------------------
+
+const BOSS_STRIDE_MAX := 4.0  # Tiles a second at most while striding.
+const BOSS_KEEP_DAMAGE := 1  # Health a bar once it stands at the keep.
+
+## The boss strides on beats 1 and 2 and plants on 3 and 4, at a pace that
+## brings it to the keep as the song ends (D-0051). Frost still holds it; it
+## strides harder afterwards to catch up, up to a cap.
+func _move_creeps(delta: float) -> void:
+	if boss_alive() and not boss.get("at_goal", false):
+		var beat := clock.beat_length()
+		var moving := posmod(floori(beat_time() / beat), 4) < 2
+		var left := maxf(song_start + song_seconds - beat_time(), 0.0) * 0.5
+		var want := boss_path_left() / maxf(left, 0.5)
+		boss["speed"] = clampf(want, BOSS_SPEED, BOSS_STRIDE_MAX) if moving else 0.0
+	super._move_creeps(delta)
+
+
+## At the keep it hits the camp every bar until it falls.
+func _tick_boss_threat() -> void:
+	if not boss_alive() or not boss.get("at_goal", false) or crescendo > 0.0:
+		return
+	var bar := floori(beat_time() / clock.bar_length())
+	if bar == _boss_hit_bar:
+		return
+	if _boss_hit_bar >= 0:
+		health -= BOSS_KEEP_DAMAGE
+		_punch = PUNCH_SECONDS * 2.0
+		_sfx_hit.play()
+		_show_feedback("THE BOSS HITS THE CAMP", Color(1, 0.35, 0.4))
+		if not _told.has("keep"):
+			_told["keep"] = true
+			_watchman("It's at the camp! Break it, quick!", 3.0)
+	_boss_hit_bar = bar
+
+
+func _posture_break() -> void:
+	super._posture_break()
+	_sweep = clock.bar_length()
+	_sfx_hit.play()
 
 
 func _watchman(text: String, seconds: float) -> void:
@@ -426,14 +673,36 @@ func _update_stems(delta: float, speed: int) -> void:
 	if started:
 		target = SONG_ACTIVE_DB - LULL_DIP_DB * k
 	idle_db["hat"] = target
+	# A boss fight only goes up (D-0051): the bed stays at full whatever the
+	# streak, a streak of 4 adds the arp on top, and misses are quieter.
+	var fight := boss_alive()
+	var held := intensity
+	if fight:
+		intensity = INTENSITY_STEPS
 	active_db["hat"] = target + (SONG_STEP_DB * (INTENSITY_STEPS - intensity) if song_index > 0 else 0.0)
 	super._update_stems(delta, speed)
+	intensity = held
+	var arp_target := -7.0 if fight and streak >= 4 and speed == 1 else -80.0
+	var arp := move_toward(_arp_db, arp_target, (240.0 if arp_target > _arp_db else 60.0) * delta)
+	if arp != _arp_db:
+		_arp_db = arp
+		clock.set_stem_volume_db(stem_index["arp"], arp)
+	_sfx["miss"].volume_db = -16.0 if fight else -4.0
+	# Bolts get a rising whoosh into the beat they land on.
+	for b in bolts:
+		if b["state"] == "flying" and not b.has("_whoosh") and b["arrive"] - beat_time() <= clock.beat_length():
+			b["_whoosh"] = true
+			_sfx_whoosh.play()
 	if _lowpass != null:
-		_lowpass.cutoff_hz = OPEN_CUTOFF * pow(LULL_CUTOFF / OPEN_CUTOFF, k)
+		var cutoff := OPEN_CUTOFF * pow(LULL_CUTOFF / OPEN_CUTOFF, k)
+		if _sweep > 0.0:
+			# A posture break: the music ducks under a low-pass and opens over a bar.
+			cutoff = minf(cutoff, 400.0 * pow(OPEN_CUTOFF / 400.0, 1.0 - _sweep / clock.bar_length()))
+		_lowpass.cutoff_hz = cutoff
 		var bus := AudioServer.get_bus_index("Music")
 		for i in AudioServer.get_bus_effect_count(bus):
 			if AudioServer.get_bus_effect(bus, i) == _lowpass:
-				AudioServer.set_bus_effect_enabled(bus, i, k > 0.001)
+				AudioServer.set_bus_effect_enabled(bus, i, cutoff < OPEN_CUTOFF - 1.0)
 
 
 # --- Results ---------------------------------------------------------------------
@@ -448,4 +717,29 @@ func run_lines() -> Array[String]:
 			lines[0] = "THE CAMP FELL   after the song, in the %s" % s.get("name", "finale")
 		else:
 			lines[0] = "THE CAMP FELL   in the %s, bar %d of %d" % [s.get("name", "count-off"), maxi(1, floori(song_bar()) + 1), night["bars"]]
+	lines.insert(mini(4, lines.size()), miss_line())
 	return lines
+
+
+# --- Synth voices for the level -------------------------------------------------------
+
+## The boss streak layer: a bar of 8th notes up and down an E minor arpeggio.
+static func _arp(bar_seconds: float) -> AudioStreamWAV:
+	var notes := [329.6, 392.0, 493.9, 659.3, 493.9, 392.0, 329.6, 246.9]
+	return StemSynth._render(bar_seconds, func(step: int, t: float) -> float:
+		var f: float = notes[step]
+		var env := minf(t * 500.0, 1.0) * exp(-t * 9.0)
+		var saw := 2.0 * (f * t - floorf(f * t + 0.5))
+		return (saw * 0.6 + sin(TAU * f * 2.0 * t) * 0.3) * env * 0.35)
+
+
+## A rising noise whoosh, one beat long, that lands on the beat.
+static func _whoosh(seconds: float) -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var lp := [0.0]
+	return StemSynth._one_shot(seconds, func(t: float) -> float:
+		var k := clampf(t / seconds, 0.0, 1.0)
+		var cut := 0.02 + 0.5 * k * k
+		lp[0] += (rng.randf_range(-1.0, 1.0) - lp[0]) * cut
+		return lp[0] * (k * k) * 0.9)

@@ -320,3 +320,17 @@ Decision:
 6. End: song over and board clear, then one card, then the results. If enemies are still up the finale loops on its own until they are gone.
 7. Watchman tips are one line over the board, each said once ("Hey, I just work here..."); art and voice come later.
 Alternatives: sections in seconds (drifts off the music); building before Start (Jared: start the clock on Start level); a lull marker in the UI (Jared: the game tells you, not the UI; kept only as a fallback if the sound is not enough).
+
+## D-0051: Night 1, version 2
+2026-10-31 · accepted (Jared, "Night 1 playtest: discussion" doc, 14:24Z: "lets do it, agreed on all"; comments: build range option B, talents after the night)
+Context: three Night 1 runs (`prototypes/L3-results.md`): tower spam wins, the boss is slow and harmless and outlasts the song, misses deflate boss music, the lull card reads as the end, the start needs a pop-up, spawn camping.
+Decision:
+1. Economy: each tower on the board makes the next 5% dearer (walls never); refunds use the price paid. Start gold set per level (Night 1: 150 after bot tuning, from 200).
+2. Build range: build within 4 tiles of the keep or of anything built, never within 4 of the mine. Allowed cells are tinted while building; the ghost turns red outside.
+3. The boss strides on beats 1 and 2 and plants on 3 and 4, at a pace that brings it to the keep as the song ends (up to 4 tiles a second, so Frost delays but does not neuter it). At the keep it hits the camp for 1 health a bar until it falls. "boss at N" in the file lets it enter N bars into a section.
+4. Boss music only goes up: full bed whatever the streak, a streak of 4 adds an arp layer, misses play quieter, bolts get a rising whoosh, a posture break ducks the music under a low-pass that opens over a bar.
+5. A start panel (Start the night / Study the map, Tab brings it back) replaces the red line, which stays as the answer to building early.
+6. No mid-night card. Talents are spent after the night: an end screen with a battle-pass style XP fill (a shake and chime per level), then the tree, then the card, then the results.
+7. The run log counts misses by reason (no press, early, late) and context (building, near a parry, boss fight).
+8. A level names its asks (q e parry stagger counter) and can mark a push "quiet". Night 1: Q calls and parries, quiet intro; tiers lowered to match (chorus 3, groove 4, finale 5).
+Alternatives: in the doc (no-build zone only; talents in the lulls).

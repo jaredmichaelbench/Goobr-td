@@ -100,6 +100,8 @@ func _ready() -> void:
 	for box in [wave_card, pause_box, draft_box, end_box, tree_dim, tree_box]:
 		root.move_child(box, root.get_child_count() - 1)
 	_hook_tips()
+	if game is LevelRun:
+		_build_level_panels()
 	_refresh()
 
 
@@ -610,6 +612,7 @@ func mouse_over_ui() -> bool:
 
 func _process(delta: float) -> void:
 	wave_card_time = maxf(0.0, wave_card_time - delta)
+	_tick_fill(delta)
 	levelup_time = maxf(0.0, levelup_time - delta)
 	_shake = maxf(0.0, _shake - delta)
 	super._process(delta)
@@ -645,6 +648,8 @@ func _refresh() -> void:
 	_refresh_judgment()
 	_refresh_wave_card()
 	placeholder.visible = not panel.visible
+	if game is LevelRun:
+		_refresh_level_panels()
 	tree_dim.visible = tree_box.visible
 	message.text = game._message if game._message_time > 0.0 else ""
 	pause_box.visible = game.paused and not game.tree_open and game.state == "playing"
@@ -874,6 +879,7 @@ func _refresh_bar() -> void:
 	round_buttons["start"].disabled = game.wave_active or not playing or game.get("drafting") == true
 	if game is LevelRun:
 		round_buttons["start"].disabled = game.started or not playing
+		round_buttons["talents"].disabled = not playing or game.night_phase != "summary"
 	round_buttons["restore"].disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
 	restore_count.text = "%d/%d" % [game.restore_charges, game.restore_cap()]
 	round_buttons["talents"].disabled = not playing
@@ -996,3 +1002,140 @@ func _refresh_end() -> void:
 	super._refresh_end()
 	if game is LevelRun:
 		endless_button.visible = false
+
+
+
+# --- The song level's panels (D-0051) ----------------------------------------------------------
+
+var start_box: Control
+var start_tab: Button
+var _start_min := false
+var night_box: Control
+var night_level: Label
+var night_bar: ColorRect
+var night_body: Label
+var night_talents: Button
+var night_continue: Button
+var _fill := -1.0  # The end screen's XP fill: levels gained so far, as it animates.
+var _fill_shake := 0.0
+
+
+func _center_panel(width: float) -> Array:
+	var holder := CenterContainer.new()
+	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(holder)
+	var box := PanelContainer.new()
+	box.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.PANEL, UiTheme.GOLD, 2, 8, 22.0))
+	box.custom_minimum_size = Vector2(width, 0)
+	holder.add_child(box)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	box.add_child(v)
+	return [holder, v]
+
+
+## The start of a night: why you can't build yet, Start, or fold it away to study the map.
+func _build_level_panels() -> void:
+	var made := _center_panel(560.0)
+	start_box = made[0]
+	var v: VBoxContainer = made[1]
+	v.add_child(UiTheme.heading(game.night["name"], 34))
+	var song := _label(BODY, Color(1, 1, 1, 0.6))
+	song.text = "Song: %s" % game.songs[game.song_index]["name"]
+	v.add_child(song)
+	var say := _label(BODY + 2, UiTheme.GOLD)
+	say.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	say.text = "WATCHMAN   \"Hey, I just work here. Hold the camp till morning.\""
+	v.add_child(say)
+	var body := _label(BODY, UiTheme.TEXT)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.text = "You can't build until the night starts. The sticks count you in: two bars to build, so put a wall and a tower by the camp. The camp grows outward: build near the keep or near what you have built, never by the mine."
+	v.add_child(body)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_child(row)
+	var go := _button(row, Vector2(240, 48), func(): game.start_wave())
+	go.text = "Start the night  (N)"
+	go.add_theme_font_size_override("font_size", 18)
+	var study := _button(row, Vector2(180, 48), func(): _start_min = true)
+	study.text = "Study the map"
+	study.add_theme_font_size_override("font_size", 16)
+	start_tab = _button(root, Vector2(250, 40), func(): game.start_wave())
+	start_tab.text = "Start the night  (N)     Tab: details"
+	start_tab.add_theme_font_size_override("font_size", 14)
+	# Morning: the XP earned fills up, talents, then the card.
+	made = _center_panel(560.0)
+	night_box = made[0]
+	v = made[1]
+	v.add_child(UiTheme.heading("Morning. You held the camp.", 30))
+	night_level = _label(26, UiTheme.GOLD, true)
+	night_level.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(night_level)
+	var track := ColorRect.new()
+	track.color = Color(0.1, 0.11, 0.14)
+	track.custom_minimum_size = Vector2(500, 18)
+	v.add_child(track)
+	night_bar = ColorRect.new()
+	night_bar.color = Color(0.55, 0.85, 1.0)
+	night_bar.size = Vector2(0, 18)
+	track.add_child(night_bar)
+	night_body = _label(BODY, UiTheme.TEXT)
+	night_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(night_body)
+	row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_child(row)
+	night_talents = _button(row, Vector2(200, 44), func(): game.toggle_tree())
+	night_talents.text = "Spend talents  (Tab)"
+	night_continue = _button(row, Vector2(200, 44), func(): game.begin_card())
+	night_continue.text = "Pick your card"
+	for box in [tree_dim, tree_box, draft_box, end_box]:
+		root.move_child(box, root.get_child_count() - 1)
+
+
+func show_start() -> void:
+	_start_min = false
+
+
+func _refresh_level_panels() -> void:
+	var before: bool = not game.started and game.state == "playing"
+	start_box.visible = before and not _start_min
+	start_tab.visible = before and _start_min
+	start_tab.position = Vector2((root.size.x - start_tab.size.x) * 0.5, 64.0)
+	# No mid-night card: lulls are the music and the watchman.
+	wave_card.visible = false
+	levelup_label.visible = false
+	var summary: bool = game.night_phase == "summary" and game.state == "playing"
+	night_box.visible = summary and not game.tree_open
+	if not summary:
+		_fill = -1.0
+		return
+	var start: Dictionary = game.xp_start()
+	var gained: int = game.level - start["level"]
+	if _fill < 0.0:
+		_fill = 0.0
+	var shown := mini(floori(_fill), gained)
+	night_level.text = "LEVEL %d" % (start["level"] + shown)
+	var frac: float = (_fill - shown) if shown < gained else clampf(game.xp / maxf(game.xp_to_next(), 1.0), 0.0, 1.0) * clampf(_fill - gained, 0.0, 1.0)
+	night_bar.size = Vector2(night_bar.get_parent().size.x * clampf(frac, 0.0, 1.0), 18)
+	night_level.position.x = sin(_fill_shake * 60.0) * 6.0 * _fill_shake
+	night_body.text = "XP %d this night, %d level%s.   %d talent point%s to spend.\n%s" % [roundi(game.m7_stats["xp"]), gained, "" if gained == 1 else "s", game.points, "" if game.points == 1 else "s", game.miss_line()]
+	night_talents.visible = game.points > 0
+	night_continue.disabled = _fill < gained + 1.0
+
+
+## The XP fill: about two-thirds of a second a level (three seconds at most), a shake and
+## the chime as each lands.
+func _tick_fill(delta: float) -> void:
+	if not (game is LevelRun) or _fill < 0.0:
+		return
+	_fill_shake = maxf(0.0, _fill_shake - delta)
+	var gained: int = game.level - game.xp_start()["level"]
+	var before := _fill
+	_fill = minf(_fill + delta * maxf(1.5, (gained + 1.0) / 3.0), gained + 1.0)  # Three seconds at most.
+	if floori(_fill) > floori(before) and floori(_fill) <= gained:
+		_fill_shake = 0.5
+		game._sfx_level.play()

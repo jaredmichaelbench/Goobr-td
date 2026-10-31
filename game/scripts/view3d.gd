@@ -34,6 +34,8 @@ var _corpses: Array[Dictionary] = []  # node, ttl
 var _next_vid := 1
 var _route_sig := ""
 var _route_node: MultiMeshInstance3D
+var _reach_node: MultiMeshInstance3D
+var _reach_sig := ""
 var _ghost: Node3D
 var _ghost_type := ""
 var conductor: Node3D
@@ -175,6 +177,21 @@ func _build_ground() -> void:
 	_route_node.material_override = flat(DIRT)
 	_route_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_route_node)
+	# The song level's build range (D-0051): the cells you may build on, while building.
+	_reach_node = MultiMeshInstance3D.new()
+	var rm := MultiMesh.new()
+	rm.transform_format = MultiMesh.TRANSFORM_3D
+	var tile := PlaneMesh.new()
+	tile.size = Vector2(0.96, 0.96)
+	rm.mesh = tile
+	_reach_node.multimesh = rm
+	var reach_mat := flat(Color(0.55, 1.0, 0.65))
+	reach_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	reach_mat.albedo_color.a = 0.13
+	_reach_node.material_override = reach_mat
+	_reach_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_reach_node.visible = false
+	add_child(_reach_node)
 
 
 ## Rock cells (no walking, no building) are raised stone, so neighbouring rocks read
@@ -357,6 +374,7 @@ func _process(delta: float) -> void:
 		cam.h_offset = 0.0
 		cam.v_offset = 0.0
 	_sync_route()
+	_sync_reach()
 	_sync_structures()
 	_sync_creeps(delta)
 	_sync_conductor()
@@ -717,6 +735,27 @@ func _sync_conductor() -> void:
 		_conductor_ap.play(anim, 0.2)
 
 
+func _sync_reach() -> void:
+	var on: bool = sim is LevelRun and sim.started and sim.state == "playing" and sim.build_mode and sim.selected != "" and sim.night["reach"] > 0.0
+	_reach_node.visible = on
+	if not on:
+		return
+	var sig := str(sim.structures.size()) + str(sim.structures.keys().hash())
+	if sig == _reach_sig:
+		return
+	_reach_sig = sig
+	var cells: Array[Vector2i] = []
+	for x in sim.GRID_SIZE.x:
+		for y in sim.GRID_SIZE.y:
+			var c := Vector2i(x, y)
+			if not sim.terrain.has(c) and not sim.structures.has(c) and sim.in_reach(c):
+				cells.append(c)
+	var mm := _reach_node.multimesh
+	mm.instance_count = cells.size()
+	for i in cells.size():
+		mm.set_instance_transform(i, Transform3D(Basis(), world(Vector2(cells[i]), 0.012)))
+
+
 ## The build ghost: a see-through model of the selected tower under the mouse.
 func _sync_ghost() -> void:
 	var want := ""
@@ -739,6 +778,12 @@ func _sync_ghost() -> void:
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if _ghost != null:
 		_ghost.position = world(Vector2(hover))
+		var allowed: bool = not (sim is LevelRun) or sim.in_reach(hover)
+		if _ghost.get_meta("allowed", true) != allowed:
+			_ghost.set_meta("allowed", allowed)
+			var tint := _tint_mat(Color(0.6, 1.0, 0.7, 0.45) if allowed else Color(1.0, 0.35, 0.35, 0.5))
+			for mi in _ghost.find_children("*", "MeshInstance3D", true, false):
+				mi.material_overlay = tint
 
 
 func _over_ui() -> bool:

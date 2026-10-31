@@ -126,3 +126,20 @@ Crits 0   Arcs 0   Poison 0   Counters 0 of 19
 W2  notes 16/16  parries 1/1  counters 0/1  hp -0   |   W4  notes 15/18  parries 2/2  counters 0/2  hp -0
 W6  notes 40/66  parries 17/26  counters 0/16  hp -0
 ```
+
+Watch item (Jared, 2026-10-31 14:31Z, no change yet): "notes always hit the closest enemy" feeds the boss problem. Notes clear the wave, so you are always left with only the boss walking. Decide after testing Night 1 v2.
+
+## Night 1 v2 (D-0051), built 2026-10-31
+
+What changed is in D-0051. Bot runs (`tests/t_level.gd`; the bot builds towers only, no walls or maze, so it is weaker than a player):
+
+| Version | Bot | Result |
+|---|---|---|
+| v1 (200 gold, no range, Q and E) | 70% notes | survived 14/20 |
+| v2, 100 gold | 70% | fell in the groove |
+| v2, 150 gold, tiers lowered (shipped) | 70% | fell after the song, boss at 12% |
+| v2, 150 gold, tiers lowered | 50% | fell in the groove |
+
+The bot never builds walls, so it cannot reach past 4 tiles from the keep and fights a short straight path. Expect a player who mazes to do much better; Jared's run decides whether 150 gold and the 5% price step are right. All of it is in the level file: `gold`, `price_step`, `reach`, `mine`, the tiers.
+
+The boss now strides on the beat at 2.3 tiles a second, 4 when it is behind, and reached the keep after the song in the bot run, then hit the camp each bar.
