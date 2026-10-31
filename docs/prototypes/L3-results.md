@@ -213,3 +213,12 @@ What changed is in D-0052. Bot runs (`tests/t_level.gd`, towers only, no walls o
 Lulls now ask no notes even with walkers in them, and a section's "offered" counts the notes that landed in it.
 
 The first half is now gentle; the boss fight is decided by parries, which is the point. A bolt you miss still costs 2 health (or a shield). `tests/t_v3_smoke.gd` loads the full scene (HUD and 3D view), builds a tower on a wall (charged the tower price minus the wall's) and prints the run log by section.
+
+## Night 1 v3 playtest, run 1 (Jared, 2026-10-31 17:02Z), collected, not acted on
+
+Survived on 3 health ("difficult, but beatable even with mistakes and a non optimized route"). Level 10, XP 208, 9 talent points. Misses 28: no press 19, early 8 (avg 122 ms), late 1 (avg 295 ms); while building 1, near a parry 3, in the boss fight 25. Screenshot: shared folder screens/night1-v3-run1-2026-10-31.png.
+
+- Notes are less readable than ever: they seem to stack on each other, very hard to read when many notes line up on only a few towers.
+- Which tower gets a note may need work; keep watching. Jared will record a run for Claude to review.
+
+Read (Claude): while the boss is up, every boss note goes to the tower nearest the boss (`m7_run.gd` `_schedule_bar`, `_nearest_tower(boss["pos"])`), and call notes pick the tower covering the most creeps, which near the camp is the same cluster. That likely explains the stacking.
