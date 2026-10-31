@@ -222,3 +222,27 @@ Survived on 3 health ("difficult, but beatable even with mistakes and a non opti
 - Which tower gets a note may need work; keep watching. Jared will record a run for Claude to review.
 
 Read (Claude): while the boss is up, every boss note goes to the tower nearest the boss (`m7_run.gd` `_schedule_bar`, `_nearest_tower(boss["pos"])`), and call notes pick the tower covering the most creeps, which near the camp is the same cluster. That likely explains the stacking.
+
+Run 1 log (Jared, 17:05Z):
+
+```
+NIGHT SURVIVED   Night 1: Night Life
+Time 3:22   Health 3/20   Gold earned 511
+Notes 54 hit of 82 (65%)   Perfects 28
+Parries 36 of 55   Towers locked 2   Shields lost 3   Restores 0
+Misses 28: no press 19, early 8 (avg 122 ms), late 1 (avg 295 ms); while building 1, near a parry 3, in the boss fight 25
+Calls nailed 10 of 13   Staggers 0
+Boss: 44 bolts, 0 stomps, 5 breaks
+Picks: Treasure chest
+Unlocked: Lightning, Light, Poison   Arcs 84
+intro      notes 0/0   parries 0/0   hp -0
+verse      notes 6/8   parries 0/0   hp -0
+rise       notes 0/0   parries 1/1   hp -0
+chorus     notes 11/12   parries 2/2   hp -0
+breakdown  notes 0/0   parries 1/1   hp -0
+groove     notes 15/24   parries 9/12   hp -1   boss
+finale     notes 22/38   parries 23/39   hp -16   boss
+```
+
+- Hollow waiting rings: they read differently, "but it wasnt really helpful". Jared would rather not show waiting notes at all, only the closing ring; the waiting display is what confuses him. The stacking adds to it.
+- Read (Claude): the first half cost nothing; the finale is where the night is decided (38 notes and 39 bolts in 16 bars, 16 health lost). Groove with the boss was fine (-1).
