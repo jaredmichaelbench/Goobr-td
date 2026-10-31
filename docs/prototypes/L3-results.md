@@ -279,3 +279,28 @@ Live notes only, missed bolt 1 health, two rest bars after each string. Bot runs
 | 50%, 50% | fell in the groove, bar 78 | -17 |
 
 The finale now costs the bot far less (-2 to -6, from -8 to -16); most of the bot's losses are leaks in the groove, where a towers-only bot with 7 or 8 towers and no maze cannot hold tier 4. Jared lost 1 and 4 there in his v3 runs.
+
+## Night 1 v3.1 playtest (Jared, 2026-10-31 18:01Z), collected, not acted on
+
+First completed run on v3.1, second attempt (the first attempt he re-pulled to check the patch because notes still showed up and stacked).
+
+```
+NIGHT SURVIVED   Night 1: Night Life
+Time 3:18   Health 17/20   Gold earned 395
+Notes 69 hit of 87 (79%)   Perfects 31
+Parries 37 of 47   Towers locked 2   Shields lost 3   Restores 0
+Misses 18: no press 15, early 2 (avg 119 ms), late 1 (avg 160 ms); while building 1, near a parry 0, in the boss fight 16
+Calls nailed 11 of 13   Boss: 36 bolts, 4 breaks   Picks: Coin purse
+Level 10   XP 215   Talents 9 (Scholar 3, Tithe 3, Interest, Trade routes, Toll road)
+groove     notes 21/24   parries 7/13   hp -2   boss
+finale     notes 29/43   parries 25/29   hp -1   boss
+```
+
+Jared's notes:
+1. Notes still stack: "very hard to decide orange or purple when all the colors are stacked together and near each other", so you hit wrong keys and bad timings. Video: shared folder "Screen Recording 2026-10-31 at 1.59.44 PM.mov" (14 s, the end of the finale).
+2. Difficulty, thinking aloud: work backward from here. This run might be the bar for level 3 or 5; the demo campaign 3-5 songs, about 15-20 minutes including time between rounds.
+3. Walls: free or cheaper? 4 g a wall (cap 20) vs an extra tower is a real choice under time pressure (instant tower value vs a maze that pays off later), which may be good player expression; it all ties to the economy. To consider.
+4. The rising tower price should be per tower type, not all towers, to reward using the types instead of spamming the strongest; maybe 7% since it is per type.
+5. UI and UX: he loses track of gold and menus. Wants a minimalist look, information at the eyeline (like WeakAuras in WoW), not data in the corners: "this game requires a different type of attention closer to live combat". Maybe the Warcraft 3 / Legion TD direction was misguided.
+
+Read (Claude), from the video (crops: screens/night1-v31-crescendo-stack-2026-10-31.png): the pile-up is the Crescendo. A posture break drops a note on every beat for 6 seconds across the towers, all assigned and shown at once, with Q and E rolled by M7's pattern even though Night 1 asks only Q; on a tight block of eight towers that is six rings side by side. Normal notes were showing one at a time. The finale cost only 1 health.
