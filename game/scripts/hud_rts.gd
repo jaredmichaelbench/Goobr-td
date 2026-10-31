@@ -709,7 +709,7 @@ func _refresh_wave_card() -> void:
 		if gained > 0:
 			body += "\ngold +%d" % gained
 		if game.level > _level_at_start:
-			body += "   level up: %d" % game.level
+			body += "\nLEVEL %d     %d talent point%s to spend  (Tab)" % [game.level, game.points, "" if game.points == 1 else "s"]
 		wave_card_body.text = body
 		wave_card_time = 4.5
 	elif game.wave_log.size() < _logged:

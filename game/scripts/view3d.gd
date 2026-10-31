@@ -546,7 +546,25 @@ func creep_kind(c: Dictionary) -> String:
 	return c.get("kind", "grunt")
 
 
+## Performance pass (T-027): skinned creeps are the heaviest thing on a late
+## board. Their animations are advanced by hand: every frame while the board is
+## light, and in turns on a crowded board (each creep every few frames, with the
+## time it missed), so a 10x wave costs about what a normal one does.
+const ANIM_FULL_RATE := 32  # Up to this many creeps and corpses, every one animates every frame.
+
+
+func _tick_anim(entry: Dictionary, delta: float, vid: int, every: int) -> void:
+	var ap: AnimationPlayer = entry["ap"]
+	if ap == null:
+		return
+	entry["acc"] = entry.get("acc", 0.0) + delta
+	if (vid + Engine.get_process_frames()) % every == 0:
+		ap.advance(entry["acc"])
+		entry["acc"] = 0.0
+
+
 func _sync_creeps(delta: float) -> void:
+	var every := maxi(1, ceili((sim.creeps.size() + _corpses.size()) / float(ANIM_FULL_RATE)))
 	var seen := {}
 	for c in sim.creeps:
 		if not c.has("_vid"):
@@ -571,6 +589,7 @@ func _sync_creeps(delta: float) -> void:
 			node.rotation.y = lerp_angle(node.rotation.y, want, clampf(delta * 12.0, 0.0, 1.0))
 		_animate_creep(entry, c, moved.length() / maxf(delta, 0.0001))
 		_set_tint(entry, _creep_tint(c, kind))
+		_tick_anim(entry, delta, vid, every)
 	for vid in _creeps.keys():
 		if seen.has(vid):
 			continue
@@ -581,7 +600,7 @@ func _sync_creeps(delta: float) -> void:
 			entry["ap"].speed_scale = 1.4
 			entry["ap"].play("Death_A")
 			_set_tint(entry, null)
-			_corpses.append({"node": entry["node"], "ttl": 1.6})
+			_corpses.append({"node": entry["node"], "ttl": 1.6, "ap": entry["ap"], "vid": vid})
 		else:
 			entry["node"].queue_free()
 	var keep_c: Array[Dictionary] = []
@@ -592,6 +611,7 @@ func _sync_creeps(delta: float) -> void:
 			continue
 		if k["ttl"] < 0.5:
 			k["node"].position.y -= delta * 0.8
+		_tick_anim(k, delta, k.get("vid", 0), every)
 		keep_c.append(k)
 	_corpses = keep_c
 
@@ -607,6 +627,8 @@ func _make_creep(c: Dictionary, kind: String) -> Dictionary:
 		_mesh(body, flat(Color(0.85, 0.25, 0.25)), Vector3(0, 0.35, 0), node)
 	else:
 		ap = node.find_child("AnimationPlayer", true, false)
+		if ap != null:
+			ap.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	if kind == "boss2":
 		var crown := CylinderMesh.new()
 		crown.top_radius = 0.28

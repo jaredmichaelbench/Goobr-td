@@ -109,6 +109,15 @@ func _assign_one(n: Dictionary) -> void:
 	var lead_creep := _lead_creep()
 	var bt := beat_time()
 	var beat := clock.beat_length()
+	var cover := PackedInt32Array()
+	cover.resize(creeps.size())
+	cover.fill(-1)
+	# A crowded late board (hundreds of creeps and towers) scores towers from a
+	# summed grid instead of every pair: same idea, square reach, no freeze (T-027).
+	var crowded := creeps.size() * structures.size() > CROWDED_PAIRS
+	var creep_sat := PackedFloat32Array()
+	if crowded:
+		creep_sat = _creep_weights()
 	var taken := {}  # cell -> the smallest time gap to another note there
 	for other in notes:
 		if other == n or not (other["tower"] is Vector2i):
@@ -129,9 +138,17 @@ func _assign_one(n: Dictionary) -> void:
 					score -= 500.0
 					break
 		var near := 0.0
-		for c in creeps:
-			if c["hp"] > 0.0 and c["pos"].distance_to(Vector2(cell)) <= tower_spec(cell)["range"] + 1.0:
-				near += 1.0 + 0.25 * _coverage(c["pos"])
+		var reach: float = tower_spec(cell)["range"] + 1.0
+		if crowded:
+			near = _box_sum(creep_sat, cell, reach)
+		else:
+			for i in creeps.size():
+				var c: Dictionary = creeps[i]
+				if c["hp"] > 0.0 and c["pos"].distance_to(Vector2(cell)) <= reach:
+					# How many towers cover this creep, worked out once per note, not per tower.
+					if cover[i] < 0:
+						cover[i] = _coverage(c["pos"])
+					near += 1.0 + 0.25 * cover[i]
 		score += minf(near, 100.0)
 		if near <= 0.0 and not lead_creep.is_empty():
 			score -= lead_creep["pos"].distance_to(Vector2(cell)) * 0.01
@@ -139,6 +156,95 @@ func _assign_one(n: Dictionary) -> void:
 			best_score = score
 			best = cell
 	n["tower"] = best
+
+
+const CROWDED_PAIRS := 6000
+const COVER_REACH := 3.5  # Crowded boards: towers this close count as covering a creep.
+
+
+## Summed-area table over the board: each live creep weighs 1 plus a quarter per
+## tower near it (the crossfire weight of the exact path above).
+func _creep_weights() -> PackedFloat32Array:
+	var w := GRID_SIZE.x
+	var h := GRID_SIZE.y
+	var towers := PackedFloat32Array()
+	towers.resize(w * h)
+	for cell in structures:
+		var type: String = structures[cell]["type"]
+		if is_tower(type) and type != "light" and grid.in_bounds(cell):
+			towers[cell.y * w + cell.x] += 1.0
+	var tower_sat := _sat(towers)
+	var weights := PackedFloat32Array()
+	weights.resize(w * h)
+	for c in creeps:
+		if c["hp"] <= 0.0:
+			continue
+		var cell := Vector2i(c["pos"].round())
+		if not grid.in_bounds(cell):
+			continue
+		weights[cell.y * w + cell.x] += 1.0 + 0.25 * _box_sum(tower_sat, cell, COVER_REACH)
+	return _sat(weights)
+
+
+func _sat(values: PackedFloat32Array) -> PackedFloat32Array:
+	var w := GRID_SIZE.x
+	var h := GRID_SIZE.y
+	var out := PackedFloat32Array()
+	out.resize((w + 1) * (h + 1))
+	for y in h:
+		var row := 0.0
+		for x in w:
+			row += values[y * w + x]
+			out[(y + 1) * (w + 1) + x + 1] = out[y * (w + 1) + x + 1] + row
+	return out
+
+
+## The total in the square of half-size reach around a cell.
+func _box_sum(sat: PackedFloat32Array, cell: Vector2i, reach: float) -> float:
+	var w := GRID_SIZE.x
+	var r := int(reach)
+	var x0 := clampi(cell.x - r, 0, w)
+	var y0 := clampi(cell.y - r, 0, GRID_SIZE.y)
+	var x1 := clampi(cell.x + r + 1, 0, w)
+	var y1 := clampi(cell.y + r + 1, 0, GRID_SIZE.y)
+	return sat[y1 * (w + 1) + x1] - sat[y0 * (w + 1) + x1] - sat[y1 * (w + 1) + x0] + sat[y0 * (w + 1) + x0]
+
+
+## Targeting on a crowded board (T-027): every tower used to check every creep on
+## each step it fires. Creeps are sorted into board cells once per step and a
+## tower looks only at the cells in its range. Same rule as M2's: the live,
+## unveiled creep in range closest to the goal by path.
+var _buckets := {}
+var _bucket_stamp := []
+
+
+func _pick_target(from: Vector2, tower_range: float) -> Dictionary:
+	if creeps.size() < 40:
+		return super._pick_target(from, tower_range)
+	var stamp := [Engine.get_process_frames(), sim_time, creeps.size()]
+	if stamp != _bucket_stamp:
+		_bucket_stamp = stamp
+		_buckets.clear()
+		for c in creeps:
+			var key := Vector2i(c["pos"].floor())
+			if not _buckets.has(key):
+				_buckets[key] = []
+			_buckets[key].append(c)
+	var best := {}
+	var best_d := INF
+	for x in range(floori(from.x - tower_range), floori(from.x + tower_range) + 1):
+		for y in range(floori(from.y - tower_range), floori(from.y + tower_range) + 1):
+			var list = _buckets.get(Vector2i(x, y))
+			if list == null:
+				continue
+			for c in list:
+				if c["hp"] <= 0.0 or veiled(c) or c["pos"].distance_to(from) > tower_range:
+					continue
+				var d: float = float(grid.dist(c["target"])) + c["pos"].distance_to(Vector2(c["target"]))
+				if d < best_d:
+					best = c
+					best_d = d
+	return best
 
 
 ## A fresh install starts on the first real song (the playlist plays on from
@@ -460,12 +566,33 @@ func _finisher(s: Dictionary) -> void:
 	_show_feedback("PHRASE   %d damage" % roundi(dealt), UiTheme.GOLD)
 
 
+## A level up mid-wave stays quiet (Jared, playtest 4: the chime is "distracting in
+## the middle of a wave where you need to focus on timing"). The XP bar fills, and
+## the chime, the Talents shake and the line wait for the wave clear and its card.
+var _held_level_ups := 0
+
+
 func gain_xp(amount: float) -> void:
 	var before := level
 	super.gain_xp(amount)
 	if level > before:
-		level_ups += level - before
-		_sfx_level.play()
+		_held_level_ups += level - before
+		if not wave_active:
+			_announce_levels()
+
+
+func _announce_levels() -> void:
+	if _held_level_ups <= 0:
+		return
+	level_ups += _held_level_ups
+	_held_level_ups = 0
+	_sfx_level.play()
+
+
+func step(delta: float) -> void:
+	super.step(delta)
+	if not wave_active and _held_level_ups > 0:
+		_announce_levels()
 
 
 func run_lines() -> Array[String]:

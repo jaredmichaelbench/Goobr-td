@@ -182,18 +182,53 @@ func is_tower(type: String) -> bool:
 
 ## The spec every tower of a type fires with: base, times its rungs, times
 ## the talents and cards that name it. Light towers nearby add their buff.
+## Performance pass (T-027): a tower's numbers are worked out once per frame and
+## kept, because note placement and focus fire asked for them thousands of times
+## a frame (every tower, for every creep, for every tower) and a late board froze.
+## The cache is dropped on a new frame, and at once when anything that changes the
+## numbers happens: a build or sale, an upgrade, a talent or card, a lock.
+var _spec_cache := {}
+var _spec_stamp := []
+var _spec_version := 0
+
+
+func specs_changed() -> void:
+	_spec_version += 1
+
+
 func tower_spec(cell: Vector2i) -> Dictionary:
+	var stamp := [Engine.get_process_frames(), structures.size(), suppressed.size(), _spec_version]
+	if stamp != _spec_stamp:
+		_spec_stamp = stamp
+		_spec_cache.clear()
+	var hit = _spec_cache.get(cell)
+	if hit != null and hit["type"] == structures[cell]["type"]:
+		return hit["spec"]
 	var type: String = structures[cell]["type"]
 	var spec := type_spec(type)
 	if type != "light" and is_tower(type):
 		var buff := 0.0
-		for other in structures:
-			if structures[other]["type"] == "light" and other != cell and tower_ready(other):
-				if Vector2(other).distance_to(Vector2(cell)) <= light_radius():
-					buff += light_boost()
+		var reach := light_radius()
+		for other in _light_cells():
+			if other != cell and Vector2(other).distance_to(Vector2(cell)) <= reach:
+				buff += light_boost()
 		if buff > 0.0:
 			spec["damage"] *= 1.0 + buff
+	_spec_cache[cell] = {"type": type, "spec": spec}
 	return spec
+
+
+## Ready Light towers, found once per cache.
+func _light_cells() -> Array:
+	var hit = _spec_cache.get("lights")
+	if hit != null:
+		return hit
+	var out := []
+	for other in structures:
+		if structures[other]["type"] == "light" and tower_ready(other):
+			out.append(other)
+	_spec_cache["lights"] = out
+	return out
 
 
 ## The Light tower deals no damage: its rungs grow the boost it gives towers in
@@ -278,6 +313,7 @@ func rung_text(type: String, rank: int) -> String:
 
 ## Buy the next rung for a whole type. At rung 3, `branch` (1 or 2) picks the fork.
 func upgrade_type(type: String, branch := 0) -> bool:
+	specs_changed()
 	if not is_tower(type) or state != "playing":
 		return false
 	if not unlocked.has(type):
@@ -325,6 +361,7 @@ func upgrade_cost(cell: Vector2i) -> int:
 # --- Slice B: six towers and unlocks -----------------------------------------------
 
 func try_place(cell: Vector2i, type: String) -> bool:
+	specs_changed()
 	if not unlocked.has(type):
 		_say("%s is locked: %s" % [tower_name(type), unlock_text(type)])
 		return false
@@ -716,10 +753,11 @@ func _summon_boss() -> void:
 		_show_feedback("THE BOSS   parry its bolts as they land; its notes play between", Color(1, 0.4, 0.5))
 
 
-## Late-run elites may wind up for a bar and a half and land on beat 3.
+## Every elite throw lands one bar after it starts, on beat 1, like arrows: the
+## four dots fill one per beat and the hit lands as the fourth one does. Late
+## waves used to wind half the throws up for a bar and a half, which landed two
+## beats after the dots and on top of the calls (Demo 1 playtest 4, T-026).
 func throw_wind_bars() -> float:
-	if band(wave) >= 3 and rng.randf() < 0.5:
-		return 1.5
 	return 1.0
 
 
@@ -823,7 +861,8 @@ func gain_xp(amount: float) -> void:
 		level += 1
 		points += 1
 		m7_stats["levels"] += 1
-		_show_feedback("LEVEL %d   +1 talent point (Tab)" % level, Color(0.6, 1.0, 0.7))
+		if not wave_active:
+			_show_feedback("LEVEL %d   +1 talent point (Tab)" % level, Color(0.6, 1.0, 0.7))
 
 
 ## Kills happen inside the base step; compare before and after to pay XP and gold.
@@ -1021,6 +1060,7 @@ func toggle_tree() -> void:
 
 
 func take_talent(id: String) -> bool:
+	specs_changed()
 	if points <= 0 or not TalentTree.available(id, owned) or state != "playing":
 		return false
 	var node: Dictionary = TalentTree.nodes()[id]
@@ -1034,6 +1074,7 @@ func take_talent(id: String) -> bool:
 
 ## Stat bumps and flags from a talent or a card; derived values follow.
 func _apply_effects(effects: Dictionary) -> void:
+	specs_changed()
 	for k in effects:
 		var v = effects[k]
 		match k:
@@ -1067,6 +1108,7 @@ func _apply_effects(effects: Dictionary) -> void:
 
 
 func _apply_stats() -> void:
+	specs_changed()
 	shield_cap = SHIELDS + int(gstats.get("shield_cap", 0))
 	wall_limit = WALL_LIMIT + int(gstats.get("wall_cap", 0))
 	builds["wall"]["cost"] = maxi(1, BASE_BUILDS["wall"]["cost"] - int(gstats.get("wall_cheap", 0)))
