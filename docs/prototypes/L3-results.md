@@ -334,3 +334,21 @@ Jared: "Feels better, but not enough notes maybe, and the ability to kill reflec
 Read (Claude): 50 notes all night against 82-87 in v3/v3.1; the finale offered 9 (was 38-43). Halving the Crescendo cut most of them, and notes are the snipes that kill, so creeps leaked in the groove (12 lost with only 4 bolts missed) and the boss broke twice instead of 4-5 times. Since notes are now live (at most two rings show at once), the Crescendo can go back to every beat without stacking.
 
 D-0055 (Crescendo every beat again): bot 75%/85% survived on 17 health, 80 notes offered, 6 breaks, groove -2, finale -0; at most 1 note shown ahead, no E notes.
+
+## Night 1 v3.2 + D-0055 playtest (Jared, 2026-10-31 20:03Z)
+
+```
+NIGHT SURVIVED   Night 1: Night Life
+Time 3:16   Health 7/20   Gold earned 306
+Notes 66 hit of 75 (88%)   Perfects 40
+Parries 29 of 53   Towers locked 2   Shields lost 3   Restores 0
+Misses 9: no press 9; while building 4, in the boss fight 6
+Calls nailed 12 of 13   Boss: 40 bolts, 3 breaks   Picks: Sharpshooter
+Level 9   XP 207   Talents 8 (Pulse 2, Accent 3, Echo, Resonance, Counterpoint)
+groove     notes 16/16   parries 8/17   hp -3   boss
+finale     notes 31/37   parries 16/31   hp -10   boss
+```
+
+Jared: "Better, Q is a bit boring, but for a first level maybe that's the move ... the balance here is good for a first stage." More runs and feedback to come.
+
+Read (Claude): first-stage balance agreed as good. Q-only is a candidate for "Night 1 teaches Q and parry; E arrives on Night 2" in the campaign plan (T-035).
