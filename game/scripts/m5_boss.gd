@@ -38,6 +38,7 @@ const CRESCENDO_MULT := 1.3
 const ESCORT_DELAY := 10.0  # Seconds after the boss appears the second pack comes.
 
 var boss: Dictionary = {}  # The boss creep, or empty.
+var bolt_damage := HIT_HEALTH  # Health a missed bolt costs (a level can lower it).
 var boss_waves: Array = BOSS_WAVES  # M7 adds 15 and 20.
 var crescendo_seconds := CRESCENDO_SECONDS  # A draft pick can lengthen it.
 var bolts: Array[Dictionary] = []  # launch, arrive, from (Vector2), state: flying/parried/hit
@@ -225,8 +226,8 @@ func _bolt_hit() -> void:
 		m4_stats["shields_lost"] += 1
 		_show_feedback("HIT   shield broken, %d left" % shields, Color(1, 0.5, 0.4))
 	else:
-		health -= HIT_HEALTH
-		_show_feedback("HIT   -%d health" % HIT_HEALTH, Color(1, 0.3, 0.3))
+		health -= bolt_damage
+		_show_feedback("HIT   -%d health" % bolt_damage, Color(1, 0.3, 0.3))
 	# The boss presses its advantage: the nearest tower(s) in its reach lock.
 	if boss_alive():
 		if _lock_towers(_pulse_targets_for(boss["pos"])) > 0:

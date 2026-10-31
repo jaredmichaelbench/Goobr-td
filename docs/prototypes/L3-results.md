@@ -267,3 +267,15 @@ finale     notes 4/4   parries 6/15   hp -16   boss
 
 - Jared's note ask, in his words: "we shouldnt pre-load notes at all during the phrase ... it seems like we pre load the phrase/crescendo marking every note that will be in it, and then rings show the order live, but instead I want to drop the pre-load, let everything read live." That is the D-0046 call preview: when a call's first note is near, all its notes are assigned to towers and shown. Proposal: drop it; each note appears only when its ring starts (2 beats out) and picks its tower then.
 - Read (Claude): notes were 84% this run; the finale was all bolts (6 of 15 parried, 9 missed at 2 health each = the 16 lost). The boss fight's parries decide the night.
+
+## Night 1 v3.1 (D-0053), built 2026-10-31
+
+Live notes only, missed bolt 1 health, two rest bars after each string. Bot runs (towers only, no maze; results vary run to run because the bot plays in real time):
+
+| Bot (notes, parries) | Result | Groove / finale health lost |
+|---|---|---|
+| 70%, 70% | fell after the song | -11 / -6 |
+| 75%, 85% | fell after the song once, survived on 6 the next run | -11 / -6, then -9 / -2 |
+| 50%, 50% | fell in the groove, bar 78 | -17 |
+
+The finale now costs the bot far less (-2 to -6, from -8 to -16); most of the bot's losses are leaks in the groove, where a towers-only bot with 7 or 8 towers and no maze cannot hold tier 4. Jared lost 1 and 4 there in his v3 runs.

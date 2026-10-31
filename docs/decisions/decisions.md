@@ -349,3 +349,12 @@ Decision:
 8. Building a tower on a wall replaces the wall: the wall's price comes off the tower, like upgrading the wall, and the tile never stands empty.
 9. "Notes hit the enemy nearest the camp" stays a watch item. The wall delete-and-rebuild trick (juggling) is not changed; Jared tests it first, and a "rubble" rule is backlogged with care for misclicks.
 Alternatives: in the doc (rubble, cheaper refunds during a push, creeps committing to a route).
+
+## D-0053: Night 1, version 3.1
+2026-10-31 · accepted (Jared, thread 17:13Z: "go")
+Context: two v3 runs (`prototypes/L3-results.md`): won on 3 health, then fell at bar 90 with 84% notes but 6 of 15 parries in the finale. Jared: notes stack on a few towers and the call preview confuses; "drop the pre-load, let everything read live."
+Decision:
+1. In a level, notes are live only: a note shows, and picks its tower, when its ring starts two beats out. A call's later notes are no longer assigned or shown ahead (D-0046's preview stays in the 20-wave run).
+2. A missed boss bolt costs 1 health in a level (2 in the run).
+3. The boss rests two walk bars after every string, near or far.
+Alternatives: keep the preview with a different look (the v3 hollow rings; Jared: not helpful).

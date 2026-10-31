@@ -129,8 +129,9 @@ func _draw_towers() -> void:
 
 ## Each open note: a disc in the note's colour with its key, over its tower, and a
 ## ring closing on it over the two beats before it lands.
-## A call (D-0046) shows whole as soon as its first ring starts: the notes still
-## to come sit as hollow rings with their order, so the sequence can be read.
+## In the 20-wave run a call (D-0046) shows whole as soon as its first ring
+## starts: the notes still to come sit as hollow rings with their order. In a
+## level notes are live only (D-0053), so only closing rings show.
 func _draw_notes(bt: float) -> void:
 	var lead: float = sim.RING_LEAD_STEPS * sim.step_length()
 	var order := {}  # seq id -> note times in order

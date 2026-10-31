@@ -146,6 +146,7 @@ func _ready() -> void:
 	super._ready()
 	title = night["name"]
 	boss_waves = []  # Bosses come from the file, not from wave numbers.
+	bolt_damage = LEVEL_BOLT_DAMAGE
 	last_wave = 1000000  # The night ends with the song, not on a wave count.
 	gold = night["gold"]
 	for t in builds:
@@ -422,6 +423,12 @@ func _boss_enters() -> void:
 		_watchman("That one's big. Not my department.", 3.5)
 
 
+## Live notes (v3.1, D-0053): a note shows, and picks its tower, only when its
+## ring starts two beats out. The rest of its call is not shown ahead.
+func _assign_note(n: Dictionary) -> void:
+	_assign_one(n)
+
+
 ## A push sends exactly what the file says (no run multipliers).
 func wave_plan(_w: int) -> Array[Dictionary]:
 	return _push_plan.duplicate()
@@ -671,6 +678,8 @@ const BOSS_STRIDE_MAX := 4.0  # Tiles a second at most while striding.
 const BOSS_FLIGHT_MIN_BEATS := 2  # A bolt is in the air at least this long, even at the camp.
 const BOSS_FLIGHT_MAX_BEATS := 4
 const BOSS_NOTE_GAP_BEATS := 1.0  # No note lands this close to a bolt.
+const BOSS_REST_BARS := 2  # Walk bars between strings.
+const LEVEL_BOLT_DAMAGE := 1  # A missed bolt costs 1 health in a level (v3.1), not 2.
 
 var _throw_bar := -1
 var section_log: Array[String] = []  # One run-log row per section played.
@@ -707,9 +716,8 @@ func _call_string(bar: int) -> void:
 		m5_stats["bolts"] += 1
 		landings.append(arrive)
 	_clear_notes_near(landings)
-	var far := boss_path_left() > 0.5 * float(maxi(grid.dist(SPAWN), 1))
-	var rest_bars := 2 if far else 1
-	_next_string_bar = bar + 1 + rest_bars
+	# Two walk bars after every string, near or far (v3.1, D-0053).
+	_next_string_bar = bar + 1 + BOSS_REST_BARS
 
 
 ## Notes already on the board that would land within a beat of a bolt are
