@@ -307,3 +307,16 @@ Alternatives: the pilgrimage with the player as king, a foothold framing, and pl
 Context: D-0048 (5) put a stage boss about every 5 levels.
 Decision: Amends D-0048 (5). Stage bosses are placed by hand per campaign, not on a fixed rhythm. Example: level 5 gets a longer song (about 3:00) and a strong boss. Only the campaign's final stage is the ultimate boss (the epic track of about 5 minutes). Field bosses unchanged.
 Alternatives: a stage boss every 5th level (D-0048 as first written).
+
+## D-0050: How the template level is built
+2026-10-31 · accepted (build choices for L3 under Jared's go, project chat 04:35Z: "I want to go in your recommendation"; Jared to correct after playing)
+Context: D-0048 and `prototypes/level-template-plan.md` L3. The first level, Night 1 on Night Life, is the template Jared will choreograph from.
+Decision:
+1. A level is a plain text file in `game/levels/`: header (name, song, count, gold), then one line per section in song order: name, kind (push, lull, finale), bars, tier, what comes ("grunt 8 @2" = eight grunts, one every 2 beats; "boss" in a finale). Spawn gaps are in beats so pushes sit on the music.
+2. Tier sets how strong a push is (creep health, speed, call length) as that wave of the 20-wave run. The run's count and spacing multipliers do not apply: the file is literal.
+3. Nothing is built before Start level. The count-off (2 bars of sticks, "1 . 2 . 1 2 3 4") and the song are one stream, so the first bar lands exactly after the sticks.
+4. A lull dips the song 3 dB and closes a low-pass to 650 Hz over half a bar, then opens it over its last bar into the next push. A push that starts while the last one is still on the board joins it.
+5. Night 1's sections follow the song's waveform: intro push (8 bars), verse push (16), lull (8, lifting into the chorus), chorus push (16), the song's own breakdown as a lull (8), groove push (24), finale with a field boss (16).
+6. End: song over and board clear, then one card, then the results. If enemies are still up the finale loops on its own until they are gone.
+7. Watchman tips are one line over the board, each said once ("Hey, I just work here..."); art and voice come later.
+Alternatives: sections in seconds (drifts off the music); building before Start (Jared: start the clock on Start level); a lull marker in the UI (Jared: the game tells you, not the UI; kept only as a fallback if the sound is not enough).

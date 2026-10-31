@@ -155,7 +155,7 @@ func _build_menu() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(1, 10)
 	v.add_child(gap)
-	for item in [["Play: the full run (20 waves)", _play.bind(false)], ["Quick run (10 waves)", _play.bind(true)], ["How to play", _show_help], ["Settings", _show_settings], ["Credits", _show_credits], ["Quit", func(): get_tree().quit()]]:
+	for item in [["Night 1: Night Life (the level)", _play_level], ["Play: the full run (20 waves)", _play.bind(false)], ["Quick run (10 waves)", _play.bind(true)], ["How to play", _show_help], ["Settings", _show_settings], ["Credits", _show_credits], ["Quit", func(): get_tree().quit()]]:
 		var b := Button.new()
 		b.text = item[0]
 		b.custom_minimum_size = Vector2(320, 46)
@@ -197,6 +197,14 @@ func _build_menu() -> void:
 
 func _play(quick: bool) -> void:
 	M7Run.quick = quick
+	LevelRun.active = false
+	get_tree().change_scene_to_file("res://run3d.tscn")
+
+
+## The template level (L3): one night on one song, from game/levels/night_life.cfg.
+func _play_level() -> void:
+	M7Run.quick = false
+	LevelRun.active = true
 	get_tree().change_scene_to_file("res://run3d.tscn")
 
 

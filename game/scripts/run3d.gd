@@ -1,6 +1,7 @@
 extends Node3D
 ## Demo 1 run scene (M9): the rules (RunSim), the 3D board (View3D) and the floating
-## marks (Indicators). The HUD comes with the sim. M7Run.quick picks 10 or 20 waves.
+## marks (Indicators). The HUD comes with the sim. M7Run.quick picks 10 or 20 waves;
+## LevelRun.active plays the song level instead (L3).
 
 var sim: RunSim
 var view: View3D
@@ -8,7 +9,7 @@ var marks: Indicators
 
 
 func _ready() -> void:
-	sim = RunSim.new()
+	sim = LevelRun.new() if LevelRun.active else RunSim.new()
 	sim.name = "Sim"
 	add_child(sim)
 	view = View3D.new()

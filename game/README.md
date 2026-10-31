@@ -4,7 +4,17 @@ The game, built in milestones. Demo 0 (greybox) plan: `../docs/prototypes/demo-0
 
 Engine: **Godot 4.5** (standard build, GDScript, no plugins). Models (KayKit, CC0) and the font (Lilita One, OFL) are in `assets/` and in git. Music and the HALFTONE sounds are copied by hand into `audio/` (never in git); without them the game uses its synth stems and synth sounds.
 
-Press Play (Cmd+B on Mac). The **title screen** offers the 20-wave run, the 10-wave quick run, How to play, Settings (volumes, full screen, synth note sounds, key hints; timing calibration is fixed for the demo in `scripts/timing.gd`) and Credits. **D** on the title opens the developer menu with the Demo 0 milestones (keys 1 to 9). **Esc** twice leaves a run.
+Press Play (Cmd+B on Mac). The **title screen** offers Night 1 (the song level), the 20-wave run, the 10-wave quick run, How to play, Settings (volumes, full screen, synth note sounds, key hints; timing calibration is fixed for the demo in `scripts/timing.gd`) and Credits. **D** on the title opens the developer menu with the Demo 0 milestones (keys 1 to 9). **Esc** twice leaves a run.
+
+## Night 1: Night Life, the level template (L3, D-0048, D-0050)
+
+- Needs `13. Night Life.wav` in `audio/` (from the shared folder). Without it the level plays on the drum machine.
+- The map is shown and nothing can be built yet. **N** or the play button starts the night: two bars of drumsticks (the build phase), then the song from its first bar.
+- The level is `levels/night_life.cfg`, plain text: the song, the count-off, the gold, then one line per section (name, push / lull / finale, bars, tier, what comes). The file explains itself. Edit it and press Play again.
+- Pushes send exactly what the file says. Lulls send nothing; the music dips and goes muffled, and opens up again on the lull's last bar. The finale here brings a field boss.
+- When the song ends and the board is clear: one card, then the results. If enemies are still up, the finale loops until they are gone.
+- The watchman's tips show as one line over the board ("WATCHMAN ..."), each once.
+- Bot: `godot --headless --path game -s tests/t_level.gd -- 0.7 0.7` plays it and prints each section with the song bar it started on.
 
 ## Demo 1: the run in 3D (D-0044)
 

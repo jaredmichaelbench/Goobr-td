@@ -664,6 +664,9 @@ func _refresh_top() -> void:
 	var wave_text := ("%d (endless)" % game.wave) if game.endless or game.wave > game.last_wave else ("%d / %d" % [maxi(game.wave, 1) if game.wave_active else game.wave, game.last_wave])
 	res_labels["gold"].text = str(game.gold)
 	res_labels["health"].text = str(game.health)
+	if game is LevelRun:
+		var sec: Dictionary = game.current_section()
+		wave_text = "%s  %d/%d" % [sec["name"], clampi(floori(game.song_bar()) + 1, 1, game.night["bars"]), game.night["bars"]] if not sec.is_empty() else ("count-off" if game.started else "ready")
 	res_labels["wave"].text = wave_text
 	res_labels["shield"].text = "%d/%d" % [game.shields, game.shield_cap]
 	res_labels["restore"].text = "%d/%d" % [game.restore_charges, game.restore_cap()]
@@ -703,7 +706,7 @@ func _refresh_wave_card() -> void:
 		_logged = game.wave_log.size()
 		var line: String = game.wave_log[-1]
 		var parts := line.split("  ", false)
-		wave_card_title.text = "WAVE %d CLEAR" % game.wave
+		wave_card_title.text = game.clear_title() if game is LevelRun else "WAVE %d CLEAR" % game.wave
 		var body := "   ".join(parts.slice(1)).replace("hp -0", "no health lost").replace("hp -", "health lost ")
 		var gained: int = game.gold - _gold_at_start
 		if gained > 0:
@@ -719,6 +722,9 @@ func _refresh_wave_card() -> void:
 
 
 func _refresh_info() -> void:
+	if game is LevelRun:
+		_refresh_level_info()
+		return
 	var next: int = game.wave + (0 if game.wave_active else 1)
 	var show: int = next if not game.wave_active else game.wave + 1
 	info_title.text = ("Next: wave %d" % show) + ("   (wave %d running)" % game.wave if game.wave_active else "")
@@ -760,6 +766,55 @@ func _refresh_info() -> void:
 	if not game.pending.is_empty():
 		info_body.text += "\nLocked card: %s" % game.card_name(game.pending["id"])
 	song_label.text = "Song: %s   [ ] switch" % game.songs[game.song_index]["name"]
+
+
+## The song level: the next push as pictures, and where the night is.
+func _refresh_level_info() -> void:
+	var push: Dictionary = game.next_push()
+	var now: Dictionary = game.current_section()
+	if not game.started:
+		info_title.text = game.night["name"]
+	elif not now.is_empty() and now["kind"] == "lull":
+		info_title.text = "Lull: build now.   Next: %s" % push.get("name", "the morning")
+	else:
+		info_title.text = "Next: %s" % push.get("name", "the morning") + ("   (%s playing)" % now["name"] if not now.is_empty() else "")
+	var key := "level:" + str(push.get("name", ""))
+	if info_icons.get_meta("wave", "") != key:
+		info_icons.set_meta("wave", key)
+		for c in info_icons.get_children():
+			c.queue_free()
+		var counts := {}
+		var order: Array[String] = []
+		if push.get("boss", false):
+			order.append("boss")
+			counts["boss"] = 1
+		for g in push.get("groups", []):
+			if not counts.has(g["kind"]):
+				counts[g["kind"]] = 0
+				order.append(g["kind"])
+			counts[g["kind"]] += g["count"]
+		for k in order.slice(0, 8):
+			var cell := VBoxContainer.new()
+			cell.add_theme_constant_override("separation", -4)
+			var tr := TextureRect.new()
+			tr.texture = _icon("creep_" + k)
+			tr.custom_minimum_size = Vector2(34, 34)
+			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			tr.tooltip_text = k.capitalize()
+			cell.add_child(tr)
+			var n := _label(CAPTION, Color(1, 0.4, 0.45) if k.begins_with("boss") else UiTheme.TEXT, true)
+			n.text = "BOSS" if k.begins_with("boss") else "x%d" % counts[k]
+			n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			cell.add_child(n)
+			info_icons.add_child(cell)
+	if push.is_empty():
+		info_body.text = "The last push is out. Hold until the song ends."
+	else:
+		info_body.text = "%.0f HP each" % game.creep_hp_at(push["tier"])
+	if not game.started:
+		info_body.text += ".  N or the play button starts the night."
+	song_label.text = "Song: %s" % game.songs[game.song_index]["name"]
 
 
 func _refresh_panel() -> void:
@@ -817,6 +872,8 @@ func _refresh_bar() -> void:
 		b.modulate = Color(1.0, 0.95, 0.7) if build_armed and not locked else (Color(0.6, 0.6, 0.65) if locked else Color.WHITE)
 		b.add_theme_color_override("font_disabled_color", Color(1, 0.55, 0.5) if short > 0 and not locked else Color(0.55, 0.55, 0.55))
 	round_buttons["start"].disabled = game.wave_active or not playing or game.get("drafting") == true
+	if game is LevelRun:
+		round_buttons["start"].disabled = game.started or not playing
 	round_buttons["restore"].disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
 	restore_count.text = "%d/%d" % [game.restore_charges, game.restore_cap()]
 	round_buttons["talents"].disabled = not playing
@@ -932,3 +989,10 @@ func _refresh_tree() -> void:
 		var b: Button = tree_nodes[key]
 		if b.disabled and b.modulate.a < 0.9:
 			b.modulate = Color(1, 1, 1, 0.85) if b.modulate.a > 0.3 else Color(1, 1, 1, 0.6)
+
+
+## The song level ends on the card and the results: there is no "keep going".
+func _refresh_end() -> void:
+	super._refresh_end()
+	if game is LevelRun:
+		endless_button.visible = false
