@@ -40,6 +40,7 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 - **Tower balance by cost** (Jared, 2026-10-31, v2 run 3): single target spam wins, splash and chain feel unclear, poison is strong. Balance pass where 1 gold is about 1 power, each tower a different profile, splash scaling down with targets.
 - **Passive tower abilities** (Jared, 2026-10-31): not actives, but "every 5 attacks, do X" style effects, folded into the talent tree as tower enhancements.
 - **Wall price** (Jared, 2026-10-31, v3.1): free or cheaper walls? 4 g each (cap 20) vs an extra tower is a real choice under time pressure (instant tower value vs a maze that pays off later), possibly good player expression; more gold makes wall cost irrelevant. Decide with the economy pass (D-0054 keeps 4 g).
+- **Tower unlocks and what persists between nights** (Jared, 2026-10-31 20:08Z, MAJOR): in a 3-minute night the in-run unlocks (Poison: build 3 Frost; Lightning: land 10 Perfects; Light: kill a Shade, `m7_run.gd` UNLOCKS) come too late; forcing them early sacrifices power and the night is over by then. Talents and cards span the campaign; should towers unlock during a stage and reset each one? Needs hard decisions on what persists (talents, cards, tower roster, type upgrades, gold, XP). Discussion doc to come; relates to T-024 (cards and talents) and T-035 (demo campaign).
 
 ## Economy
 
