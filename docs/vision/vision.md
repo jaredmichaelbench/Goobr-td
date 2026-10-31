@@ -62,6 +62,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 ## Changelog
 
+- 2026-10-31: v0.16 scope: single player becomes a journey of song-length levels (night watch over a travelling caravan camp), building in the count-off and the song's lulls, a card per level, tiered bosses curated per campaign; multiplayer stays wave-based (D-0048, D-0049).
 - 2026-10-27: v0.15 calls are always on the beat, Kick then Snare, growing longer not faster; a missed Q or E press locks that key briefly (D-0047).
 - 2026-10-26: v0.14 scope change: notes come as a short call every four bars with rests between ("sequence, nail it, pause"), a finisher for a nailed call, elites stagger into short sequences of their own, the counter-attack is in the base game, a tougher and longer run; the talent tree no longer pauses (D-0046).
 - 2026-10-26: v0.13 Demo 1 readability pass: beat bar, pictures instead of text, calmer board, rank on the towers, talent tree redrawn, calibration fixed for the demo (D-0045). Rules unchanged.
