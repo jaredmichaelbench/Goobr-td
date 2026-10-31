@@ -53,3 +53,21 @@ Collect the feedback here, as for the other milestones (INDEX rule 6). Things to
 - Missing notes in a boss fight drops the music and kills the epic feel. A boss should feel epic whether you are winning or losing; streaks are meant to add to it, misses should not take away. **To discuss.**
 - Sound effects still off: notes, parries and the rest need a proper sound pass to make the game satisfying.
 - He may have played without copying Night Life into `game/audio` (it was likely already there from Demo 1); next test confirms.
+
+Run log, attempt 1 (Jared, pasted 13:28Z):
+
+```
+NIGHT SURVIVED   Night 1: Night Life
+Time 3:52   Health 14/20   Gold earned 375
+Notes 68 hit of 114 (59%)   Perfects 35
+Parries 28 of 40   Towers locked 5   Shields lost 3   Restores 0
+Calls nailed 9 of 20   Staggers 4
+Boss: 32 bolts, 0 stomps, 4 breaks
+Picks: Thinning
+Level 10   XP 231   Talents 0 (none)
+Type upgrades: Cannon 2   Unlocked: Lightning, Light
+Crits 0   Arcs 0   Poison 0   Counters 0 of 28
+W6  notes 68/114  parries 28/40  counters 0/28  hp -6
+```
+
+Read (Claude): about 55 s past the song's end, so the boss fight ran long. Nine talent points unspent, counters 0 of 28. Only one wave line: the board never fully cleared between pushes, so the whole night logged as one wave.
