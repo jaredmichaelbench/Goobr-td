@@ -372,3 +372,14 @@ Alternatives: free or cheaper walls (parked for the economy pass); keep the all-
 2026-10-31 · accepted (Jared, thread 19:48Z: "go")
 Context: v3.2 run 1 fell at bar 90 with 92% notes: only 50 notes all night (82-87 before), 9 in the finale. Halving the Crescendo (D-0054 point 2) cut the snipes that kill, so creeps leaked and the boss broke less. With live notes at most two rings show at once, so the halving is not needed.
 Decision: the Crescendo burst in a level is a note on every beat again, still Q only unless the night asks for E, still live. Rest of D-0054 stands.
+
+## D-0056: Demo plan markup (carryover, tower unlocks, cards)
+2026-10-31 · accepted (Jared, demo plan doc markup, thread 23:14Z)
+Context: demo plan doc (`notes/demo-plan-2026-10-31.md`, T-035) and Jared's talent tree canvas (`sketches/talent-tree-2026-10-31.md`).
+Decision:
+1. Health lasts the whole five-night campaign; the nights are tuned around it. Shields and restores reset each night unless the talent review says otherwise.
+2. Towers are unlocked only through the talent tree (Arsenal branch). In-night unlocks (Poison from 3 Frost, Lightning from 10 Perfects, Light from a Shade kill) leave the campaign; no separate tower pick between nights. They come out of the build when the build phase starts (Night 1 stays frozen until then). Replaces D-0038's in-run WC3 gating for the campaign; multiplayer decides later.
+3. Cards: 4 or 5 a campaign, each must matter. Flat stat cards (10% crit, 20% damage, +1 gold) are scrapped. Rarity is rethought; grey and common likely go.
+4. Type upgrades are OPEN: Jared barely afforded one in a 2-3 minute night. Rework (fewer, bigger upgrades) or persistence is decided in an upgrade discussion.
+5. Next: talent review and card review (plus upgrades), then fold all three into the demo plan before the scope lock.
+Alternatives: health reset per night; a tower pick between nights (the doc's first proposal).
