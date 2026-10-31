@@ -9,7 +9,7 @@ Proposed package "Night 1, version 2", nothing built until Jared agrees (INDEX r
 3. Boss strides on the beat, timed to reach the keep at song end, hits the camp every bar once there.
 4. Boss music: a floor during the fight, streaks add a layer, quieter misses, whoosh on bolts, hit on the break.
 5. Start pop-up: Start the night (N) / Study the map.
-6. No mid-night card; level-ups are a badge on Talents. Open: talent points in lulls or at night end?
+6. No mid-night card. Talents spent after the night (Jared, doc comment 14:20Z): end screen with a battle-pass style XP fill, a shake per level, then the tree, then the card.
 7. Miss log: reason per missed note in the run log.
 8. Night 1 asks less: Q calls and parries only, no notes in the count-off and intro.
 
