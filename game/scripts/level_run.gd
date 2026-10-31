@@ -350,6 +350,7 @@ func step(delta: float) -> void:
 		_section_base = _totals()
 		_section_base["health"] = health
 		_section_base["boss"] = false
+		_section_base["resolved"] = _resolved_notes()
 		_enter_section(night["sections"][section])
 	if _boss_due >= 0.0 and b >= _boss_due:
 		_boss_due = -1.0
@@ -596,8 +597,16 @@ func _stagger_notes(struck: Dictionary) -> void:
 
 
 func _schedule_bar(bar: int) -> void:
-	if not boss_alive() and current_section().get("quiet", false):
-		return
+	if not boss_alive() and started:
+		# Look at the section the bar falls in, not the one playing now: the
+		# chart is written two bars ahead. Lulls ask for no notes, even with a
+		# trickle walking (v3, D-0052), and neither do quiet pushes.
+		var sb := (bar * clock.bar_length() - song_start) / clock.bar_length()
+		for s in night["sections"]:
+			if sb >= s["start"] and sb < s["start"] + s["bars"]:
+				if s["kind"] == "lull" or s["quiet"]:
+					return
+				break
 	super._schedule_bar(bar)
 
 
@@ -835,6 +844,15 @@ func run_lines() -> Array[String]:
 	return lines
 
 
+## Notes hit or missed so far: a section's "offered" counts the notes that
+## landed in it, not the ones written into it two bars ahead.
+func _resolved_notes() -> int:
+	var n := 0
+	for type in stats:
+		n += stats[type]["hits"] + stats[type]["missed"]
+	return n
+
+
 ## One row of the run log for the section that just ended.
 func _log_section() -> void:
 	if _section_base.is_empty() or section < 0:
@@ -842,7 +860,7 @@ func _log_section() -> void:
 	var t := _totals()
 	var name: String = night["sections"][section]["name"]
 	section_log.append("%-10s notes %d/%d   parries %d/%d   hp -%d%s" % [name,
-		t["hits"] - _section_base["hits"], t["notes"] - _section_base["notes"],
+		t["hits"] - _section_base["hits"], _resolved_notes() - _section_base["resolved"],
 		t["parried"] - _section_base["parried"], t["throws"] - _section_base["throws"],
 		maxi(0, _section_base["health"] - health), "   boss" if _section_base["boss"] else ""])
 	print("SECTION LOG  " + section_log[-1])

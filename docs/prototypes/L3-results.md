@@ -206,8 +206,10 @@ What changed is in D-0052. Bot runs (`tests/t_level.gd`, towers only, no walls o
 
 | Bot (notes, parries) | Result | By section |
 |---|---|---|
-| 70%, 70% | fell after the song, boss at 53% | first half lost 1 health in total; groove -12, finale -7 (missed bolts) |
-| 75%, 85% | survived | first half lost nothing; groove -3, finale -3 |
-| 50%, 50% | fell in the groove | first half lost 3 |
+| 70%, 70% | fell after the song | first half lost 1 health; groove -11, finale -8 (missed bolts) |
+| 75%, 85% | survived | first half lost 3; groove -5, finale -2 |
+| 50%, 50% | fell in the finale, bar 83 | first half lost 2; groove -15 |
+
+Lulls now ask no notes even with walkers in them, and a section's "offered" counts the notes that landed in it.
 
 The first half is now gentle; the boss fight is decided by parries, which is the point. A bolt you miss still costs 2 health (or a shield). `tests/t_v3_smoke.gd` loads the full scene (HUD and 3D view), builds a tower on a wall (charged the tower price minus the wall's) and prints the run log by section.
