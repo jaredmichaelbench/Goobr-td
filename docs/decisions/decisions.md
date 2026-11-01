@@ -432,3 +432,16 @@ Decision:
 4. Note targeting: while a boss or elite is in view, notes target it; otherwise the nearest creep (closes the lone-boss watch item).
 Alternatives: Moths on N2; the counter as Night 4's lesson; the Peeker as Night 5's boss.
 
+
+## D-0062: UI slice A (building, selling, feedback at the camp) decided and built
+2026-11-01 · accepted (Jared, UI doc comments and chat 03:01Z "Lets implement this with my notes, looks good").
+Context: T-034 UI and UX doc (https://claude.ai/artifact/8qVtAzW4GrfeVnj6S9xwEV; `notes/ui-ux-rethink-2026-10-31.md`). Built on Night 1 (frozen otherwise, D-0055).
+Decision:
+1. Build mode: B opens it and B again closes it; the mouse wheel cycles the unlocked towers; 1 to 7 still pick one. Right click and Esc also close it and never sell (Jared: Esc used to cost him a tower's gold). The old B-then-letter chain is retired.
+2. A click builds one and closes build mode; Shift-click keeps building. A tower on a wall replaces it, as D-0052.
+3. A tag next to the cursor, not in the top bar: the tower, its price, your gold, red with "need N more" when short; on a wall it says the wall's gold counts.
+4. Hovering a tower shows a small menu with both actions: X sells it (+refund), U / I upgrades its type (or picks the fork). The sell pays out like other games: a spinning gold coin and "+N" bounce off the tile with a coin tick.
+5. Judgment words are drawn where they happen: a note's PERFECT, GOOD or MISS over the tower that fired, a parry, counter or announcement over the camp. The top-centre judgment is gone.
+6. The camp carries its own numbers: health with a heart (pulses red when the camp is hit), shields as before, Restore charges as green pips.
+7. In a push the top bar and the bottom panel dim to half; they come back in lulls, between nights, in build mode and when the mouse goes to them.
+Alternatives: keep B-then-letter; X / right click to sell; judgment in the top centre.

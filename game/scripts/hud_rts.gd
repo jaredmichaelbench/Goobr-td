@@ -7,15 +7,16 @@ extends Hud7
 ## pictures on the left; in the middle the selected tower, then the game controls
 ## as round buttons (Talents, Restore, Start wave) and a WoW-style XP bar under
 ## them (Jared's layout); the build card on the right holds only the wall, the
-## towers and Upgrade. B then a letter picks a build, as in WC3; the number keys
-## still work. Q, E and Space are never taken by the HUD. Every tooltip is
+## towers and Upgrade. UI slice A (D-0062): B opens build mode and B again closes
+## it, the mouse wheel picks the tower, the number keys still work; a tag by the
+## cursor shows the price and your gold; hovering a tower shows X sell and U upgrade. Q, E and Space are never taken by the HUD. Every tooltip is
 ## instant and laid out by Explain. Key hints and run stats live on the pause
 ## screen; each wave ends with a small summary card.
 
 const BOTTOM_H := 150.0
 const TOP_H := 40.0
 const CARD := Vector2(96, 34)
-## B-chain letters (Jared: "B then E, B then F, B then T").
+## The old B-then-letter chain, retired by D-0062 (B then the mouse wheel).
 const BUILD_LETTERS := {KEY_W: "wall", KEY_C: "kick", KEY_S: "bass", KEY_F: "slow", KEY_V: "poison", KEY_L: "lightning", KEY_G: "light"}
 const BUILD_ORDER := ["wall", "kick", "bass", "slow", "poison", "lightning", "light"]
 ## The note on one line for the tower panel; the tooltip has the whole story.
@@ -62,7 +63,14 @@ var pause_box: Control
 var pause_stats: Label
 var tree_lines: HudParts.TreeLines
 var tree_dim: ColorRect
-var build_armed := false
+var build_armed := false  # The old B-then-letter chain; always off since D-0062.
+var cursor_tag: PanelContainer
+var cursor_title: Label
+var cursor_body: Label
+var hover_box: PanelContainer
+var hover_title: Label
+var hover_body: Label
+var _corner_alpha := 1.0
 var _icons := {}
 var _logged := 0
 var _gold_at_start := 0
@@ -102,6 +110,8 @@ func _ready() -> void:
 	_hook_tips()
 	if game is LevelRun:
 		_build_level_panels()
+	_build_cursor()
+	game.build_mode = false  # Build mode opens with B or a number key (D-0062).
 	_refresh()
 
 
@@ -201,7 +211,7 @@ func _build_bottom() -> void:
 	placeholder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	placeholder.text = "Click a tower to see its type and upgrades. Build from the card on the right: click, press the number, or B then the letter."
+	placeholder.text = "B builds: the mouse wheel picks the tower, B again stops. Or press 1 to 7. Hover a tower: X sells it, U upgrades its type."
 	info.add_child(placeholder)
 	var controls := HBoxContainer.new()
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -437,7 +447,7 @@ func _build_middle() -> void:
 	pause_stats = _label(BODY, UiTheme.TEXT)
 	pv.add_child(pause_stats)
 	var keys := _label(BODY, Color(1, 1, 1, 0.85))
-	keys.text = "Q, E   play the note on its tower\nSpace   parry, tap again quickly to counter\n1 to 7, or B then a letter   build\nU / I   upgrade or pick a fork   F   Restore a locked tower\nTab   talents   [ ]   change song   F11   full screen\nP   resume   Esc twice   leave the run"
+	keys.text = "Q, E   play the note on its tower\nSpace   parry, tap again quickly to counter\nB   build mode on and off; mouse wheel picks the tower   1 to 7   pick a tower\nClick builds one; Shift-click keeps building   right click or Esc stops\nHover a tower: X sells, U / I upgrades or picks a fork   F   Restore a locked tower\nTab   talents   [ ]   change song   F11   full screen\nP   resume   Esc twice   leave the run"
 	pv.add_child(keys)
 	var resume := _button(pv, Vector2(160, 40), func(): game.toggle_pause())
 	resume.text = "Resume  (P)"
@@ -618,6 +628,8 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	if root == null:
 		return
+	_refresh_cursor()
+	_fade_corners(delta)
 	# Level up: a line, one shake of the Talents button, then a soft glow until spent.
 	if game.level_ups != _seen_level_ups:
 		_seen_level_ups = game.level_ups
@@ -697,6 +709,9 @@ func _refresh_judgment() -> void:
 	judgment.modulate.a = 1.0 if game.crescendo > 0.0 else clampf(game._feedback_time / 0.3, 0.0, 1.0)
 	judgment_ms.text = game.feedback_ms if text != "" and game.crescendo <= 0.0 else ""
 	judgment_ms.modulate.a = judgment.modulate.a
+	# D-0062: the word is drawn where it happened (Indicators), not up here.
+	judgment.visible = false
+	judgment_ms.visible = false
 	var s: int = game.streak
 	streak_label.text = ("Streak %d" % s + ("   x%d" % (game.intensity + 1) if game.intensity > 0 else "")) if s >= 2 else ""
 
@@ -919,7 +934,7 @@ func _hook_tips() -> void:
 	root.add_child(rich)
 	for type in build_buttons:
 		var t: String = type
-		rich.hook(build_buttons[t], func(): return Explain.tower(game, t, "Key %s, or B then %s" % [_key(t), _letter(t)]))
+		rich.hook(build_buttons[t], func(): return Explain.tower(game, t, "Key %s, or B and the mouse wheel" % _key(t)))
 	rich.hook(upgrade_cmd, func():
 		var type := _panel_type()
 		return Explain.tower(game, type, "U upgrades every %s on the board" % game.tower_name(type)) if type != "" and game.is_tower(type) else "")
@@ -945,45 +960,203 @@ func _hook_tips() -> void:
 		rich.hook(tree_nodes[key], func(): return Explain.talent(TalentTree.nodes()[id], TalentTree.ranks(id, game.owned), TalentTree.available(id, game.owned), game.points))
 
 
-## B then a letter picks a build (WC3 style). Esc or B again backs out.
+## Build mode (UI slice A, D-0062, Jared's notes): B opens it with the last tower
+## picked and B again closes it; the mouse wheel cycles the unlocked towers; 1 to 7
+## pick one directly. A click builds one and closes build mode, Shift-click keeps
+## building; right click or Esc close it without selling anything. Out of build mode,
+## X sells the tower under the cursor and U / I upgrade its type.
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey and event.pressed and not event.echo):
+	if game.state != "playing" or game.paused or game.get("drafting") == true or game.tree_open:
 		return
-	if game.state != "playing" or game.paused or game.get("drafting") == true:
-		build_armed = false
+	if event is InputEventKey and event.pressed and not event.echo:
+		var k: int = event.keycode
+		if k == KEY_B:
+			if game.build_mode:
+				_stop_building()
+			else:
+				_start_building(game.selected)
+			get_viewport().set_input_as_handled()
+		elif game.build_keys.has(k):
+			_start_building(game.build_keys[k])
+			get_viewport().set_input_as_handled()
+		elif k == KEY_ESCAPE and game.build_mode:
+			_stop_building()
+			get_viewport().set_input_as_handled()
+		elif k == KEY_X:
+			var cell := _hover_cell()
+			if game.structures.has(cell):
+				game.sell(cell)
+			get_viewport().set_input_as_handled()
+		elif k == KEY_U or k == KEY_I:
+			var cell := _hover_cell()
+			if game.structures.has(cell) and game.is_tower(game.structures[cell]["type"]):
+				game.selected_cell = cell  # The sim's U / I then upgrade the hovered type.
 		return
-	if event.keycode == KEY_B:
-		build_armed = not build_armed
-		get_viewport().set_input_as_handled()
+	if not (event is InputEventMouseButton and event.pressed and game.build_mode):
 		return
-	if not build_armed:
+	if mouse_over_ui():
 		return
-	if BUILD_LETTERS.has(event.keycode):
-		var type: String = BUILD_LETTERS[event.keycode]
-		build_armed = false
-		get_viewport().set_input_as_handled()
-		if not game.unlocked.has(type):
-			game._say("%s is locked: %s" % [game.tower_name(type), game.unlock_text(type)])
-			return
-		game.selected = type
-		game.build_mode = true
-		game.selected_cell = Vector2i(-1, -1)
-		return
-	if event.keycode == KEY_ESCAPE:
-		build_armed = false
-		get_viewport().set_input_as_handled()
+	match event.button_index:
+		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
+			_cycle(-1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1)
+			get_viewport().set_input_as_handled()
+		MOUSE_BUTTON_RIGHT:
+			_stop_building()
+			get_viewport().set_input_as_handled()
+		MOUSE_BUTTON_LEFT:
+			var cell: Vector2i = game.cell_at(event.position)
+			if game.structures.has(cell) and not _swaps(cell):
+				return  # A click on a tower picks it, as before.
+			if game.try_place(cell, game.selected) and not event.shift_pressed:
+				_stop_building()
+			get_viewport().set_input_as_handled()
 
 
-## One line over the board at most, and never the talent nag (the green Talents
-## button already says it; Claude's review counted it three times).
+func _start_building(type: String) -> void:
+	if game.builds.has(type) and not game.unlocked.has(type):
+		game._say("%s is locked: %s" % [game.tower_name(type), game.unlock_text(type)])
+		return
+	if not game.builds.has(type):
+		type = "wall"
+	game.selected = type
+	game.build_mode = true
+	game.selected_cell = Vector2i(-1, -1)
+
+
+func _stop_building() -> void:
+	game.build_mode = false
+
+
+## The wheel: the next unlocked build in card order, round and round.
+func _cycle(dir: int) -> void:
+	var open: Array = BUILD_ORDER.filter(func(t): return game.builds.has(t) and game.unlocked.has(t))
+	if open.is_empty():
+		return
+	var i: int = open.find(game.selected)
+	game.selected = open[posmod(i + dir, open.size())] if i >= 0 else open[0]
+
+
+func _swaps(cell: Vector2i) -> bool:
+	return game.has_method("wall_swap") and game.wall_swap(cell, game.selected)
+
+
+func _hover_cell() -> Vector2i:
+	if mouse_over_ui():
+		return Vector2i(-1, -1)
+	return game.cell_at(get_viewport().get_mouse_position())
+
+
+# --- The cursor tag and the hover menu (D-0062) ----------------------------------------------
+
+func _small_box(edge: Color) -> Array:
+	var box := PanelContainer.new()
+	box.add_theme_stylebox_override("panel", UiTheme.box(Color(0.06, 0.07, 0.09, 0.88), edge, 1, 4, 6.0))
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.visible = false
+	root.add_child(box)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 1)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(v)
+	var t := _label(BODY, UiTheme.GOLD, true)
+	v.add_child(t)
+	var b := _label(CAPTION, UiTheme.TEXT)
+	v.add_child(b)
+	return [box, t, b]
+
+
+func _build_cursor() -> void:
+	var made := _small_box(UiTheme.EDGE)
+	cursor_tag = made[0]
+	cursor_title = made[1]
+	cursor_body = made[2]
+	made = _small_box(UiTheme.GOLD * Color(1, 1, 1, 0.7))
+	hover_box = made[0]
+	hover_title = made[1]
+	hover_body = made[2]
+	for box in [tree_dim, tree_box, draft_box, end_box]:
+		root.move_child(box, root.get_child_count() - 1)
+
+
+## Next to the cursor (Jared: "all that information next to the cursor, not in the
+## top"): in build mode the tower, its price and your gold, red when you are short;
+## over a tower, what X and U would do.
+func _refresh_cursor() -> void:
+	var busy: bool = game.state != "playing" or game.paused or game.tree_open or game.get("drafting") == true
+	var m := get_viewport().get_mouse_position()
+	cursor_tag.visible = false
+	hover_box.visible = false
+	if busy or mouse_over_ui():
+		return
+	var cell: Vector2i = game.cell_at(m)
+	if game.build_mode and game.builds.has(game.selected):
+		var type: String = game.selected
+		var swap := _swaps(cell)
+		var cost: int = game.build_cost_at(cell, type) if game.has_method("build_cost_at") else game.builds[type]["cost"]
+		var short: int = cost - game.gold
+		cursor_title.text = game.tower_name(type) + ("  on the wall" if swap else "")
+		cursor_title.add_theme_color_override("font_color", UiTheme.GOLD if short <= 0 else Color(1, 0.45, 0.4))
+		var line := "%dg   you have %dg" % [cost, game.gold]
+		if short > 0:
+			line += "   need %d more" % short
+		if swap:
+			line += "\nthe wall's %dg counts toward it" % game.builds["wall"]["cost"]
+		cursor_body.text = line + "\nShift-click keeps building   wheel: next tower   B stops"
+		cursor_body.add_theme_color_override("font_color", UiTheme.TEXT if short <= 0 else Color(1, 0.6, 0.55))
+		_place_by_cursor(cursor_tag, m)
+		return
+	if not game.structures.has(cell):
+		return
+	var s: Dictionary = game.structures[cell]
+	var type: String = s["type"]
+	var refund := int(s.get("paid", game.builds[type]["cost"]) * game.SELL_REFUND)
+	hover_title.text = game.tower_name(type)
+	var lines: Array[String] = ["X   sell   +%dg" % refund]
+	if game.is_tower(type) and game.unlocked.has(type):
+		var rank: int = game.type_rank.get(type, 0)
+		if rank >= 5:
+			lines.append("Top rung reached")
+		elif rank == 2 and game.BRANCHES.has(type):
+			var br: Array = game.BRANCHES[type]
+			lines.append("U   fork: %s      I   fork: %s" % [br[0][0], br[1][0]])
+		else:
+			var cost: int = game.type_upgrade_cost(type)
+			lines.append("U   upgrade every %s   %dg%s" % [game.tower_name(type), cost, "" if game.gold >= cost else "  (need %d more)" % (cost - game.gold)])
+	hover_body.text = "\n".join(lines)
+	_place_by_cursor(hover_box, m)
+
+
+func _place_by_cursor(box: Control, m: Vector2) -> void:
+	box.visible = true
+	box.reset_size()
+	var view := get_viewport().get_visible_rect().size
+	var p := m + Vector2(22, 18)
+	if p.x + box.size.x > view.x - 8.0:
+		p.x = m.x - box.size.x - 14.0
+	if p.y + box.size.y > view.y - BOTTOM_H - 4.0:
+		p.y = m.y - box.size.y - 12.0
+	box.position = p
+
+
+## In a push the corner numbers and the bottom bar dim to half so the board
+## and the camp carry the fight; they come back in lulls, between nights, in build
+## mode and when the mouse goes to them.
+func _fade_corners(delta: float) -> void:
+	var fight := false
+	if game is LevelRun and game.started and game.state == "playing" and game.night_phase != "summary":
+		fight = game.current_section().get("kind", "lull") != "lull"
+	var m := get_viewport().get_mouse_position()
+	var near: bool = top_bar.get_global_rect().has_point(m) or bottom.get_global_rect().has_point(m)
+	var target := 0.5 if fight and not near and not game.build_mode else 1.0
+	_corner_alpha = move_toward(_corner_alpha, target, delta * 2.5)
+	# Dimmed, not see-through: the bar stays solid so the board never shows through it.
+	var v := _corner_alpha
+	top_bar.modulate = Color(v, v, v, 1.0)
+	bottom.modulate = Color(v, v, v, 1.0)
+
+
 func _tip() -> String:
-	if build_armed:
-		return "Build: W wall, C Cannon, S Splash, F Frost, V Poison, L Lightning, G Light.  Esc backs out."
-	if game.tree_open or game.get("drafting") == true or game.paused:
-		return ""
-	if game.build_mode and game.selected != "":
-		return "Click to place %s. Right click or Esc to stop building." % game.tower_name(game.selected)
-	return ""
+	return ""  # The cursor tag carries the build line now (D-0062).
 
 
 ## Locked talents stay readable: the dark disabled style says "not yet", not a fade.

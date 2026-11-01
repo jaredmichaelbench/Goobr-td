@@ -19,6 +19,12 @@ func _ready() -> void:
 		_sfx["perfect"].stream = SynthVoices.perfect()
 		_sfx["good"].stream = SynthVoices.good()
 		_sfx["miss"].stream = SynthVoices.miss()
+	var coin := AudioStreamPlayer.new()
+	coin.stream = StemSynth.tick(1320.0)
+	coin.volume_db = -6.0
+	coin.bus = "SFX"
+	add_child(coin)
+	_sfx["coin"] = coin
 
 
 func make_hud() -> Hud:
@@ -45,6 +51,33 @@ func _draw() -> void:
 func _tick_effects(delta: float) -> void:
 	super._tick_effects(delta)
 	position = Vector2.ZERO
+	var live: Array[Dictionary] = []
+	for c in coin_pops:
+		c["ttl"] -= delta
+		if c["ttl"] > 0.0:
+			live.append(c)
+	coin_pops = live
+
+
+# --- UI slice A (D-0062): judgments where they happen, a coin pop on a sell ----------------
+
+## The tower whose note the latest judgment is about, or (-1, -1) for the camp
+## (parries, counters, announcements). Indicators draws the word there.
+var feedback_cell := Vector2i(-1, -1)
+var _note_ctx := Vector2i(-1, -1)
+## A sold tower pays out like a sell in any other game: "+N" gold bouncing off its tile.
+var coin_pops: Array[Dictionary] = []
+const COIN_TTL := 1.2
+
+
+func sell(cell: Vector2i) -> void:
+	if structures.has(cell):
+		var s: Dictionary = structures[cell]
+		var refund := int(s.get("paid", builds[s["type"]]["cost"]) * SELL_REFUND)
+		coin_pops.append({"pos": Vector2(cell), "text": "+%d" % refund, "ttl": COIN_TTL})
+		if _sfx.has("coin"):
+			_sfx["coin"].play()
+	super.sell(cell)
 
 
 ## Esc closes the talent tree first, then leaves for the title screen after a
@@ -266,6 +299,7 @@ var _ms_re: RegEx
 
 func _show_feedback(text: String, color: Color) -> void:
 	super._show_feedback(text, color)
+	feedback_cell = _note_ctx
 	feedback_detail = text
 	if _ms_re == null:
 		_ms_re = RegEx.new()
@@ -516,14 +550,18 @@ func _play(key: Key) -> void:
 
 
 func _on_miss(n: Dictionary) -> void:
+	_note_ctx = n["tower"] if n.get("tower") is Vector2i else Vector2i(-1, -1)
 	super._on_miss(n)
+	_note_ctx = Vector2i(-1, -1)
 	if _seqs.has(n.get("seq", -1)):
 		_seqs[n["seq"]]["missed"] = true
 
 
 func _resonance(n: Dictionary, g: String, offset_ms: float) -> void:
 	var before := notes.size()
+	_note_ctx = n["tower"] if n.get("tower") is Vector2i else Vector2i(-1, -1)
 	super._resonance(n, g, offset_ms)
+	_note_ctx = Vector2i(-1, -1)
 	# A card's free echo note takes its own tower like any other (one ring per tower).
 	for i in range(before, notes.size()):
 		if notes[i]["state"] == "open":

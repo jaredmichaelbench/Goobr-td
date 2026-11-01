@@ -15,13 +15,20 @@ const RED := Color(1.0, 0.3, 0.4)
 var sim: RunSim
 var view: View3D
 var font: Font
+var _last_health := -1
+var _hurt := 0.0  # Seconds left on the camp's pulse after it takes damage.
 
 
 func _ready() -> void:
 	font = load("res://assets/fonts/lilita_one_regular.ttf") if ResourceLoader.exists("res://assets/fonts/lilita_one_regular.ttf") else ThemeDB.fallback_font
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_hurt = maxf(0.0, _hurt - delta)
+	if sim != null:
+		if _last_health >= 0 and sim.health < _last_health:
+			_hurt = 0.6
+		_last_health = sim.health
 	queue_redraw()
 
 
@@ -60,6 +67,9 @@ func _draw() -> void:
 	_draw_conductor(bt, beat)
 	_draw_boss(bt, beat)
 	_draw_popups()
+	_draw_camp_readout()
+	_draw_judgment()
+	_draw_coins()
 
 
 func _draw_creep_marks(_bt: float) -> void:
@@ -282,3 +292,98 @@ func _draw_popups() -> void:
 		var c: Color = pop["color"]
 		c.a *= clampf(pop["ttl"] / 0.3, 0.0, 1.0)
 		_text(_at(w), String(pop["text"]).to_upper(), int(pop["size"] * 1.0), c, 4)
+
+
+# --- UI slice A (D-0062) -----------------------------------------------------------------
+
+## The camp's own numbers, under its shields: health (it pulses red when the camp is
+## hit) and the Restore charges as green pips. You read them where you are looking.
+func _draw_camp_readout() -> void:
+	var cp := view.conductor_point()
+	var at := _at(cp + Vector3(0, -0.9, 1.55))
+	var pulse := _hurt / 0.6
+	var size := int(20.0 * (1.0 + 0.45 * pulse))
+	var col := Color.WHITE.lerp(RED, clampf(pulse * 1.4, 0.0, 1.0))
+	_text(at, "%d" % sim.health, size, col, 6)
+	var hw := font.get_string_size("%d" % sim.health, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	# A small heart left of the number.
+	var hp := at + Vector2(-hw * 0.5 - 12.0, 0)
+	var hr := 4.5 * (1.0 + 0.4 * pulse)
+	draw_circle(hp + Vector2(-hr * 0.55, -hr * 0.3), hr * 0.65, Color(0, 0, 0, 0.6))
+	draw_circle(hp + Vector2(hr * 0.55, -hr * 0.3), hr * 0.65, Color(0, 0, 0, 0.6))
+	draw_colored_polygon(PackedVector2Array([hp + Vector2(-hr * 1.15, -hr * 0.1), hp + Vector2(hr * 1.15, -hr * 0.1), hp + Vector2(0, hr * 1.1)]), RED)
+	draw_circle(hp + Vector2(-hr * 0.55, -hr * 0.3), hr * 0.55, RED)
+	draw_circle(hp + Vector2(hr * 0.55, -hr * 0.3), hr * 0.55, RED)
+	if pulse > 0.0:
+		draw_arc(_at(cp + Vector3(0, 0.3, 0)), _ppm(cp) * (0.7 + 1.0 * (1.0 - pulse)), 0, TAU, 48, RED * Color(1, 1, 1, 0.8 * pulse), 4.0)
+	# Restore charges: green pips right of the number.
+	var cap: int = sim.restore_cap()
+	for i in cap:
+		var q := at + Vector2(hw * 0.5 + 12.0 + i * 11.0, 0)
+		draw_circle(q, 4.5, Color(0, 0, 0, 0.6))
+		draw_circle(q, 3.5, Color(0.5, 1.0, 0.6) if i < sim.restore_charges else Color(1, 1, 1, 0.2))
+
+
+## The judgment word where it happened (Jared's call): a note's PERFECT or MISS over
+## the tower that fired, a parry, counter or announcement over the camp. The timing
+## sits small under it.
+func _draw_judgment() -> void:
+	var text := ""
+	var color: Color = sim._feedback_color
+	var a := 1.0
+	if sim.crescendo > 0.0:
+		text = "CRESCENDO  %.1f" % sim.crescendo
+		color = YELLOW
+	elif sim._feedback_time > 0.0 and sim._feedback != "PAUSED":
+		text = sim._feedback
+		a = clampf(sim._feedback_time / 0.3, 0.0, 1.0)
+	if text == "":
+		return
+	var anchor: Vector3 = view.conductor_point() + Vector3(0, 1.4, 0)
+	var cell: Vector2i = sim.feedback_cell
+	if sim.crescendo <= 0.0 and cell.x >= 0 and sim.structures.has(cell):
+		anchor = View3D.world(Vector2(cell), NOTE_LIFT + 0.75)
+	if view.is_behind(anchor):
+		return
+	var age := 1.0 - clampf(sim._feedback_time / 0.9, 0.0, 1.0)
+	var pop := 1.0 + 0.35 * maxf(0.0, 1.0 - age * 6.0)  # A quick swell as it lands.
+	var p := _at(anchor) + Vector2(0, -10.0 * age)
+	# Keep the word on screen when the camp sits by the edge.
+	var half := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(24 * pop)).x * 0.5 + 8.0
+	var vw := get_viewport_rect().size.x
+	p.x = clampf(p.x, half, vw - half)
+	_text(p, text, int(24 * pop), color * Color(1, 1, 1, a), 6)
+	if sim.crescendo <= 0.0 and sim.feedback_ms != "":
+		_text(p + Vector2(0, 20), sim.feedback_ms, 12, Color(1, 1, 1, 0.85 * a), 4)
+
+
+## A sell pays out: a gold coin and "+N" that pop up off the tile with a bounce, then
+## drift and fade.
+func _draw_coins() -> void:
+	for c in sim.coin_pops:
+		var age: float = 1.0 - c["ttl"] / sim.COIN_TTL
+		# Up fast, a bounce at the top, then a slow drift.
+		var rise := 1.0 - pow(1.0 - minf(age * 2.5, 1.0), 3.0)
+		var bounce := absf(sin(minf(age * 2.5, 1.0) * PI * 2.0)) * (1.0 - minf(age * 2.5, 1.0)) * 0.25
+		var w := View3D.world(c["pos"], 1.0 + 1.1 * rise + bounce + 0.3 * age)
+		if view.is_behind(w):
+			continue
+		var p := _at(w)
+		var fade := clampf(c["ttl"] / 0.4, 0.0, 1.0)
+		var scale := 1.0 + 0.5 * maxf(0.0, 1.0 - age * 5.0)
+		var r := 9.0 * scale
+		var coin := p + Vector2(-r - 4.0, 0)
+		# The coin turns: its width swings, so it reads as a spinning coin.
+		var squash := 0.35 + 0.65 * absf(cos(age * TAU * 1.5))
+		var pts := PackedVector2Array()
+		for i in 20:
+			var t := TAU * i / 20.0
+			pts.append(coin + Vector2(cos(t) * r * squash, sin(t) * r))
+		draw_colored_polygon(pts, Color(0.45, 0.3, 0.05, fade))
+		var inner := PackedVector2Array()
+		for i in 20:
+			var t := TAU * i / 20.0
+			inner.append(coin + Vector2(cos(t) * (r - 2.0) * squash, sin(t) * (r - 2.0)))
+		draw_colored_polygon(inner, Color(1.0, 0.82, 0.25, fade))
+		var tw := font.get_string_size(c["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, int(22 * scale)).x
+		_text(p + Vector2(tw * 0.5 + 2.0, 0), c["text"], int(22 * scale), Color(1.0, 0.85, 0.3, fade), 6)
