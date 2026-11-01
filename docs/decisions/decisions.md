@@ -395,3 +395,14 @@ Decision:
 5. In the campaign towers unlock only through the tree. The Arsenal 1/2 and Precision 4/5 placeholders and the Camp branch are dropped.
 6. A name pass in the night-watchman, "I just work here" voice is owed for the whole tree (backlog).
 Alternatives: the four-branch draft with a Camp branch; ranked nodes (x/5) as in the mockup builder; 2 points a night with a strong-night bonus.
+
+## D-0058: Tree costs flattened, Light placed, upgrades option A (design only)
+2026-11-01 · accepted on paper (Jared, review doc second pass, 00:50-02:14Z). Not built.
+Context: T-036 review doc; amends D-0057 points 3 and 4.
+Decision:
+1. Every talent node costs 1 point. Points: 1 after Night 1 (it buys Counter Attack), 3 after each of Nights 2-4, 10 in a run. The longest climb to a top capstone is 9 nodes, so one run reaches the end of one side, never both. Capstones cost the climb, not extra points.
+2. Towers upper is Unlock Light; the Towers capstone is Improved Light; the Rhythm capstone is Improved Counter Attack (more damage, area, wider window). All 22 slots are filled.
+3. Upgrades: option A. Rung 1 picks one of today's two forks per tower, rung 2 is that fork's own mastery (the flat +60% mastery is dropped). Mastery texts are drafts in `notes/progression-review-2026-10-31.md`.
+4. Cards: Chain snipe, Undertow, Lighthouse and Shatter are cut; Jared's Splitting headache (working name), F beat (Legendary, a third note) and Perfect Accumulation come in; one slot open.
+Alternatives: costs of 3 for unlocks and capstones (12 points, top unreachable); upgrade options B (persist) and C (no gold upgrades).
+
