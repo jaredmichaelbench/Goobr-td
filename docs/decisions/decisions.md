@@ -416,3 +416,9 @@ Decision:
 4. Upgrades: option A with the per-fork mastery table (drafts to tune).
 5. Folded into the demo plan. Still open: name pass, Thorny Walls mechanics, F beat design, Piercing shot vs Pierce. Nothing is built until the build phase; next are the enemy doc and the UI slice markup.
 
+## D-0060: Asset direction for the demo
+2026-11-01 · accepted (Jared 02:43Z in the asset review thread: "Lets go with your suggestions for now. Lets bring them into my first campaign effort doc as well for one big build").
+Context: asset review T-030 (Claude Doc https://claude.ai/artifact/Wyi48aePzKqQe3t9hZoMoc; `notes/asset-review-2026-10-31.md` on branch claude/project-thread-7ju339).
+Decision: one KayKit family (Medieval Hexagon, Skeletons, Adventurers, plus Halloween Bits and Dungeon Remastered), night lighting, enemies told apart by weapon and shield, the pack's build stages and existing animations, Godot effects; Quaternius tested only for bosses; custom art after the demo. Folded into the demo plan ("Art and look") for one big build with the five nights.
+Alternatives: Kenney or Quaternius as the main family; custom art now.
+

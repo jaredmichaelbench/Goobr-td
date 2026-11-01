@@ -38,7 +38,7 @@ Two sides from Counter Attack, crossing at Perfect Solo, to Jared's builder mock
 - 4 cards a run (pick of 3 after nights 1-4). Talents are the plan, cards are the twist; no card repeats a talent.
 - No flat stats. A one-line title you can read at a glance, with smaller explainer text underneath (Jared). No draft-only cards.
 - Rarity: Rare ~65%, Epic ~28%, Legendary ~7% (max one a run); luck nudges up.
-- Starter list (19 + 1 open): Splitting headache (Epic, Jared: creeps split on death; Arrows hit two, Cannon blasts reach further, Lightning +1 bounce), F beat (Legendary, Jared: a third note on F), Perfect Accumulation (Rare, Jared: each Perfect +0.1% tower crit for the run), Piercing shot (Arrow), Sharpshooter, Rally, Echo, Off-beat, Heavy boots, Light boots, Wanted posters, Dread, Blood money, Difficulty tome, Glass cannon, Fermata (L), Haunting (L), Jambaya (L, was Joe's dagger: first hit on every creep crits), one open slot. Cut: Chain snipe, Undertow, Lighthouse, Shatter, Siege engine.
+- Starter list (18 + 2 open): Splitting headache (Epic, Jared: creeps split on death; Arrows hit two, Cannon blasts reach further, Lightning +1 bounce), F beat (Legendary, Jared: a third note on F), Perfect Accumulation (Rare, Jared: each Perfect +0.1% tower crit for the run), Sharpshooter, Rally, Echo, Off-beat, Heavy boots, Light boots, Wanted posters, Dread, Blood money, Difficulty tome, Glass cannon, Fermata (L), Haunting (L), Jambaya (L, was Joe's dagger: first hit on every creep crits), two open slots. Cut: Piercing shot (Jared 02:44Z, duplicates Pierce), Chain snipe, Undertow, Lighthouse, Shatter, Siege engine.
 
 ## Upgrades (locked: option A)
 Rung 1 = pick a fork (~2x tower price), rung 2 = that fork's mastery (~4x). One U press upgrades the whole type. Forks are today's game; masteries are drafts.
@@ -66,7 +66,6 @@ The old Cannon (single-target snipes, code id `kick`) is now **Arrow**; the old 
 ## Still open
 - Name pass (Well Constructed, Splitting headache, F beat are working names).
 - Thorny Walls mechanics; F beat design (colour, towers, effect).
-- Piercing shot duplicates the Arrow's Pierce fork (lean: cut it).
 - Card look and pick-of-3 screen (T-024). All numbers tuned in playtests.
 
 ## Next
