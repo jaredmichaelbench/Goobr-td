@@ -406,3 +406,13 @@ Decision:
 4. Cards: Chain snipe, Undertow, Lighthouse and Shatter are cut; Jared's Splitting headache (working name), F beat (Legendary, a third note) and Perfect Accumulation come in; one slot open.
 Alternatives: costs of 3 for unlocks and capstones (12 points, top unreachable); upgrade options B (persist) and C (no gold upgrades).
 
+## D-0059: Progression locked for the demo (talents, cards, upgrades)
+2026-11-01 · accepted (Jared, review doc 02:33Z "lets pull the trigger, just implement my comments and changes first"; chat "roll into a single doc").
+Context: T-036 review doc, now rewritten as the single clean spec (https://claude.ai/artifact/5vVeQfZWxJaCj6WzzuricA; mirror `notes/progression-review-2026-10-31.md`). Builds on D-0056 to D-0058.
+Decision:
+1. Tower renames: the old Cannon (snipes) is the Arrow, the old Splash (area) is the Cannon. Start roster Arrow, Cannon, Frost, walls; Lightning, Poison, Light from the tree.
+2. Tree: as D-0057/D-0058, with names Extended Reach (+25% range) and Quick Draw (+30% attack speed), and Solo and Grace Notes swapped so Solo (inner) always leads into Perfect Solo. Improved Lightning stacks with the Fork upgrade.
+3. Cards: rule is a one-line title with smaller clear explainer text. Joe's dagger renamed Jambaya; Siege engine cut. 19 cards plus one open slot.
+4. Upgrades: option A with the per-fork mastery table (drafts to tune).
+5. Folded into the demo plan. Still open: name pass, Thorny Walls mechanics, F beat design, Piercing shot vs Pierce. Nothing is built until the build phase; next are the enemy doc and the UI slice markup.
+

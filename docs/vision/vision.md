@@ -64,6 +64,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 
 - 2026-11-01: v0.18 campaign talent tree locked on paper: Counter Attack first (3 points), Towers left and Rhythm right crossing at Perfect Solo, 3 points a night, towers unlock through it (D-0057). Not built yet.
 - 2026-11-01: v0.19 every talent costs 1 (10 points a run, one side's top reachable), Light placed, upgrades are fork then fork mastery, Jared's new cards in (D-0058). Not built yet.
+- 2026-11-01: v0.20 progression locked for the demo (D-0059): Arrow/Cannon renames, Solo leads to Perfect Solo, cards and fork masteries set. Not built yet.
 - 2026-10-31: v0.17 demo campaign: health lasts all five nights, towers unlock only through the talent tree, no flat stat cards (D-0056).
 - 2026-10-31: v0.16 scope: single player becomes a journey of song-length levels (night watch over a travelling caravan camp), building in the count-off and the song's lulls, a card per level, tiered bosses curated per campaign; multiplayer stays wave-based (D-0048, D-0049).
 - 2026-10-27: v0.15 calls are always on the beat, Kick then Snare, growing longer not faster; a missed Q or E press locks that key briefly (D-0047).
