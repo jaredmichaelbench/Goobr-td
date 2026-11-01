@@ -422,3 +422,13 @@ Context: asset review T-030 (Claude Doc https://claude.ai/artifact/Wyi48aePzKqQe
 Decision: one KayKit family (Medieval Hexagon, Skeletons, Adventurers, plus Halloween Bits and Dungeon Remastered), night lighting, enemies told apart by weapon and shield, the pack's build stages and existing animations, Godot effects; Quaternius tested only for bosses; custom art after the demo. Folded into the demo plan ("Art and look") for one big build with the five nights.
 Alternatives: Kenney or Quaternius as the main family; custom art now.
 
+## D-0061: Demo enemies locked
+2026-11-01 · accepted (Jared, enemy doc comments 02:52-02:54Z and chat "Let's rock with this").
+Context: T-037 enemy doc (https://claude.ai/artifact/4yqjTfcXKg1sNTKeHT3kbN; `notes/enemies-2026-11-01.md`). Builds on the demo plan's enemy call (Night 1 keeps 4 basics, specials return one or two a night).
+Decision:
+1. Names: Bonehead, Legger, Knucklebones, Big Lad, Hush, Spanner, Pot-shot, Crossing Guard, The Night Manager (code ids unchanged).
+2. Six new enemies: Door-to-Door (N2), Last Orders elite and Busker (N3), Digger, Undertaker elite and Moths (N4; Jared moved Moths late).
+3. Night 4 teaches "your maze is under attack" (the counter is now the first talent). Bosses: The Night Manager (N1), The Foreman (N3), The Night Manager + Undertaker (N4), The Landlord stage boss (N5). The Peeker waits for a later campaign.
+4. Note targeting: while a boss or elite is in view, notes target it; otherwise the nearest creep (closes the lone-boss watch item).
+Alternatives: Moths on N2; the counter as Night 4's lesson; the Peeker as Night 5's boss.
+
