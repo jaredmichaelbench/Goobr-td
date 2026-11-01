@@ -383,3 +383,15 @@ Decision:
 4. Type upgrades are OPEN: Jared barely afforded one in a 2-3 minute night. Rework (fewer, bigger upgrades) or persistence is decided in an upgrade discussion.
 5. Next: talent review and card review (plus upgrades), then fold all three into the demo plan before the scope lock.
 Alternatives: health reset per night; a tower pick between nights (the doc's first proposal).
+
+## D-0057: The campaign talent tree, to Jared's mockup (design only)
+2026-11-01 · accepted on paper (Jared, review doc comments 00:23Z "lock this in now", mockup 00:29Z, notes 00:41Z). Not built: Jared said "update the DOC, not the game"; a draft build is parked unpushed until he agrees to build.
+Context: T-036 review doc (`notes/progression-review-2026-10-31.md`), Jared's canvas and his builder mockup (`sketches/talent-tree-screen-reference-2026-11-01.png`).
+Decision:
+1. Counter Attack is the first talent (bottom middle). Towers branch left, Rhythm right, each with two flavour nodes beside the root, then a gate. The inner path runs to Perfect Solo, the middle capstone, which crosses to the other side's upper inner node. The outer path skips the middle and swings wide to a power node, then climbs to the side's top capstone. You only move up.
+2. The first three nodes on each side are stat or timing talents. Towers: Well Constructed (working name, +15% damage), +25% range (shown on the board: rings grow, tooltip gives old and new), +30% attack speed (gate). Rhythm: Freestyle, Perfect Freestyle, Defensive Percussion.
+3. Towers upper: outer Unlock Lightning, then Improved Lightning (draft: +1 arc jump); far-left power node Thorny Walls (creeps near walls slowed and bleed; mechanics later); inner Unlock Poison to Perfect Solo; Improved Poison (upper inner, from Perfect Solo; gives Poison too, so a crossing rhythm player gets it). Open: Towers upper slot, both top capstones. The Light tower has no slot yet (Jared to decide: open slot or drop from the demo).
+4. Costs: Counter Attack 3, first three on each side 1 each, everything above 3. Points: 3 per finished night, spent between nights. Pacing: after Night 1 Counter Attack; after Night 2 one side's first three; after Night 3 the big call (inside and switch, or far out); after Night 4 one more. 12 points, 6 of 22 nodes by Night 5. Each node taken once (no ranks). Numbers are tunable.
+5. In the campaign towers unlock only through the tree. The Arsenal 1/2 and Precision 4/5 placeholders and the Camp branch are dropped.
+6. A name pass in the night-watchman, "I just work here" voice is owed for the whole tree (backlog).
+Alternatives: the four-branch draft with a Camp branch; ranked nodes (x/5) as in the mockup builder; 2 points a night with a strong-night bonus.

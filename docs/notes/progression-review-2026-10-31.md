@@ -1,23 +1,39 @@
 # Talents, cards and upgrades review (T-036)
 
 Claude Doc (live version, with Jared's notes lines and the tree diagram): https://claude.ai/artifact/5vVeQfZWxJaCj6WzzuricA
-Status: draft, waiting on Jared's markup (2026-10-31). Ground rules from D-0056. Jared's canvas snapshot: `sketches/talent-tree-2026-10-31.md`.
+Status: tree agreed on paper 2026-11-01 (D-0057); cards and upgrades waiting on Jared's markup. Ground rules from D-0056. Jared's canvas snapshot: `sketches/talent-tree-2026-10-31.md`.
 
-## Talent budget (proposal)
-- Points: 3 for finishing a night, +1 for a strong night (e.g. 85% notes or no camp damage): 12 to 16 points before night 5.
-- XP stays a stat (D-0038); curve tuned so a fair night = 3 points, great = 4 (today a night gives ~7-10 levels).
-- About 32 nodes. Path movement (take a node only if linked to one you own, PoE style), replacing D-0040's area rows.
-- Cost 1 point; tower unlocks and capstones 2. No respec within a run.
-- Checked: Good window is ±90 ms, Perfect ±35, parry ±110, so Freestyle (+15), Perfect Freestyle (+5), Defensive Percussion (+25) are 14-23% wider. Keep them.
+## Talent tree (agreed on paper, D-0057; 2026-11-01)
+Two sides from Counter Attack, crossing at Perfect Solo, to Jared's builder mockup (`sketches/talent-tree-screen-reference-2026-11-01.png`). You only move up. Each node taken once.
 
-## Talent tree (proposal): four branches from Counter Attack
-Shape changes vs the canvas: Crescendo rewards get their own branch (they hung off Improved Poison); the second Arsenal 3 becomes Arsenal 4 leading to the Light unlock; new Camp branch (walls, gold, health) since health lasts the campaign.
+| Node | Cost | Where | What it does |
+|---|---|---|---|
+| Counter Attack | 3 | Bottom middle | Counter on the beat after a parry, big stagger damage |
+| Well Constructed (working name) | 1 | Towers flavour 1 | +15% damage, every tower (tune) |
+| ? (name pass) | 1 | Towers flavour 2 | +25% range, shown on the board (tune) |
+| ? (name pass) | 1 | Towers gate | +30% attack speed |
+| Unlock Lightning | 3 | Towers outer | Lightning joins your roster |
+| Thorny Walls | 3 | Towers far left, power node | Creeps near walls slowed and bleed, more the longer they stay (mechanics later) |
+| Improved Lightning | 3 | Towers outer, upper | Draft: arcs jump once more |
+| Unlock Poison | 3 | Towers inner, to Perfect Solo | Poison joins your roster |
+| Improved Poison | 3 | Towers upper inner, from Perfect Solo | Draft: poison jumps on death; gives Poison too |
+| ? | 3 | Towers upper | Open |
+| ? tower capstone | 3 | Towers top | Open |
+| Perfect Solo | 3 | Middle capstone | All-Perfect Crescendo: auto parry and counter 8 s |
+| Freestyle | 1 | Rhythm flavour 1 | Good window +15 ms |
+| Perfect Freestyle | 1 | Rhythm flavour 2 | Perfect window +5 ms |
+| Defensive Percussion | 1 | Rhythm gate | Parry window +25 ms |
+| Grace Notes | 3 | Rhythm inner, to Perfect Solo | 8th-note accents; hits 70%, Perfects 130% extra |
+| Solo | 3 | Rhythm outer | Clean Crescendo: 2 shields, 1 restore |
+| The Right Instrument | 3 | Rhythm far right, power node | Perfect note special per tower type |
+| Melodic Healing | 3 | Rhythm upper inner, from Perfect Solo | All-Perfect Crescendo heals 1 |
+| Improved Restore | 3 | Rhythm outer, upper | Restore starts the next Crescendo |
+| Slowing Song | 3 | Rhythm upper | Notes slow 5% (Perfect 15%), stacks 3 |
+| ? rhythm capstone | 3 | Rhythm top | Open |
 
-- Arsenal: Arsenal (draft: first tower each night free) > Arsenal 2 (draft: count-off towers 15% cheaper) > Arsenal 3 (draft: full sell refund in count-off and lulls) > Unlock Lightning [2] > Improved Lightning (draft: +1 jump, Perfect note arcs to all within 2 tiles); Arsenal 3 > Unlock Poison [2] > Improved Poison (draft: poison jumps on death); Improved Lightning or Poison > Arsenal 4 (draft: every 5th shot special: Cannon stun, Splash knockback, Frost freeze) > Unlock Light [2] > Improved Light (draft: towers in its light fire off-beats).
-- Timing: Freestyle (+15 ms Good) > Grace Notes (Jared's), Perfect Freestyle (+5 ms Perfect) > Defensive Percussion (+25 ms parry) > Counterpoint (draft: counter window +60 ms), Precision 4 (draft guess: 4 Perfects in a row = double snipe), Precision 5 (draft: 5 in a row = shield) > The Right Instrument [2, capstone] (Jared's; Cannon/Splash/Lightning/Light effects still to write).
-- Crescendo: Solo (Jared's) > Melodic Healing, Improved Restore (Jared's) ; Improved Restore > Encore (draft: parried bolt counts as a landed note) > Perfect Solo [2, capstone]; Melodic Healing > Slowing Song [2, capstone].
-- Camp (new, all draft): Masonry (walls 2 g) > Tar Walls, Thorned Walls, Field Medic (heal 2 after each night) > Savings (half leftover gold carries) > Last Stand [2, capstone] (below 5 health towers x2).
-- Questions: is Counter Attack free from Night 1 (then Night 4 needs a new lesson, picked in the enemy doc)? Do Precision 4/5 mean Perfect streaks?
+- Points: 3 per finished night, spent between nights. After Night 1 Counter Attack; Night 2 one side's first three; Night 3 the big call; Night 4 one more. 12 points, 6 nodes by Night 5.
+- XP stays a stat (D-0038), tuned so a night gives about 3 points. No respec in a run.
+- Open questions: where the Light tower goes (open slot or drop), the name pass (backlog), Thorny Walls mechanics.
 
 ## Cards (proposal)
 - 4 cards a run (pick of 3 after nights 1-4). Talents are the plan, cards are the twist; no card repeats a talent.
