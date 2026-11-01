@@ -1,6 +1,6 @@
 # Asset review: one style for the MVP
 
-_2026-10-31 · T-030 · proposal, waiting on Jared's picks. Claude Doc (live copy, mark it up there): https://claude.ai/artifact/Wyi48aePzKqQe3t9hZoMoc. Pictures: project shared folder `screens/asset-review/`._
+_2026-10-31 · T-030 · AGREED 2026-11-01 02:43Z (Jared: "go with your suggestions"), folded into the demo plan's "Art and look" section for one big build. Claude Doc (live copy, mark it up there): https://claude.ai/artifact/Wyi48aePzKqQe3t9hZoMoc. Pictures: project shared folder `screens/asset-review/`._
 
 A coherent MVP comes from picking one artist's family of packs, not the best model for each item. Every free pack below is CC0 (free to ship, no credit needed). Recommendation: **Family A, KayKit**, because it is already in the game and covers the camp at night best; the weak spot is enemy variety (section 4). Nothing in the build changes until Jared picks (rule 6). Source: Jared's message of 2026-10-31 14:50Z ("we should do an Asset Review...").
 
