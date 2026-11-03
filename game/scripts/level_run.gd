@@ -46,6 +46,8 @@ var _booted := false
 var _told := {}  # Watchman tips already said.
 var _overtime_told := false
 var _boss_due := -1.0  # Song bar a "boss at N" boss walks in on, or -1.
+var no_build := {}  # Vector2i -> true: ground creeps walk but nobody builds on (B3).
+var has_map := false  # The level file brought its own map; the reach rule and mine radius are off.
 var _base_cost := {}  # Tower type -> its price with no towers built.
 var _arp_db := -80.0
 var _sweep := 0.0  # Seconds left of the posture-break filter sweep.
@@ -66,11 +68,15 @@ var boss_kind := "night_manager"  # Which boss the next "boss" brings (B2): nigh
 ## @beats" ("grunt 8 @2": eight grunts, one every two beats); "boss" (or "boss at
 ## 4", four bars in) brings a field boss; "quiet" means no calls in that push.
 static func parse(text: String) -> Dictionary:
-	var out := {"name": "Night", "song": "", "overtime": "", "count": 2, "gold": 150, "price_step": 0.0, "reach": 0.0, "mine": 0.0, "asks": ["q", "e", "parry", "stagger", "counter"], "sections": [], "bars": 0, "problems": []}
+	var out := {"name": "Night", "song": "", "overtime": "", "count": 2, "gold": 150, "price_step": 0.0, "reach": 0.0, "mine": 0.0, "asks": ["q", "e", "parry", "stagger", "counter"], "sections": [], "bars": 0, "problems": [], "map": []}
 	var bar := 0
 	for raw in text.split("\n"):
 		var line := raw.split(";")[0].strip_edges()
 		if line == "":
+			continue
+		if line.begins_with("|"):
+			# A map row (B3): "." open, "#" rock, "x" no-build ground.
+			out["map"].append(line.trim_prefix("|").trim_suffix("|"))
 			continue
 		if line.contains("="):
 			var kv := line.split("=", true, 1)
@@ -187,6 +193,29 @@ func _ready() -> void:
 	elif not night["problems"].is_empty():
 		_watchman("The level file has a problem: " + night["problems"][0], 6.0)
 	_booted = true
+
+
+## The night's own map when its level file has a valid one (B3, D-0070): 16 rows
+## of 26, spawn and camp open. Otherwise the old board.
+func map_rows() -> Array:
+	var rows: Array = night.get("map", [])
+	if rows.size() != GRID_SIZE.y:
+		if not rows.is_empty():
+			night["problems"].append("The map has %d rows; it needs %d" % [rows.size(), GRID_SIZE.y])
+		return super.map_rows()
+	for r in rows:
+		if String(r).length() != GRID_SIZE.x:
+			night["problems"].append("Every map row needs %d cells" % GRID_SIZE.x)
+			return super.map_rows()
+	if rows[SPAWN.y][SPAWN.x] == "#" or rows[GOAL.y][GOAL.x] == "#":
+		night["problems"].append("The mine and the camp can't be rock")
+		return super.map_rows()
+	has_map = true
+	for y in rows.size():
+		for x in String(rows[y]).length():
+			if rows[y][x] == "x":
+				no_build[Vector2i(x, y)] = true
+	return rows
 
 
 ## Which asks this night makes: q, e, parry, stagger, counter (header "asks").
@@ -552,7 +581,10 @@ func try_place(cell: Vector2i, type: String) -> bool:
 		_say("N or the play button starts the night; build during the count-off")
 		return false
 	if not structures.has(cell) and not in_reach(cell):
-		_say("Too far from the camp: build near the keep or what you have built" if not near_mine(cell) else "Too close to the mine")
+		if has_map:
+			_say("No building there: the marked ground stays open")
+		else:
+			_say("Too far from the camp: build near the keep or what you have built" if not near_mine(cell) else "Too close to the mine")
 		return false
 	var cost: int = builds[type]["cost"] if builds.has(type) else 0
 	var ok := false
@@ -613,10 +645,14 @@ func sell(cell: Vector2i) -> void:
 
 
 func near_mine(cell: Vector2i) -> bool:
+	if has_map:
+		return no_build.has(cell)
 	return night["mine"] > 0.0 and Vector2(cell).distance_to(Vector2(SPAWN)) <= night["mine"]
 
 
 func in_reach(cell: Vector2i) -> bool:
+	if has_map:
+		return not no_build.has(cell)
 	if near_mine(cell):
 		return false
 	var r: float = night["reach"]

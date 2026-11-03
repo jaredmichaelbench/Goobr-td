@@ -53,12 +53,12 @@ func spend():
 					print("  UPGRADE %s -> %s" % [m.tower_name(t), m.rank_label(t)])
 func talents():
 	# Towers first (Counter Attack, then up the left), like a tower player.
-	var order := ["counter_attack", "well_constructed", "extended_reach", "quick_draw", "unlock_poison", "perfect_solo", "unlock_lightning", "improved_poison", "unlock_light", "improved_light", "improved_lightning", "thorny_walls"]
+	var order := ["counter_attack", "well_constructed", "extended_reach", "pickup", "unlock_poison", "perfect_solo", "unlock_lightning", "improved_poison", "unlock_light", "improved_light", "improved_lightning", "thorny_walls"]
 	var took := []
 	for id in order:
 		if m.points <= 0: break
 		if m.take_night_talent(id): took.append(id)
-	print("MORNING night %d level %d points left %d took %s" % [Campaign.night_number(), m.level, m.points, took])
+	print("MORNING night %d at bar %.1f of %d  health %d (repaired %d)  level %d points left %d took %s" % [Campaign.night_number(), m.song_bar(), m.night["bars"], m.health, m.repaired, m.level, m.points, took])
 var wait := 0
 func _process(_d):
 	if m == null:
@@ -98,7 +98,9 @@ func _process(_d):
 			n["_bot"] = (0.0 if rng.randf() < 0.45 else (0.05 if rng.randf() < 0.5 else -0.05)) if rng.randf() < p_hit else 99.0
 		if n["_bot"] < 50.0 and pt >= n["time"] + n["_bot"]:
 			m._play(m.KEYS[n["type"]]); break
-	if not m._counter_open.is_empty() and rng.randf() < 0.08: m._parry()
+	if not m._counter_open.is_empty() and m._counter_open.has("at") and absf(m.press_time() - m._counter_open["at"]) < 0.012:
+		if not m._counter_open.has("_bot"): m._counter_open["_bot"] = rng.randf() < p_parry
+		if m._counter_open["_bot"]: m._parry()
 	for cand in m._parry_candidates():
 		var key = cand.get("ref", cand)
 		if not key.has("_bot"): key["_bot"] = rng.randf() < p_parry
@@ -106,7 +108,7 @@ func _process(_d):
 	if not m.suppressed.is_empty() and f % 60 == 0: m._press_restore()
 	if m.state != "playing" or m.beat_time() - m.song_start > 600.0:
 		var t: Dictionary = m._totals()
-		print("END night %d state %s health %d notes %d/%d parries %d/%d breaks %d" % [Campaign.night_number(), m.state, m.health, t["hits"], t["notes"], t["parried"], t["throws"], m.m5_stats["breaks"]])
+		print("END night %d bar %.1f of %d state %s health %d notes %d/%d parries %d/%d breaks %d" % [Campaign.night_number(), m.song_bar(), m.night["bars"], m.state, m.health, t["hits"], t["notes"], t["parried"], t["throws"], m.m5_stats["breaks"]])
 		for l in m.run_lines(): if l.begins_with("Talents") or l.begins_with("Cards") or l.begins_with("Upgrades") or l.begins_with("Enemies") or l.begins_with("Campaign"): print("  " + l)
 		if m.state == "won" and not Campaign.is_last() and Campaign.night_number() < last_night:
 			Campaign.history.append(m.night_summary())

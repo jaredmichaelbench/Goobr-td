@@ -60,9 +60,11 @@ const GRAVE_RISE_BARS := 2
 const GRAVE_COUNT := 3
 const MOTHS_PER_HEALTH := 3  # Moths are tiny: every third one at the fire costs 1 health.
 const LANDLORD_HP := 2.0
+const MORNING_REPAIR := 4  # Health the camp repairs each morning, up to full (playtest 1, D-0070).
 const SOLO_SECONDS := 8.0
 const ARENA_KINDS := ["grunt", "runner", "swarm", "brute", "shade", "jammer", "archer", "warden", "door", "last_orders", "busker", "digger", "undertaker", "moth", "night_manager", "foreman", "landlord"]
 
+var repaired := 0  # Health repaired this morning, for the morning screen.
 var night_owned: Array[String] = []  # Talents taken this run (NightTree ids).
 var card_picks: Array[String] = []  # Cards taken this run, in order.
 var accum_crit := 0.0  # Perfect Accumulation: crit chance earned so far this run.
@@ -135,6 +137,9 @@ func _finish() -> void:
 	super._finish()
 	var n: int = Campaign.POINTS_AFTER[Campaign.index] if Campaign.active else Campaign.POINTS_AFTER[0]
 	points += n
+	var before := health
+	health = mini(START_HEALTH, health + MORNING_REPAIR)  # The camp patches up overnight (D-0070).
+	repaired = health - before
 	if n > 0:
 		_watchman("Made it to morning. %d talent point%s. Hey, I just work here." % [n, "" if n == 1 else "s"], 5.0)
 
@@ -289,6 +294,22 @@ func rank_label(type: String) -> String:
 	return BRANCHES[type][b - 1][0] + ("  +  " + MASTERY[type][b - 1][0] if rank >= 2 else "")
 
 
+## What the upgrade buttons do, for the tower card (fork tooltips, D-0070).
+func upgrade_help(type: String) -> String:
+	if not BRANCHES.has(type) or not MASTERY.has(type):
+		return ""
+	var rank: int = type_rank.get(type, 0)
+	if rank == 0:
+		var out: Array[String] = []
+		for i in 2:
+			out.append("%s  %s: %s.\n     Then %s: %s." % ["U" if i == 0 else "I", BRANCHES[type][i][0], BRANCHES[type][i][1], MASTERY[type][i][0], MASTERY[type][i][1]])
+		return "Pick a fork for every %s (%dg), then its mastery (%dg):\n%s" % [tower_name(type), type_upgrade_cost(type), roundi(type_upgrade_cost(type) * MASTERY_PRICE / FORK_PRICE), "\n".join(out)]
+	var b: int = type_branch.get(type, 1)
+	if rank == 1:
+		return "Mastery  %s: %s." % [MASTERY[type][b - 1][0], MASTERY[type][b - 1][1]]
+	return "%s: %s.  %s: %s." % [BRANCHES[type][b - 1][0], BRANCHES[type][b - 1][1], MASTERY[type][b - 1][0], MASTERY[type][b - 1][1]]
+
+
 func type_upgrade_cost(type: String) -> int:
 	var rank: int = type_rank.get(type, 0)
 	if rank >= 2:
@@ -389,6 +410,8 @@ func _fire_towers_on(pattern_step: int) -> void:
 			for st in steps.duplicate():
 				if not steps.has((st + 1) % STEPS_PER_BAR):
 					steps.append((st + 1) % STEPS_PER_BAR)
+		if pattern_step == STEPS_PER_BAR - 1 and gstats.get("pickup", false) and type != "light":
+			_tower_shot(cell)  # Pickup: one more shot on the "and" of beat 4 (D-0070).
 		if not steps.has(pattern_step):
 			continue
 		_tower_shot(cell)
@@ -555,20 +578,13 @@ func damage(c: Dictionary, amount: float) -> float:
 
 # --- Notes ------------------------------------------------------------------------------------
 
-## Notes go for a boss, then an elite, while one is on the board (Jared, D-0061);
-## otherwise the creep nearest the camp.
+## Notes go to the creep nearest the camp, boss or not, so a leak can always be
+## saved with a note (playtest 1, D-0070). Crescendo notes are the boss's: while a
+## Crescendo runs, notes hit the boss.
 func _lead_creep() -> Dictionary:
-	if boss_alive():
+	if boss_alive() and crescendo > 0.0:
 		return boss
-	var best := {}
-	var best_d := INF
-	for c in creeps:
-		if c["hp"] > 0.0 and c.get("elite", false):
-			var d: float = float(grid.dist(c["target"])) + c["pos"].distance_to(Vector2(c["target"]))
-			if d < best_d:
-				best = c
-				best_d = d
-	return best if not best.is_empty() else super._lead_creep()
+	return super._lead_creep()
 
 
 ## Grace Notes (talent) and Off-beat (card) add 8th notes to calls; they aren't
@@ -738,15 +754,93 @@ func _cres_note(n: Dictionary, hit: bool, perfect: bool) -> void:
 func _resolve_parry(cand: Dictionary, g: String, offset_ms: float) -> void:
 	if cand["kind"] == "elite" and cand["ref"].get("kind", "") == "last_orders":
 		b2_stats["bells_parried"] += 1
+	if cand["kind"] == "dig":
+		_parry_dig(cand["ref"], g == "Perfect", offset_ms)
+		return
 	var target: Dictionary = {}
 	if cand["kind"] == "counter":
 		target = cand["ref"]["ref"]
+	var had_counter := not _counter_open.is_empty()
 	super._resolve_parry(cand, g, offset_ms)
+	if cand["kind"] != "counter" and not _counter_open.is_empty() and not had_counter:
+		_time_counter(cand["time"])
 	if cand["kind"] == "counter" and gstats.get("counter_all", false) and not target.is_empty() and target.has("pos"):
 		var dmg: float = parry_damage() * (1.0 + gstats.get("counter_mult", 0.0)) * (2.0 if g == "Perfect" else 1.0)
 		for c in creeps:
 			if c != target and c["hp"] > 0.0 and not c.get("boss", false) and c["pos"].distance_to(target["pos"]) <= COUNTER_BURST:
 				damage(c, dmg * 0.5)  # With M7's half burst: full damage to everything within 2 tiles.
+
+
+## The counter is a rhythm hit (playtest 1, D-0070): after a landed parry a yellow
+## ring closes on the next half beat, and Space as it lands is judged like a note.
+## Improved Counter Attack widens the window.
+func _time_counter(parry_time: float) -> void:
+	var half := clock.beat_length() * 0.5
+	var at := (floorf(parry_time / half + 0.25) + 1.0) * half
+	if at - press_time() < 0.1:
+		at += half
+	_counter_open["at"] = at
+	_counter_open["opened"] = press_time()
+	_counter_open["until"] = at + counter_window_ms() / 1000.0
+
+
+func counter_window_ms() -> float:
+	return parry_good_ms() + gstats.get("counter_window_ms", 0.0) * 0.4
+
+
+func _parry() -> void:
+	if _counter_open.is_empty() or not _counter_open.has("at"):
+		super._parry()
+		return
+	var k: Dictionary = _counter_open
+	var off_ms: float = (press_time() - k["at"]) * 1000.0
+	if off_ms < -counter_window_ms():
+		_counter_open = {}
+		_show_feedback("Counter early (%.0f ms)   wait for the yellow ring" % off_ms, Color(1, 1, 1, 0.55))
+		return
+	if off_ms > counter_window_ms():
+		_counter_open = {}
+		super._parry()
+		return
+	_fire_counter(absf(off_ms) <= note_perfect_ms(), off_ms)
+
+
+func _fire_counter(perfect: bool, off_ms := 0.0) -> void:
+	var k: Dictionary = _counter_open
+	_counter_open = {}
+	if not creeps.has(k["ref"]) or k["ref"]["hp"] <= 0.0:
+		return
+	on_streak_hit()
+	_sfx["parry_perfect" if perfect else "parry"].play()
+	var c := {"at": press_time(), "from": k["opened"], "ref": k["ref"], "state": "flying"}
+	_resolve_parry({"time": press_time(), "kind": "counter", "ref": c}, "Perfect" if perfect else "Good", off_ms)
+
+
+## A Digger's shovel swing at the wall, parried: the wall holds and the Digger is
+## knocked back a beat, open for a counter (D-0070).
+func _parry_dig(c: Dictionary, perfect: bool, offset_ms: float) -> void:
+	c["dig_until"] = -1.0
+	c["dig_held"] = int(c.get("dig_held", 0)) + 1
+	c["dug"] = int(c.get("dug", 0)) + 1
+	m4_stats["parried"] += 1
+	b2_stats["digs_parried"] = int(b2_stats.get("digs_parried", 0)) + 1
+	var dmg := parry_damage() * (2.0 if perfect else 1.0)
+	damage(c, dmg)
+	c["frozen_until"] = maxf(c.get("frozen_until", 0.0), sim_time + clock.beat_length() * STAGGER_BEATS)
+	shots.append({"from": Vector2(c["dig_cell"]), "to": c["pos"], "color": Color(1.0, 0.9, 0.3), "ttl": 0.35, "splash": 0.0, "width": 3.0})
+	_show_feedback("%sPARRY  %+.0f ms   the wall holds" % ["PERFECT " if perfect else "", offset_ms], Color(1.0, 0.9, 0.3) if perfect else Color.WHITE)
+	if gstats.get("counter", false) and c["hp"] > 0.0:
+		_counter_open = {"ref": c, "until": 0.0, "opened": press_time(), "perfect": perfect}
+		m7_stats["counters"] += 1
+		_time_counter(beat_time())
+
+
+func _parry_candidates() -> Array[Dictionary]:
+	var out := super._parry_candidates()
+	for c in creeps:
+		if c.get("digger", false) and c["hp"] > 0.0 and c.get("dig_until", -1.0) > 0.0 and c["dig_until"] - beat_time() <= clock.bar_length():
+			out.append({"time": c["dig_until"], "kind": "dig", "ref": c})
+	return out
 
 
 func _auto_parry() -> void:
@@ -759,7 +853,7 @@ func _auto_parry() -> void:
 			_resolve_parry(cand, "Perfect", 0.0)
 			b2_stats["auto_parries"] += 1
 			if not _counter_open.is_empty():
-				_parry()  # The counter, on the same breath.
+				_fire_counter(true)  # The counter, on the same breath.
 			return
 
 
@@ -873,6 +967,34 @@ func step(delta: float) -> void:
 		else:
 			keep.append(a)
 	_aftershocks = keep
+	_check_early_end()
+	if not suppressed.is_empty() and restore_charges > 0 and not _told.has("restore"):
+		_told["restore"] = true
+		_watchman("Tower's jammed. Press F to Restore it.", 4.5)
+
+
+## The night ends when the last enemy dies (playtest 1, D-0070): in the last
+## section, once nothing is left to spawn and the board is clear, the morning comes
+## two bars later. The song plays on under it.
+const EARLY_END_BARS := 2.0
+var _clear_at := -1.0
+
+
+func _check_early_end() -> void:
+	if ending or not started or section < night["sections"].size() - 1:
+		return
+	var s: Dictionary = night["sections"][section]
+	var clear: bool = spawn_queue.is_empty() and _escort_queue.is_empty() and creeps.is_empty() and not boss_alive() \
+		and _boss_due < 0.0 and graves.is_empty() and song_bar() >= s["start"] + 2.0
+	if not clear:
+		_clear_at = -1.0
+		return
+	if _clear_at < 0.0:
+		_clear_at = song_bar() + EARLY_END_BARS
+		if song_bar() < night["bars"] - EARLY_END_BARS:
+			_watchman("That's the last of them.", 3.0)
+	elif song_bar() >= _clear_at:
+		_finish()
 
 
 ## Diggers: next to a wall, they stop and dig for four bars; then the wall is
@@ -882,7 +1004,7 @@ func _tick_digs() -> void:
 		if not c.get("digger", false) or c["hp"] <= 0.0:
 			continue
 		if c.get("dig_until", -1.0) > 0.0:
-			if beat_time() >= c["dig_until"]:
+			if press_time() > c["dig_until"] + parry_good_ms() / 1000.0:
 				var cell: Vector2i = c["dig_cell"]
 				c["dig_until"] = -1.0
 				c["dug"] = int(c.get("dug", 0)) + 1
@@ -893,7 +1015,8 @@ func _tick_digs() -> void:
 					specs_changed()
 					b2_stats["walls_dug"] += 1
 					_shockwaves.append({"pos": Vector2(cell), "ttl": 0.5, "color": Color(0.9, 0.6, 0.3)})
-					_show_feedback("A DIGGER BROKE A WALL   the path changes", Color(1, 0.6, 0.35))
+					_show_feedback("A DIGGER BROKE A WALL   parry the swing to hold it", Color(1, 0.6, 0.35))
+					_popup(Vector2(cell), "DUG", Color(1, 0.6, 0.35), 16)
 			continue
 		if int(c.get("dug", 0)) >= 2:
 			continue
@@ -909,6 +1032,9 @@ func _tick_digs() -> void:
 			c["dig_until"] = beat_time() + DIG_BARS * clock.bar_length()
 			b2_stats["digs"] += 1
 			_popup(Vector2(best), "DIGGING", Color(1, 0.6, 0.35), 13)
+			if not _told.has("digger"):
+				_told["digger"] = true
+				_watchman("That one's digging at your wall. Parry the swing when the ring closes.", 5.0)
 
 
 func _tick_graves() -> void:
@@ -1158,9 +1284,15 @@ func b2_marks() -> Array:
 			var at: Vector2 = c["pos"] if kind == "last_orders" else Vector2(c.get("grave", Vector2i(c["pos"].round())))
 			out.append({"pos": at, "label": "BELL" if kind == "last_orders" else "GRAVE", "frac": clampf((beat_time() - c["pulse_from"]) / maxf(c["pulse_at"] - c["pulse_from"], 0.01), 0.0, 1.0),
 				"gone": clampi(floori((beat_time() - c["pulse_from"]) / beat), 0, 4), "color": Color(1.0, 0.7, 0.3) if kind == "last_orders" else Color(0.6, 0.95, 0.5)})
-		if c.get("dig_until", -1.0) > beat_time():
-			var left := ceili((c["dig_until"] - beat_time()) / clock.bar_length())
-			out.append({"pos": Vector2(c["dig_cell"]), "label": "DIG %d" % left, "frac": clampf((beat_time() - c["dig_from"]) / (DIG_BARS * clock.bar_length()), 0.0, 1.0), "gone": -1, "color": Color(1.0, 0.6, 0.35)})
+		if c.get("dig_until", -1.0) > 0.0 and press_time() <= c["dig_until"] + parry_good_ms() / 1000.0:
+			var to_go: float = c["dig_until"] - beat_time()
+			if to_go > clock.bar_length():
+				var left := ceili(to_go / clock.bar_length())
+				out.append({"pos": Vector2(c["dig_cell"]), "label": "DIG %d" % left, "frac": clampf((beat_time() - c["dig_from"]) / (DIG_BARS * clock.bar_length()), 0.0, 1.0), "gone": -1, "color": Color(1.0, 0.6, 0.35)})
+			else:
+				# The last bar: the shovel swing, parried like any attack (D-0070).
+				out.append({"pos": Vector2(c["dig_cell"]), "label": "PARRY", "frac": clampf(1.0 - to_go / clock.bar_length(), 0.0, 1.0),
+					"gone": clampi(floori((clock.bar_length() - to_go) / beat), 0, 4), "color": Color(1.0, 0.3, 0.4)})
 	for g in graves:
 		out.append({"pos": Vector2(g["cell"]), "label": "RISING", "frac": 1.0 - clampf((g["rise_at"] - beat_time()) / (GRAVE_RISE_BARS * clock.bar_length()), 0.0, 1.0), "gone": -1, "color": Color(0.6, 0.95, 0.5)})
 	return out

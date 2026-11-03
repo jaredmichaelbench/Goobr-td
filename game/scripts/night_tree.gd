@@ -2,8 +2,8 @@ class_name NightTree
 ## The campaign talent tree, locked in D-0057 to D-0059 and built in B1 (D-0067).
 ## Counter Attack sits in the middle of the bottom row. Towers branch left,
 ## Rhythm right. Each side has two flavour nodes and a gate, then an inner path
-## that runs to Perfect Solo (the middle capstone, which crosses to the other
-## side's upper inner node) and an outer path that swings wide to a power node
+## that runs to Perfect Solo (the middle capstone, reachable from either side;
+## nothing leads on from it since D-0070) and an outer path that swings wide to a power node
 ## and climbs to the side's top capstone. You only move up: a node opens once any
 ## node in its "after" list is owned. Every node costs 1 point and is taken once.
 ## 10 points a run, so one run reaches the top of one side, never both.
@@ -21,25 +21,25 @@ const NODES := {
 		"text": "+15% damage for every tower.", "effects": {"damage_mult": 0.15}},
 	"extended_reach": {"name": "Extended Reach", "side": "towers", "x": 520, "y": 1290, "after": ["well_constructed"],
 		"text": "+25% range for every tower. The range rings grow to show it.", "effects": {"range_pct": 0.25}},
-	"quick_draw": {"name": "Quick Draw", "side": "towers", "x": 520, "y": 1070, "after": ["extended_reach"],
-		"text": "Towers attack 30% faster: about one extra shot for every three.", "effects": {"attack_speed": 0.3}},
-	"unlock_lightning": {"name": "Unlock Lightning", "side": "towers", "x": 380, "y": 850, "after": ["quick_draw"],
+	"pickup": {"name": "Pickup", "side": "towers", "x": 520, "y": 1070, "after": ["extended_reach"],
+		"text": "Every tower fires an extra shot on the \"and\" of beat 4, the off-beat just before each new bar. Replaced Quick Draw (D-0070).", "effects": {"pickup": true}},
+	"unlock_lightning": {"name": "Unlock Lightning", "side": "towers", "x": 380, "y": 850, "after": ["pickup"],
 		"text": "The Lightning tower joins your roster for the rest of the run.", "effects": {"unlock": "lightning"}},
-	"unlock_poison": {"name": "Unlock Poison", "side": "towers", "x": 660, "y": 850, "after": ["quick_draw"],
+	"unlock_poison": {"name": "Unlock Poison", "side": "towers", "x": 660, "y": 850, "after": ["pickup"],
 		"text": "The Poison tower joins your roster for the rest of the run.", "effects": {"unlock": "poison"}},
 	"thorny_walls": {"name": "Thorny Walls", "side": "towers", "x": 140, "y": 700, "after": ["unlock_lightning"],
 		"text": "Creeps beside your walls are slowed and bleed, more the longer they stay.", "effects": {"thorny_walls": true}},
 	"improved_lightning": {"name": "Improved Lightning", "side": "towers", "x": 380, "y": 590, "after": ["unlock_lightning"],
 		"text": "Lightning arcs jump once more (stacks with the Fork upgrade).", "effects": {"arc_jumps": 1}},
-	"improved_poison": {"name": "Improved Poison", "side": "towers", "x": 660, "y": 450, "after": ["perfect_solo"],
-		"text": "When a poisoned creep dies its poison jumps to the nearest creep. Unlocks Poison if you don't have it.",
-		"effects": {"poison_jump": true, "unlock": "poison"}},
+	"improved_poison": {"name": "Improved Poison", "side": "towers", "x": 660, "y": 450, "after": ["unlock_poison"],
+		"text": "When a poisoned creep dies its poison jumps to the nearest creep.",
+		"effects": {"poison_jump": true}},
 	"unlock_light": {"name": "Unlock Light", "side": "towers", "x": 520, "y": 320, "after": ["improved_lightning", "improved_poison"],
 		"text": "The Light tower joins your roster for the rest of the run.", "effects": {"unlock": "light"}},
 	"improved_light": {"name": "Improved Light", "side": "towers", "x": 520, "y": 100, "after": ["unlock_light"], "capstone": true,
 		"text": "Towers in a Light tower's glow also fire on the off-beats.", "effects": {"improved_light": true}},
 	# --- The middle ---
-	"perfect_solo": {"name": "Perfect Solo", "side": "mid", "x": 1000, "y": 700, "after": ["unlock_poison", "solo"], "capstone": true,
+	"perfect_solo": {"name": "Perfect Solo", "side": "mid", "x": 1000, "y": 700, "after": ["unlock_poison", "solo"], "capstone": true,  # The top of the middle: nothing leads on (D-0070).
 		"text": "A Perfect on every note of a Crescendo: you parry and counter automatically for 8 seconds.",
 		"effects": {"perfect_solo": true}},
 	# --- Rhythm (right) ---
@@ -59,7 +59,7 @@ const NODES := {
 		"effects": {"right_instrument": true}},
 	"improved_restore": {"name": "Improved Restore", "side": "rhythm", "x": 1620, "y": 590, "after": ["grace_notes"],
 		"text": "Using Restore also starts a Crescendo.", "effects": {"improved_restore": true}},
-	"melodic_healing": {"name": "Melodic Healing", "side": "rhythm", "x": 1340, "y": 450, "after": ["perfect_solo"],
+	"melodic_healing": {"name": "Melodic Healing", "side": "rhythm", "x": 1340, "y": 450, "after": ["solo"],
 		"text": "A Perfect on every note of a Crescendo heals the camp 1 health.", "effects": {"melodic_healing": true}},
 	"slowing_song": {"name": "Slowing Song", "side": "rhythm", "x": 1480, "y": 320, "after": ["improved_restore", "melodic_healing"],
 		"text": "Notes slow their target 5% (Perfects 15%), stacking 3 times. Doesn't stack with Frost.",

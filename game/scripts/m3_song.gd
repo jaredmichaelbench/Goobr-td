@@ -77,6 +77,11 @@ const MAP := [
 	"......#...##....##........",
 ]
 const START_GOLD_M3 := 100
+
+
+## The board's rows ("#" is rock). A level file can bring its own map (B3).
+func map_rows() -> Array:
+	return MAP
 const WALL_LIMIT := 20
 
 const IDLE_DB := {"kick": -16.0, "hat": -80.0, "bass": -80.0, "lead": -80.0}
@@ -144,9 +149,10 @@ func _ready() -> void:
 	builds["kick"]["color"] = Color(0.9, 0.78, 0.5)
 	builds["bass"]["color"] = Color(0.5, 0.82, 0.75)
 	calibration_ms = Timing.load_calibration_ms()
-	for y in MAP.size():
-		for x in MAP[y].length():
-			if MAP[y][x] == "#":
+	var rows := map_rows()
+	for y in rows.size():
+		for x in rows[y].length():
+			if rows[y][x] == "#":
 				terrain[Vector2i(x, y)] = true
 	wall_limit = WALL_LIMIT
 	creep_hp = 24.0

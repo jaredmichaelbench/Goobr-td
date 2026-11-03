@@ -491,3 +491,17 @@ Also: a test arena (J picks any enemy, K drops it) for the B2 playtest. Bots: a 
 ## D-0069: Night 5 is a two-boss night with a Landlord rugpull
 2026-11-03 · accepted (Jared 02:57Z on the B1+B2 results: "make him come out for the finale, like a rugpull... a 2 boss level"; picked The Night Manager as the opener on a decision card, 02:58Z).
 Decision: the Night Manager opens Flanger Party. The Landlord walks in when the overtime song (Psychedelia Flashback) starts. If the manager is still alive then, the Landlord waits for him to fall and comes in on the next bar. This replaces D-0068's call 1, the 25% health floor, which is removed. The Landlord's health goes from 2.5x to 2x a boss's. Bot (90%, no health loss): the manager falls at about bar 47, the Landlord enters at bar 80 and falls at about bar 124 of 132. Other notes from playtest 1 are in `notes/b1-b2-playtest-1-2026-11-03.md`, waiting on Jared's markup.
+
+## D-0070: Playtest 1 fix pass built on Claude's picks, then B3
+2026-11-03 · accepted (Jared 03:20Z on a decision card: "Go with your picks, then B3"; build tonight, review tomorrow).
+Decision: build the proposals in `notes/b1-b2-playtest-1-2026-11-03.md` as written:
+- notes go to the creep nearest the camp, and Crescendo notes go to the boss
+- the night ends 2 bars after the last kill in the last section
+- fork tooltips
+- the camp repairs 4 health each morning (up to 20)
+- the Digger's dig becomes a parry
+- the counter becomes a half-beat rhythm hit
+- Quick Draw is replaced by Pickup
+- the Poison crossover takes option A
+- Restore gets guidance
+Items 6, 7, 11 and 12 stay notes, backlog or B4. Then B3: each night's own map and no-build zones. Jared reviews it all in his next session, and anything can change.

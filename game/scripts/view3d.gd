@@ -58,6 +58,7 @@ func _ready() -> void:
 	_build_environment()
 	_build_ground()
 	_build_terrain()
+	_build_no_build()
 	_build_decor()
 	_build_landmarks()
 	_fx_mesh = ImmediateMesh.new()
@@ -192,6 +193,33 @@ func _build_ground() -> void:
 	_reach_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_reach_node.visible = false
 	add_child(_reach_node)
+
+
+## No-build ground (B3): creeps walk it, nobody builds on it. Dark hatched-red
+## tiles, a little stronger while you're placing something.
+var _nobuild_node: MultiMeshInstance3D
+
+
+func _build_no_build() -> void:
+	if not (sim is LevelRun) or sim.no_build.is_empty():
+		return
+	_nobuild_node = MultiMeshInstance3D.new()
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	var tile := PlaneMesh.new()
+	tile.size = Vector2(0.94, 0.94)
+	mm.mesh = tile
+	var cells: Array = sim.no_build.keys()
+	mm.instance_count = cells.size()
+	for i in cells.size():
+		mm.set_instance_transform(i, Transform3D(Basis(), world(Vector2(cells[i]), 0.014)))
+	_nobuild_node.multimesh = mm
+	var mat := flat(Color(0.55, 0.12, 0.16))
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color.a = 0.22
+	_nobuild_node.material_override = mat
+	_nobuild_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_nobuild_node)
 
 
 ## Rock cells (no walking, no building) are raised stone, so neighbouring rocks read
@@ -742,7 +770,9 @@ func _sync_conductor() -> void:
 
 
 func _sync_reach() -> void:
-	var on: bool = sim is LevelRun and sim.started and sim.state == "playing" and sim.build_mode and sim.selected != "" and sim.night["reach"] > 0.0
+	if _nobuild_node != null:
+		_nobuild_node.material_override.albedo_color.a = 0.42 if (sim.build_mode and sim.selected != "") else 0.22
+	var on: bool = sim is LevelRun and not sim.has_map and sim.started and sim.state == "playing" and sim.build_mode and sim.selected != "" and sim.night["reach"] > 0.0
 	_reach_node.visible = on
 	if not on:
 		return

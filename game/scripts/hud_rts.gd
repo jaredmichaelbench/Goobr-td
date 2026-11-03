@@ -990,6 +990,12 @@ func _refresh_bar() -> void:
 		start.disabled = game.started or not playing
 	round_buttons["restore"].disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
 	restore_count.text = "%d/%d" % [game.restore_charges, game.restore_cap()]
+	# A locked tower and a charge in hand: F glows and pulses until it's used (D-0070).
+	var want_restore: bool = not round_buttons["restore"].disabled
+	if round_buttons["restore"].get_meta("glow", false) != want_restore:
+		round_buttons["restore"].set_meta("glow", want_restore)
+		_square_style(round_buttons["restore"], want_restore)
+	round_buttons["restore"].modulate = Color(1, 1, 1).lerp(Color(1.35, 1.35, 1.2), 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.008)) if want_restore else Color.WHITE
 	round_buttons["talents"].disabled = not playing
 	pause_button.text = "Resume" if game.paused else "Pause"
 	pause_button.disabled = not playing
@@ -1256,7 +1262,7 @@ func _fill_tower_card(cell: Vector2i, pinned: bool) -> void:
 	hover_box.set_head(_tower_icon(type), _tower_title(type), role)
 	hover_box.set_cost(-1, true)
 	hover_box.set_stats(_stats_of(type) if game.is_tower(type) else [])
-	hover_box.set_body("")
+	hover_box.set_body(game.upgrade_help(type) if game is NightRun and game.is_tower(type) and game.unlocked.has(type) else "")
 	hover_box.set_keys([] if pinned else keys)
 	var acts: Array = []
 	if pinned:
@@ -1377,7 +1383,7 @@ func _build_level_panels() -> void:
 	var say := HudKit.label("WATCHMAN   \"Hey, I just work here. Hold the camp till morning.\"", 15, UiTheme.GOLD)
 	say.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(say)
-	var body := HudKit.label("You can't build until the night starts. The sticks count you in: two bars to build, so put a wall and a tower by the camp. The camp grows outward: build near the keep or near what you have built, never by the mine.", 14, HudKit.TEXT)
+	var body := HudKit.label("You can't build until the night starts. The sticks count you in: two bars to build, so put a wall and a tower by the camp. The camp grows outward: build near the keep or near what you have built, never by the mine. If a tower gets jammed, press F to Restore it.", 14, HudKit.TEXT)
 	if game is NightRun and game.night_blurb() != "":
 		body.text = game.night_blurb()
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1497,6 +1503,8 @@ func _refresh_level_panels() -> void:
 	night_gain.text = "+%d XP" % roundi(game.m7_stats["xp"] * done)
 	night_xp.text = ("%d levels this night" % gained if gained != 1 else "1 level this night") + ("   XP %d / %d to level %d" % [roundi(game.xp), roundi(game.xp_to_next()), game.level + 1] if done >= 1.0 else "")
 	night_points.text = ("%d talent point%s to spend" % [game.points, "" if game.points == 1 else "s"]) if game.points > 0 else "No talent points waiting"
+	if game is NightRun and game.repaired > 0:
+		night_points.text += "     Camp repaired +%d health" % game.repaired
 	night_talents.visible = game.points > 0
 	night_continue.disabled = _fill < gained + 1.0
 	_set_kind(night_talents, "primary")

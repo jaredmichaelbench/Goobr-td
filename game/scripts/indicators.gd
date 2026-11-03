@@ -98,8 +98,22 @@ func _draw_creep_marks(_bt: float) -> void:
 		# Poison stacks.
 		if c.get("poison", 0.0) > 0.0 and (sim.type_branch.get("poison", 0) == 2 or c.get("poison_until", 0.0) > sim.sim_time):
 			_text(p + Vector2(ppm * 0.42, 0), "%d" % roundi(c["poison"]), maxi(10, int(ppm * 0.24)), Color(0.6, 1.0, 0.45))
-	# The counter window: a yellow flash and TAP on the parried enemy.
-	if not sim._counter_open.is_empty() and sim.creeps.has(sim._counter_open["ref"]):
+	# The counter as a rhythm hit (D-0070): a yellow ring closes on the next half beat.
+	if not sim._counter_open.is_empty() and sim._counter_open.has("at") and sim.creeps.has(sim._counter_open["ref"]):
+		var c: Dictionary = sim._counter_open["ref"]
+		var k: Dictionary = sim._counter_open
+		var h: float = Art.CREEPS.get(view.creep_kind(c), Art.CREEPS["grunt"])["height"]
+		var mid := View3D.world(c["pos"], h * 0.5)
+		var p := _at(mid)
+		var ppm := _ppm(mid)
+		var lead: float = maxf(k["at"] - k["opened"], 0.05)
+		var t: float = clampf((k["at"] - sim.press_time()) / lead, 0.0, 1.0)
+		var r := maxf(18.0, ppm * 0.55)
+		draw_circle(p, r, Color(1.0, 0.9, 0.3, 0.18))
+		draw_arc(p, r, 0, TAU, 40, Color(1.0, 0.9, 0.3, 0.9), 3.0)
+		draw_arc(p, r * (1.0 + 1.6 * t), 0, TAU, 48, Color(1.0, 0.9, 0.3, 1.0 - 0.4 * t), 5.0)
+		_text(p + Vector2(0, -r - maxf(14.0, ppm * 0.3)), "COUNTER", maxi(15, int(ppm * 0.4)), YELLOW)
+	elif not sim._counter_open.is_empty() and sim.creeps.has(sim._counter_open["ref"]):
 		var c: Dictionary = sim._counter_open["ref"]
 		var a: float = clampf((sim._counter_open["until"] - sim.press_time()) / (sim.COUNTER_TAP_MS / 1000.0), 0.0, 1.0)
 		if a > 0.0:
