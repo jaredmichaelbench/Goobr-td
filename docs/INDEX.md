@@ -12,6 +12,7 @@ The single source of truth for the game. If it isn't in here, it wasn't decided.
 | `backlog/backlog.md` | Parked ideas with source and what would promote them. |
 | `prototypes/` | Prototype plan and per-prototype results write-ups. |
 | `notes/` | Research, competition, raw inputs (the original pitch is archived here). |
+| `lore/lore-bible.md` | Story and lore bible: the night watchman, the caravan, the off-screen epic. A scaffold for Jared to write from (T-040). |
 
 Later workstreams (art direction, music, assets, revenue/Steam) get their own folder when they open, each with the same shape: a brief, decisions in the main log, tasks in the main task list.
 
