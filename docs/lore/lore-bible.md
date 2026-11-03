@@ -44,7 +44,7 @@ Something enormous is happening somewhere else, and you will never see it. You a
 
 Claude's lean: A for the demo, B for the full game's final campaign.
 
-**Jared's notes:**
+**Jared's notes:** Option A, B could be the move but I feel like that's far off. Let people speculate. (Comments: yes to second-hand hints; even dialog and mentions in multiplayer and other modes could slowly build on the vague story. "What attacks the camp is real": correct.)
 
 ## The watchman
 
@@ -52,9 +52,9 @@ The watchman is the player: tired, grumbling, relatable, and the only face the g
 
 **What exists already**
 
-- **Locked:** the player character, once called the Conductor, a figure at the camp's keep (D-0042, D-0048).
-- **Locked:** he speaks in one-line tips over the board, each said once; art and voice come later (D-0050 item 7).
-- **Locked:** his animations in the KayKit look: block, counter, sit by the fire, cheer at dawn (D-0060).
+- **Working:** the player character, once called the Conductor, a figure at the camp's keep (D-0042, D-0048).
+- **Locked:** he speaks in one-line tips over the board, each said once; art and voice come later (D-0050 item 7). Jared: break the unreliable story strategically across tips, random voice lines, multiplayer, and the intros and starts between levels.
+- **Working:** his animations in the KayKit look: block, counter, sit by the fire, cheer at dawn (D-0060).
 - **Working:** talents and cards get a name pass in his "I just work here" voice (backlog, talent and card name pass).
 
 **Name options** (all Working; the Goobr question is the big one)
@@ -76,6 +76,17 @@ The watchman is the player: tired, grumbling, relatable, and the only face the g
 
 **Jared's notes:**
 
+**From your comments (2026-11-03):**
+
+- Art isn't locked: the keep, the camp's size and look, and his animations are all undecided.
+- He gets the job in one of two ways, both kept: it's a punishment and the only way out is doing it well (your wife's idea), or it's a family trade (yours).
+- What he wants: he's on the opposite schedule, so he misses every party and inside joke. He wants in, but he likes his job. It's tragic.
+- He answers to someone like a captain of the army, and the army never counts him as one of them. They see a craftsman, not a soldier, though he fights every night.
+- Goobr is your gamer nickname. Goobr could be his name, with people getting it wrong (Gobby, Gob, Goof, Gordo, Gus).
+- Open: if every player is Goobr, multiplayer breaks your immersion rule.
+
+**Claude's answer to the name problem:** Goobr is a nickname in the world too. Nobody on the night watch goes by a real name, so every watchman is known by a handle the caravan gave them. In single player your handle is Goobr; in multiplayer each player's watchman goes by that player's handle. That makes the game's title the nickname of the least important man on the road, and every player gets one of their own.
+
 ## The caravan and the camp
 
 The caravan is on a journey he doesn't fully understand; the camp is the only part of it he owns. Why it travels, and what it carries, is open.
@@ -85,9 +96,8 @@ The caravan is on a journey he doesn't fully understand; the camp is the only pa
 - **Locked:** a campaign is one journey from one place to another, and it opens by showing how many nights of travel lie ahead (D-0048, journey doc open question 1).
 - **Locked:** each night is a new camp: new place, new layout, new spawns. The towers are left behind at the old camp (D-0048).
 - **Locked:** the caravan's health lasts all five nights of the demo (D-0056).
-- **Locked:** the look is low blue moonlight, warm firelight, a lantern at each tower, fog past the edge, and dawn colours over the song's last bars. The camp is tents, the keep, crates, barrels, a campfire and a wagon (D-0060).
+- **Working:** the look is low blue moonlight, warm firelight, a lantern at each tower, fog past the edge, and dawn colours over the song's last bars. The camp is tents, the keep, crates, barrels, a campfire and a wagon (D-0060).
 - **Working:** a return journey past old camps, where you see the towers you left behind (backlog).
-- **Superseded:** the player as a travelling king, a foothold you just conquered, and playing the attacker (D-0048 alternatives). The king could come back as a passenger he never meets.
 
 **Prompt: who is the caravan?**
 
@@ -108,6 +118,12 @@ Claude's lean: A, with a touch of D. A locked wagon he must never open is the co
 - Why do the creatures hunt the caravan at night?
 
 **Jared's notes:**
+
+**From your comments (2026-11-03):**
+
+- "Health" doesn't make sense for a caravan. Rename it to something that fits: maybe the enemies are thieves stealing cargo, and a caravan can be repaired. (Prompt: what is the meter? Cargo left, wagon condition, or supplies.)
+- The night look is liked, but it waits on the assets and the end state.
+- The king, foothold and attacker framings are dead; removed.
 
 ## The five nights
 
@@ -205,6 +221,9 @@ Hints should drift in and out through things the game already has, so story cost
 | Enemy props | Partly, weapons and shields per type (D-0060) | A banner on a shield that matches nothing in the caravan |
 | Camp chatter | No | Muffled talk from a tent during a lull |
 | The journey map | No; the night count is shown (D-0048) | The route redrawn, a town crossed out |
+| Random voice lines | No (your comment) | Muttered mid-fight, never repeated the same way twice |
+| Level intros and starts | No (your comment) | A line as the caravan pulls into a new camp, before the count-off |
+| Multiplayer and other modes | No (your comment) | Watchmen from other caravans swap rumours, each wrong in a new way |
 
 **Three kinds of unreliable** (Working)
 
