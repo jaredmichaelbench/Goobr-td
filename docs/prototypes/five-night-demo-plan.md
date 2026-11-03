@@ -24,5 +24,5 @@ Order: progression first (nights are tuned around it), enemies before nights, lo
 
 ## Open calls (recommendation first)
 - Night 5 longer song (D-0049): DECIDED D-0066, overtime boss fight on Psychedelia Flashback (1:36) after Flanger Party.
-- Fork masteries are drafts: lock after the B1 playtest (recommended) or now.
-- Synth note sounds: B4 with the look (recommended) or B6.
+- Fork masteries (tower upgrade paths, not talents) are drafts: Jared reviews them with B1 and B2 (Jared 01:14Z).
+- Synth note sounds: go in at B4 (Jared 01:14Z); he needs them ready before B4, remind him when B3 wraps.
