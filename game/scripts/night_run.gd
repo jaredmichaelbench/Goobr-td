@@ -59,8 +59,7 @@ const DIG_REACH := 1.25
 const GRAVE_RISE_BARS := 2
 const GRAVE_COUNT := 3
 const MOTHS_PER_HEALTH := 3  # Moths are tiny: every third one at the fire costs 1 health.
-const LANDLORD_HP := 2.5
-const LANDLORD_FLOOR := 0.25  # His health holds here until the overtime section.
+const LANDLORD_HP := 2.0
 const SOLO_SECONDS := 8.0
 const ARENA_KINDS := ["grunt", "runner", "swarm", "brute", "shade", "jammer", "archer", "warden", "door", "last_orders", "busker", "digger", "undertaker", "moth", "night_manager", "foreman", "landlord"]
 
@@ -142,8 +141,8 @@ func _finish() -> void:
 
 ## Talents between nights; before Start only when the night picker handed out points.
 func toggle_tree() -> void:
-	if not started and points > 0 and state == "playing":
-		tree_open = not tree_open
+	if not started and (points > 0 or tree_open) and state == "playing":
+		tree_open = not tree_open  # Done always closes it, even with every point spent.
 		return
 	super.toggle_tree()
 
@@ -550,28 +549,8 @@ func damage(c: Dictionary, amount: float) -> float:
 	var dealt := super.damage(c, amount)
 	if faked:
 		c["frozen_until"] = 0.0
-	_landlord_floor(c)
 	return dealt
 
-
-func true_damage(c: Dictionary, amount: float) -> float:
-	var dealt := super.true_damage(c, amount)
-	_landlord_floor(c)
-	return dealt
-
-
-## The Landlord is the overtime fight (D-0066): he fights through Flanger Party but
-## won't go down before the last section starts. He holds at a quarter of his health
-## and says so, then the overtime song is where you finish him.
-func _landlord_floor(c: Dictionary) -> void:
-	if not c.get("landlord", false) or section >= night["sections"].size() - 1:
-		return
-	var floor_hp: float = c["max_hp"] * LANDLORD_FLOOR
-	if c["hp"] < floor_hp:
-		c["hp"] = floor_hp
-		if not _told.has("landlord_floor"):
-			_told["landlord_floor"] = true
-			_watchman("He won't go down yet. Hold on till the last song.", 4.0)
 
 
 # --- Notes ------------------------------------------------------------------------------------
@@ -1047,6 +1026,18 @@ func _on_kill(c: Dictionary) -> void:
 
 
 # --- Bosses: The Night Manager, The Foreman, The Landlord ---------------------------------------
+
+## Night 5's rugpull (Jared, 2026-11-03): the Night Manager opens the night and the
+## Landlord walks in when the overtime song starts. If the manager is still up, the
+## Landlord waits for him to fall and comes in on the next bar.
+func _boss_enters() -> void:
+	if boss_alive():
+		_boss_due = floorf(song_bar()) + 1.0
+		return
+	super._boss_enters()
+	if boss_kind == "landlord":
+		_watchman("Hang on. That's... the Landlord. It's not over.", 5.0)
+
 
 func _summon_boss() -> void:
 	var had := boss_alive()

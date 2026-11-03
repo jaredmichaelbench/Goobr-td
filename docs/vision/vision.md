@@ -71,6 +71,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 - 2026-11-03: v0.24 Night 5 = Flanger Party then an overtime Landlord fight on Psychedelia Flashback (D-0066).
 - 2026-11-03: v0.25 five-night demo scope locked; build milestones B1 to B6, B1 and B2 built together (D-0067).
 - 2026-11-03: v0.26 B1+B2 built: five nights in a row with carryover and Retry, the locked tree, fork-then-mastery, new cards, six new enemies, Foreman and Landlord (D-0068).
+- 2026-11-03: v0.27 Night 5 becomes a two-boss night: the Night Manager, then the Landlord as an overtime rugpull (D-0069).
 - 2026-10-31: v0.17 demo campaign: health lasts all five nights, towers unlock only through the talent tree, no flat stat cards (D-0056).
 - 2026-10-31: v0.16 scope: single player becomes a journey of song-length levels (night watch over a travelling caravan camp), building in the count-off and the song's lulls, a card per level, tiered bosses curated per campaign; multiplayer stays wave-based (D-0048, D-0049).
 - 2026-10-27: v0.15 calls are always on the beat, Kick then Snare, growing longer not faster; a missed Q or E press locks that key briefly (D-0047).

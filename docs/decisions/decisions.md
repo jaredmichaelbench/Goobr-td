@@ -487,3 +487,7 @@ Decision: B1 and B2 are built on `claude/project-thread-ifc428` as specced in T-
 4. Talent points can be spent before Start only when the title's "Test a night" picker hands them out. In a normal run they come on the morning.
 Also: a test arena (J picks any enemy, K drops it) for the B2 playtest. Bots: a 90% bot holds all five nights on 7/20 health; an 80% bot falls on Night 2, which is a B5 balance question.
 
+
+## D-0069: Night 5 is a two-boss night with a Landlord rugpull
+2026-11-03 · accepted (Jared 02:57Z on the B1+B2 results: "make him come out for the finale, like a rugpull... a 2 boss level"; picked The Night Manager as the opener on a decision card, 02:58Z).
+Decision: the Night Manager opens Flanger Party. The Landlord walks in when the overtime song (Psychedelia Flashback) starts. If the manager is still alive then, the Landlord waits for him to fall and comes in on the next bar. This replaces D-0068's call 1, the 25% health floor, which is removed. The Landlord's health goes from 2.5x to 2x a boss's. Bot (90%, no health loss): the manager falls at about bar 47, the Landlord enters at bar 80 and falls at about bar 124 of 132. Other notes from playtest 1 are in `notes/b1-b2-playtest-1-2026-11-03.md`, waiting on Jared's markup.
