@@ -135,32 +135,66 @@ func _icon(name: String) -> Texture2D:
 
 func _build_top() -> void:
 	top_bar = PanelContainer.new()
-	var glass := UiTheme.box(Color(0.06, 0.07, 0.09, 0.55), UiTheme.EDGE * Color(1, 1, 1, 0.6), 0, 0, 6.0)
-	glass.border_width_bottom = 2
-	glass.shadow_size = 0
+	# One slab for the whole header (the scan: numbers floating on the grass were hard
+	# to read): slate glass, a crisp bottom edge, the same family as the cursor card.
+	var glass := StyleBoxFlat.new()
+	glass.bg_color = Color(HudCard.SLATE, 0.86)
+	glass.border_color = HudCard.EDGE
+	glass.border_width_bottom = 1
+	glass.content_margin_left = 10
+	glass.content_margin_right = 8
+	glass.content_margin_top = 4
+	glass.content_margin_bottom = 4
+	glass.shadow_color = Color(0, 0, 0, 0.35)
+	glass.shadow_size = 6
+	glass.shadow_offset = Vector2(0, 3)
 	top_bar.add_theme_stylebox_override("panel", glass)
 	top_bar.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.add_child(top_bar)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	top_bar.add_child(row)
+	# Each number sits in its own chip with its icon. Shields and Restores live at the
+	# camp now (D-0062), so the header keeps gold, health and where the night is.
 	for k in ["gold", "health", "wave", "shield", "restore"]:
-		row.add_child(HudParts.Icon.new(k))
-		var l := _label(TITLE, UiTheme.TEXT, true)
-		l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-		l.add_theme_constant_override("outline_size", 4)
-		row.add_child(l)
+		var chip := PanelContainer.new()
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = Color(1, 1, 1, 0.04)
+		cs.border_color = HudCard.EDGE.lightened(0.08)
+		cs.set_border_width_all(1)
+		cs.set_corner_radius_all(6)
+		cs.content_margin_left = 6
+		cs.content_margin_right = 9
+		cs.content_margin_top = 0
+		cs.content_margin_bottom = 0
+		chip.add_theme_stylebox_override("panel", cs)
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(chip)
+		var cr := HBoxContainer.new()
+		cr.add_theme_constant_override("separation", 5)
+		chip.add_child(cr)
+		cr.add_child(HudParts.Icon.new(k))
+		var l := _label(BODY + 2, UiTheme.TEXT, true)
+		cr.add_child(l)
 		res_labels[k] = l
-		var gap := Control.new()
-		gap.custom_minimum_size = Vector2(10, 1)
-		row.add_child(gap)
+		chip.visible = not k in ["shield", "restore"]
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(fill)
 	# System button up here, out of the command card (Gemini's review).
 	remove_child_safe(pause_button)
-	pause_button.custom_minimum_size = Vector2(70, 28)
+	pause_button.custom_minimum_size = Vector2(80, 26)
 	pause_button.add_theme_font_size_override("font_size", CAPTION)
+	# Same shape language as the chips and keycaps.
+	for st in [["normal", Color("1c2430"), Color("2c3644")], ["hover", Color("263142"), Color("6b7a8f")], ["pressed", Color("141a23"), Color("38bdf8")], ["disabled", Color("12171e"), Color("1e293b")]]:
+		var b := StyleBoxFlat.new()
+		b.bg_color = st[1]
+		b.border_color = st[2]
+		b.set_border_width_all(1)
+		b.border_width_bottom = 2
+		b.set_corner_radius_all(6)
+		b.set_content_margin_all(4)
+		pause_button.add_theme_stylebox_override(st[0], b)
 	row.add_child(pause_button)
 
 
@@ -683,7 +717,7 @@ func _refresh_top() -> void:
 	res_labels["health"].text = str(game.health)
 	if game is LevelRun:
 		var sec: Dictionary = game.current_section()
-		wave_text = "%s  %d/%d" % [sec["name"], clampi(floori(game.song_bar()) + 1, 1, game.night["bars"]), game.night["bars"]] if not sec.is_empty() else ("count-off" if game.started else "ready")
+		wave_text = "%s   bar %d/%d" % [sec["name"].to_upper(), clampi(floori(game.song_bar()) + 1, 1, game.night["bars"]), game.night["bars"]] if not sec.is_empty() else ("count-off" if game.started else "ready")
 	res_labels["wave"].text = wave_text
 	res_labels["shield"].text = "%d/%d" % [game.shields, game.shield_cap]
 	res_labels["restore"].text = "%d/%d" % [game.restore_charges, game.restore_cap()]
@@ -835,6 +869,14 @@ func _refresh_level_info() -> void:
 	if not game.started:
 		info_body.text += ".  N or the play button starts the night."
 	song_label.text = "Song: %s" % game.songs[game.song_index]["name"]
+
+
+## While placing, the cursor card is the one place for the tower's numbers (the
+## scan: two panels for one tower); the bottom inspect panel clears.
+func _panel_type() -> String:
+	if game.build_mode:
+		return ""
+	return super._panel_type()
 
 
 func _refresh_panel() -> void:
@@ -1057,26 +1099,34 @@ func _build_cursor() -> void:
 		root.move_child(box, root.get_child_count() - 1)
 
 
-## One line on what a build does, from its live numbers.
-func _what_it_does(type: String) -> String:
+## The build's numbers as data (DMG / RNG / one trait) from its live spec; its note
+## is a separate trait line.
+func _stats_of(type: String) -> Array:
 	if type == "wall":
-		return "Blocks the path; creeps walk around it. A tower built on a wall replaces it."
+		return []
 	var spec: Dictionary = game.type_spec(type)
 	var dmg: float = spec.get("damage", 0.0) * game.damage_scale()
+	var rng := "%.1f" % spec.get("range", 0.0)
 	match type:
 		"kick":
-			return "Shoots the nearest creep: %d damage, %.1f tiles. Its note snipes anywhere." % [roundi(dmg), spec["range"]]
+			return [["DMG", str(roundi(dmg))], ["RNG", rng], ["TARGET", "Nearest"]]
 		"bass":
-			return "Shells burst %.1f tiles around the target for %d damage." % [spec.get("splash", 0.0), roundi(dmg)]
+			return [["DMG", str(roundi(dmg))], ["RNG", rng], ["SPLASH", "%.1f" % spec.get("splash", 0.0)]]
 		"slow":
-			return "Chills creeps within %.1f tiles: each hit slows them for %.1f s." % [spec["range"], spec.get("slow", 0.0)]
+			return [["DMG", str(roundi(dmg))], ["RNG", rng], ["SLOW", "%.1fs" % spec.get("slow", 0.0)]]
 		"poison":
-			return "Poisons creeps within %.1f tiles; the poison keeps biting after." % spec["range"]
+			return [["DMG", str(roundi(dmg))], ["RNG", rng], ["EFFECT", "Poison"]]
 		"lightning":
-			return "Bolts arc between creeps within %.1f tiles: %d damage." % [spec["range"], roundi(dmg)]
+			return [["DMG", str(roundi(dmg))], ["RNG", rng], ["TARGET", "Chain"]]
 		"light":
-			return "Towers in its light, within %.1f tiles, hit %d%% harder." % [game.light_radius(), roundi(game.light_boost() * 100.0)]
-	return ""
+			return [["BOOST", "+%d%%" % roundi(game.light_boost() * 100.0)], ["RADIUS", "%.1f" % game.light_radius()]]
+	return [["DMG", str(roundi(dmg))], ["RNG", rng]]
+
+
+func _trait_of(type: String) -> String:
+	if type == "wall":
+		return "Blocks the path; creeps walk around it. A tower built on a wall replaces it."
+	return ("Note: " + SHORT_NOTES[type]) if SHORT_NOTES.has(type) else ""
 
 
 func _tower_title(type: String) -> String:
@@ -1105,12 +1155,13 @@ func _refresh_cursor() -> void:
 		var cost: int = game.build_cost_at(cell, type) if game.has_method("build_cost_at") else game.builds[type]["cost"]
 		cursor_tag.set_accent(HudCard.ACCENTS.get(type, Color.WHITE))
 		cursor_tag.set_head(_tower_icon(type), _tower_title(type), HudCard.ROLES.get(type, ""))
-		cursor_tag.set_cost(cost, game.gold >= cost)
-		var body := _what_it_does(type)
+		cursor_tag.set_cost(cost, game.gold >= cost, game.gold - cost)
+		cursor_tag.set_stats(_stats_of(type))
+		var body := _trait_of(type)
 		if swap:
 			body += "\nOn this wall: its %dg counts toward the tower." % game.builds["wall"]["cost"]
 		cursor_tag.set_body(body)
-		cursor_tag.set_keys([[["Shift", "Click"], "Chain"], [["Wheel"], "Swap"], [["B"], "Cancel"]])
+		cursor_tag.set_keys([[["Shift", "L-Click"], "Chain"], [["Scroll"], "Swap"], [["B"], "Cancel"]])
 		_place_by_cursor(cursor_tag, m)
 		return
 	if not game.structures.has(cell):
@@ -1135,6 +1186,7 @@ func _refresh_cursor() -> void:
 			keys.append([["U"], "Upgrade %dg" % cost, Color("d6dde6") if game.gold >= cost else HudCard.RED])
 	hover_box.set_head(_tower_icon(type), _tower_title(type), role)
 	hover_box.set_cost(-1, true)
+	hover_box.set_stats(_stats_of(type) if game.is_tower(type) else [])
 	hover_box.set_body("")
 	hover_box.set_keys(keys)
 	_place_by_cursor(hover_box, m)

@@ -55,6 +55,9 @@ var _body: Label
 var _rule_top: ColorRect
 var _rule_bottom: ColorRect
 var _keys: HBoxContainer
+var _stats: HBoxContainer
+var _stats_sig := ""
+var _pill_short: Label
 var _keys_sig := ""
 var _accent := Color(0, 0, 0, 0)
 var _accent_top: ColorRect
@@ -149,8 +152,17 @@ func _init() -> void:
 	_pill_text.add_theme_font_override("font", UiTheme.heading_font())
 	_pill_text.add_theme_font_size_override("font_size", 14)
 	pill_row.add_child(_pill_text)
+	_pill_short = Label.new()  # "-5" when you are short: unmistakably an error state.
+	_pill_short.add_theme_font_override("font", UiTheme.heading_font())
+	_pill_short.add_theme_font_size_override("font_size", 11)
+	_pill_short.add_theme_color_override("font_color", Color(RED, 0.85))
+	_pill_short.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pill_row.add_child(_pill_short)
 	_rule_top = _rule()
 	v.add_child(_rule_top)
+	_stats = HBoxContainer.new()
+	_stats.add_theme_constant_override("separation", 14)
+	v.add_child(_stats)
 	_body = Label.new()
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.custom_minimum_size = Vector2(WIDTH - 24.0, 0)
@@ -218,12 +230,14 @@ func set_head(tex: Texture2D, title: String, role: String) -> void:
 
 ## The cost pill: a coin and the price, green when you can pay, red when short.
 ## A negative cost hides it.
-func set_cost(cost: int, can_pay: bool) -> void:
+func set_cost(cost: int, can_pay: bool, margin := 0) -> void:
 	_pill.visible = cost >= 0
 	if cost < 0:
 		return
 	var tint := GREEN if can_pay else RED
 	_pill_text.text = str(cost)
+	_pill_short.text = str(margin)
+	_pill_short.visible = not can_pay
 	_pill_text.add_theme_color_override("font_color", tint)
 	var pb := StyleBoxFlat.new()
 	pb.bg_color = Color(tint, 0.12)
@@ -240,7 +254,33 @@ func set_cost(cost: int, can_pay: bool) -> void:
 func set_body(text: String) -> void:
 	_body.text = text
 	_body.visible = text != ""
-	_rule_top.visible = text != ""
+	_rule_top.visible = _body.visible or _stats.visible
+
+
+## The numbers as scannable data: [["DMG", "20"], ["RNG", "2.6"], ...].
+func set_stats(entries: Array) -> void:
+	var sig := str(entries)
+	if sig != _stats_sig:
+		_stats_sig = sig
+		for c in _stats.get_children():
+			c.queue_free()
+		for e in entries:
+			var cell := HBoxContainer.new()
+			cell.add_theme_constant_override("separation", 4)
+			var k := _small(e[0], MUTED)
+			k.add_theme_font_override("font", UiTheme.heading_font())
+			k.add_theme_font_size_override("font_size", 10)
+			k.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			cell.add_child(k)
+			var val := Label.new()
+			val.text = e[1]
+			val.add_theme_font_override("font", UiTheme.heading_font())
+			val.add_theme_font_size_override("font_size", 15)
+			val.add_theme_color_override("font_color", Color.WHITE)
+			cell.add_child(val)
+			_stats.add_child(cell)
+	_stats.visible = not entries.is_empty()
+	_rule_top.visible = _body.visible or _stats.visible
 
 
 ## The controls as keycaps: each entry is [[keys...], "action", optional colour].
@@ -255,7 +295,7 @@ func set_keys(entries: Array) -> void:
 	for e in entries:
 		if not first:
 			var gap := Control.new()
-			gap.custom_minimum_size = Vector2(8, 0)
+			gap.custom_minimum_size = Vector2(12, 0)
 			_keys.add_child(gap)
 		first = false
 		var ks: Array = e[0]

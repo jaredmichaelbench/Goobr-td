@@ -814,9 +814,9 @@ func _draw_fx() -> void:
 			var ok: bool = sim.unlocked.has(sim.selected) and sim.gold >= cost and not sim.terrain.has(hover) and (swap or sim.grid.can_block([hover], sim._creep_cells()))
 			_quad(world(Vector2(hover), 0.02), 0.48, Color(0.3, 1.0, 0.4, 0.35) if ok else Color(1.0, 0.3, 0.3, 0.35))
 			if sim.builds[sim.selected].has("range"):
-				_ring(world(Vector2(hover), 0.03), sim.type_spec(sim.selected)["range"], 0.05, Color(1, 1, 1, 0.5))
+				_range_decal(world(Vector2(hover), 0.03), sim.type_spec(sim.selected)["range"], sim.selected, 1.0, bt, beat)
 		if sim.structures.has(hover) and sim.is_tower(sim.structures[hover]["type"]):
-			_ring(world(Vector2(hover), 0.03), sim.tower_spec(hover)["range"], 0.05, Color(1, 1, 1, 0.45))
+			_range_decal(world(Vector2(hover), 0.03), sim.tower_spec(hover)["range"], sim.structures[hover]["type"], 0.7, bt, beat)
 	# The selected tower: a white ring at its foot and its range.
 	if sim.structures.has(sim.selected_cell):
 		var sp := world(Vector2(sim.selected_cell), 0.04)
@@ -949,6 +949,16 @@ func _ring(center: Vector3, radius: float, width: float, color: Color, on_top :=
 		_vertex(m, color, center + d0 * r0)
 		_vertex(m, color, center + d1 * r1)
 		_vertex(m, color, center + d1 * r0)
+
+
+## A range shown as a decal on the ground (the scan: not a 1px wire): a soft fill in
+## the tower's accent, a firm edge that breathes on the beat, a faint inner ring.
+func _range_decal(center: Vector3, radius: float, type: String, strength: float, bt: float, beat: float) -> void:
+	var c: Color = HudCard.ACCENTS.get(type, Color.WHITE).lerp(Color.WHITE, 0.35)
+	var pulse := 1.0 - fposmod(bt / beat, 1.0)
+	_disc(center, radius, Color(c, 0.1 * strength))
+	_ring(center, radius * 0.97, 0.18, Color(c, 0.12 * strength))
+	_ring(center, radius + 0.02 * pulse, 0.07 + 0.03 * pulse, Color(c, (0.55 + 0.35 * pulse) * strength))
 
 
 func _disc(center: Vector3, radius: float, color: Color) -> void:

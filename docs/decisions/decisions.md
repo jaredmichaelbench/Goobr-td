@@ -450,3 +450,12 @@ Alternatives: keep B-then-letter; X / right click to sell; judgment in the top c
 2026-11-03 · accepted (Jared's spec in chat 00:10Z, with screenshot: the old tag "feels flat and dated").
 Context: the D-0062 cursor tag and hover menu.
 Decision: one card (`scripts/hud_card.gd`) for both. Blurred slate glass (#0d131a at 88%), 1px #1e293b outer border, 1px inner accent highlight at 20% with a 2px accent top edge, soft drop shadow. One accent per tower type (Frost #38bdf8). Header: tower icon, "FROST TOWER" in tracked display caps, role tag in small muted caps (Crowd control and so on), cost pill with a coin, green when you can pay, red when short. "You have Xg" dropped (gold lives in the top bar). One line on what the tower does from its live numbers. Controls as raised keycaps: Shift + Click Chain, Wheel Swap, B Cancel. About 300 px wide (40% narrower). The hover menu uses the same card: X Sell +N, U Upgrade N (or U / I fork names).
+
+## D-0064: HUD quick list from the outside scan
+2026-11-03 · accepted (Jared "Go" 00:23Z on Claude's split of the scan feedback).
+Decision:
+1. Cursor card: stats as data (DMG / RNG / one trait such as TARGET Nearest, SPLASH, SLOW), the note as its own line; a short cost pill shows how far short ("30 -25"); keycaps read [Shift] + [L-Click] Chain, [Scroll] Swap, [B] Cancel with wider gaps. Hover card shows the same stats row.
+2. The bottom inspect panel clears while placing (one panel per tower).
+3. Range shows as a ground decal: soft fill in the tower's accent, an edge that breathes on the beat.
+4. Top bar is one slate slab; gold, health and the night ("INTRO bar 1/96") sit in chips; shields and Restores left the header (the camp shows them); Pause restyled to match.
+Deferred: the bottom panel redesign (action grid, round buttons, wave panel) as one pass from a markup doc; creep readability waits for the KayKit creeps (D-0060); health bars over packs decided with real creeps.
