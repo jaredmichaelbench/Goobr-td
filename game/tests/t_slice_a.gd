@@ -64,14 +64,17 @@ func _process(_d):
 			print("shift-click: placed=", m.structures.has(cell), " build_mode=", m.build_mode)
 			m.gold = 5
 			move(cell2)
+		35: key(KEY_4)
 		38: shot("a2_cursor_short")
 		39:
 			m.gold = 400
+			key(KEY_2)
+		40:
 			click(cell2)
-		41:
+		42:
 			print("plain click: placed=", m.structures.has(cell2), " build_mode=", m.build_mode)
 			key(KEY_B)
-		42:
+		43:
 			click(cell, MOUSE_BUTTON_RIGHT)
 		44:
 			print("right click: build_mode=", m.build_mode, " tower kept=", m.structures.has(cell))

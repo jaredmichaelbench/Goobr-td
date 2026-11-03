@@ -445,3 +445,8 @@ Decision:
 6. The camp carries its own numbers: health with a heart (pulses red when the camp is hit), shields as before, Restore charges as green pips.
 7. In a push the top bar and the bottom panel dim to half; they come back in lulls, between nights, in build mode and when the mouse goes to them.
 Alternatives: keep B-then-letter; X / right click to sell; judgment in the top centre.
+
+## D-0063: Cursor card restyled to Jared's tooltip spec
+2026-11-03 · accepted (Jared's spec in chat 00:10Z, with screenshot: the old tag "feels flat and dated").
+Context: the D-0062 cursor tag and hover menu.
+Decision: one card (`scripts/hud_card.gd`) for both. Blurred slate glass (#0d131a at 88%), 1px #1e293b outer border, 1px inner accent highlight at 20% with a 2px accent top edge, soft drop shadow. One accent per tower type (Frost #38bdf8). Header: tower icon, "FROST TOWER" in tracked display caps, role tag in small muted caps (Crowd control and so on), cost pill with a coin, green when you can pay, red when short. "You have Xg" dropped (gold lives in the top bar). One line on what the tower does from its live numbers. Controls as raised keycaps: Shift + Click Chain, Wheel Swap, B Cancel. About 300 px wide (40% narrower). The hover menu uses the same card: X Sell +N, U Upgrade N (or U / I fork names).

@@ -1048,39 +1048,49 @@ func _hover_cell() -> Vector2i:
 
 # --- The cursor tag and the hover menu (D-0062) ----------------------------------------------
 
-func _small_box(edge: Color) -> Array:
-	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", UiTheme.box(Color(0.06, 0.07, 0.09, 0.88), edge, 1, 4, 6.0))
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.visible = false
-	root.add_child(box)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 1)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(v)
-	var t := _label(BODY, UiTheme.GOLD, true)
-	v.add_child(t)
-	var b := _label(CAPTION, UiTheme.TEXT)
-	v.add_child(b)
-	return [box, t, b]
-
-
 func _build_cursor() -> void:
-	var made := _small_box(UiTheme.EDGE)
-	cursor_tag = made[0]
-	cursor_title = made[1]
-	cursor_body = made[2]
-	made = _small_box(UiTheme.GOLD * Color(1, 1, 1, 0.7))
-	hover_box = made[0]
-	hover_title = made[1]
-	hover_body = made[2]
+	cursor_tag = HudCard.new()
+	hover_box = HudCard.new()
+	for card in [cursor_tag, hover_box]:
+		root.add_child(card)
 	for box in [tree_dim, tree_box, draft_box, end_box]:
 		root.move_child(box, root.get_child_count() - 1)
 
 
+## One line on what a build does, from its live numbers.
+func _what_it_does(type: String) -> String:
+	if type == "wall":
+		return "Blocks the path; creeps walk around it. A tower built on a wall replaces it."
+	var spec: Dictionary = game.type_spec(type)
+	var dmg: float = spec.get("damage", 0.0) * game.damage_scale()
+	match type:
+		"kick":
+			return "Shoots the nearest creep: %d damage, %.1f tiles. Its note snipes anywhere." % [roundi(dmg), spec["range"]]
+		"bass":
+			return "Shells burst %.1f tiles around the target for %d damage." % [spec.get("splash", 0.0), roundi(dmg)]
+		"slow":
+			return "Chills creeps within %.1f tiles: each hit slows them for %.1f s." % [spec["range"], spec.get("slow", 0.0)]
+		"poison":
+			return "Poisons creeps within %.1f tiles; the poison keeps biting after." % spec["range"]
+		"lightning":
+			return "Bolts arc between creeps within %.1f tiles: %d damage." % [spec["range"], roundi(dmg)]
+		"light":
+			return "Towers in its light, within %.1f tiles, hit %d%% harder." % [game.light_radius(), roundi(game.light_boost() * 100.0)]
+	return ""
+
+
+func _tower_title(type: String) -> String:
+	return game.tower_name(type) + ("" if type == "wall" else " tower")
+
+
+func _tower_icon(type: String) -> Texture2D:
+	return _icon(("tower_" + type) if type != "wall" else "wall")
+
+
 ## Next to the cursor (Jared: "all that information next to the cursor, not in the
-## top"): in build mode the tower, its price and your gold, red when you are short;
-## over a tower, what X and U would do.
+## top"; card styled to his spec of 2026-11-03): in build mode the tower, its role, a
+## cost pill green or red, what it does, and the controls as keycaps; over a placed
+## tower, sell and upgrade as keycaps.
 func _refresh_cursor() -> void:
 	var busy: bool = game.state != "playing" or game.paused or game.tree_open or game.get("drafting") == true
 	var m := get_viewport().get_mouse_position()
@@ -1093,16 +1103,14 @@ func _refresh_cursor() -> void:
 		var type: String = game.selected
 		var swap := _swaps(cell)
 		var cost: int = game.build_cost_at(cell, type) if game.has_method("build_cost_at") else game.builds[type]["cost"]
-		var short: int = cost - game.gold
-		cursor_title.text = game.tower_name(type) + ("  on the wall" if swap else "")
-		cursor_title.add_theme_color_override("font_color", UiTheme.GOLD if short <= 0 else Color(1, 0.45, 0.4))
-		var line := "%dg   you have %dg" % [cost, game.gold]
-		if short > 0:
-			line += "   need %d more" % short
+		cursor_tag.set_accent(HudCard.ACCENTS.get(type, Color.WHITE))
+		cursor_tag.set_head(_tower_icon(type), _tower_title(type), HudCard.ROLES.get(type, ""))
+		cursor_tag.set_cost(cost, game.gold >= cost)
+		var body := _what_it_does(type)
 		if swap:
-			line += "\nthe wall's %dg counts toward it" % game.builds["wall"]["cost"]
-		cursor_body.text = line + "\nShift-click keeps building   wheel: next tower   B stops"
-		cursor_body.add_theme_color_override("font_color", UiTheme.TEXT if short <= 0 else Color(1, 0.6, 0.55))
+			body += "\nOn this wall: its %dg counts toward the tower." % game.builds["wall"]["cost"]
+		cursor_tag.set_body(body)
+		cursor_tag.set_keys([[["Shift", "Click"], "Chain"], [["Wheel"], "Swap"], [["B"], "Cancel"]])
 		_place_by_cursor(cursor_tag, m)
 		return
 	if not game.structures.has(cell):
@@ -1110,19 +1118,25 @@ func _refresh_cursor() -> void:
 	var s: Dictionary = game.structures[cell]
 	var type: String = s["type"]
 	var refund := int(s.get("paid", game.builds[type]["cost"]) * game.SELL_REFUND)
-	hover_title.text = game.tower_name(type)
-	var lines: Array[String] = ["X   sell   +%dg" % refund]
+	hover_box.set_accent(HudCard.ACCENTS.get(type, Color.WHITE))
+	var role: String = HudCard.ROLES.get(type, "")
+	var keys: Array = [[["X"], "Sell +%dg" % refund, HudCard.GREEN]]
 	if game.is_tower(type) and game.unlocked.has(type):
 		var rank: int = game.type_rank.get(type, 0)
+		role += "   rung %d/5" % rank
 		if rank >= 5:
-			lines.append("Top rung reached")
+			keys.append([[], "Top rung"])
 		elif rank == 2 and game.BRANCHES.has(type):
 			var br: Array = game.BRANCHES[type]
-			lines.append("U   fork: %s      I   fork: %s" % [br[0][0], br[1][0]])
+			keys.append([["U"], br[0][0]])
+			keys.append([["I"], br[1][0]])
 		else:
 			var cost: int = game.type_upgrade_cost(type)
-			lines.append("U   upgrade every %s   %dg%s" % [game.tower_name(type), cost, "" if game.gold >= cost else "  (need %d more)" % (cost - game.gold)])
-	hover_body.text = "\n".join(lines)
+			keys.append([["U"], "Upgrade %dg" % cost, Color("d6dde6") if game.gold >= cost else HudCard.RED])
+	hover_box.set_head(_tower_icon(type), _tower_title(type), role)
+	hover_box.set_cost(-1, true)
+	hover_box.set_body("")
+	hover_box.set_keys(keys)
 	_place_by_cursor(hover_box, m)
 
 
