@@ -74,6 +74,7 @@ Status tags: `parked` (later), `needs-proto` (promising, needs a test), `maybe` 
 | Music | parked | Core to the game, so it starts early: need stem-friendly tracks, fixed BPM, loopable. Likely the first "later area" to open. |
 | Revenue and Steam strategy | parked | Pricing, Steam page timing, Next Fest demo, wishlists. |
 | Steam Input / controller support | parked | Use Steam Input API. |
+| iPad / iOS version | parked | Assessed 2026-11-03 (`notes/ipad-ios-assessment-2026-11-03.md`): runs on iPad with little work, but touch controls are a 4-8 week design job. Steam first. Cheap now: input actions instead of raw keys, no hover-only info, calibration setting back before any public build. |
 
 - **Timeline: keep, fade, or remove?** (2026-10-25, from M3 playtest) Jared worries players will just watch the timeline. Options: fade it out after the first waves, show only the next 1-2 notes, or drop it once the rhythm is learned. F6 in M3 lets us test with and without.
 - **Clickable UI and menus** (2026-10-25, Jared) The game should feel like "press B for a build menu," with more menus later for talents and a rogue-lite skill tree. Everything in Demo 0 is hand-drawn, so buttons would be custom code. Build a real UI layer (Godot Control nodes) in M6 once the menus are known.
