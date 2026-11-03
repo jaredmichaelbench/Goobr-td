@@ -23,6 +23,6 @@ Out (backlog): endless, multiplayer, custom models and new art style, community 
 Order: progression first (nights are tuned around it), enemies before nights, look before balance (D-0060), balance last. Alternative considered: build Night 2 end to end first; rejected because it revisits the shell and look every night.
 
 ## Open calls (recommendation first)
-- Night 5 longer song (D-0049): overtime boss fight past Flanger Party into a boss song (recommended), or move Night Life to Night 5.
+- Night 5 longer song (D-0049): DECIDED D-0066, overtime boss fight on Psychedelia Flashback (1:36) after Flanger Party.
 - Fork masteries are drafts: lock after the B1 playtest (recommended) or now.
 - Synth note sounds: B4 with the look (recommended) or B6.

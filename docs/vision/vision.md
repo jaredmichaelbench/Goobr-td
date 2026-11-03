@@ -66,6 +66,7 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 - 2026-11-01: v0.19 every talent costs 1 (10 points a run, one side's top reachable), Light placed, upgrades are fork then fork mastery, Jared's new cards in (D-0058). Not built yet.
 - 2026-11-01: v0.20 progression locked for the demo (D-0059): Arrow/Cannon renames, Solo leads to Perfect Solo, cards and fork masteries set. Not built yet.
 - 2026-11-01: v0.21 demo art direction: one KayKit family with a night-watch look, built with the five nights (D-0060).
+- 2026-11-03: v0.24 Night 5 = Flanger Party then an overtime Landlord fight on Psychedelia Flashback (D-0066).
 - 2026-11-01: v0.22 demo enemies locked: new names, six new types, Night 4 = maze under attack, The Landlord on Night 5, notes target bosses and elites in view (D-0061).
 - 2026-11-01: v0.23 UI slice A built: B build mode with the mouse wheel, Shift-click chains, cursor tag, hover sell and upgrade with a coin payout, judgments at the camp and towers, corners dim in pushes (D-0062); cursor card restyled to Jared's spec (D-0063); HUD quick list: stats row, range decals, top slab (D-0064); HUD redesign and menus built in one design system (D-0065).
 - 2026-10-31: v0.17 demo campaign: health lasts all five nights, towers unlock only through the talent tree, no flat stat cards (D-0056).

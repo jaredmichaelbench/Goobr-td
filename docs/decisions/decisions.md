@@ -469,3 +469,7 @@ Decision: one design system (`scripts/hud_kit.gd`): slate glass, tower accents, 
 4. Card pick: "NIGHT 1 COMPLETE" + "Choose one" pill; tiles with keycap, rarity in border, top edge, glow and gems (no rarity words), bucket badge and drawn glyph, title then explainer, locked condition line.
 5. Results: grade S-D in a ring (notes 45%, parries 35%, health 20%; S needs 90% and full health; a fallen camp caps at C; bands to tune), Defence / Rhythm / Boss columns, the song as a coloured section strip, full run log behind Details, "Copy stats to send Jared" kept visible with a one-line ask (Jared wants player stats as feedback).
 6. Talent tree and pause screens restyled in the same glass and caps (the tree's content is still the old build; the D-0058/D-0059 tree is built with the demo).
+
+## D-0066: Night 5 runs into an overtime boss song
+2026-11-03 · accepted (Jared 01:07Z: "Psychedelia Flashback for sure", answering the T-039 build plan's open call).
+Decision: Night 5 plays Flanger Party (2:28), then The Landlord's overtime fight on its own song, Psychedelia Flashback (1:36), about 4 minutes in all. Night Life stays on Night 1 (frozen). This settles D-0049's "longer Night 5" ask.
