@@ -13,7 +13,8 @@ extends Hud7
 ## instant and laid out by Explain. Key hints and run stats live on the pause
 ## screen; each wave ends with a small summary card.
 
-const BOTTOM_H := 150.0
+const BOTTOM_H := 100.0
+const SLOT := 56.0  # A build slot and a game control are the same square (T-038).
 const TOP_H := 40.0
 const CARD := Vector2(96, 34)
 ## The old B-then-letter chain, retired by D-0062 (B then the mouse wheel).
@@ -32,7 +33,10 @@ var bottom: PanelContainer
 var grid: GridContainer
 var upgrade_cmd: Button
 var res_labels := {}
-var xp: HudParts.XPBar
+var xp: HudParts.XPBar  # Retired by the XP line (T-038).
+var xp_line: HudKit.Track
+var xp_level: Label
+var slot_badges := {}  # type -> the slot's badges
 var rich: HudParts.RichTip
 var round_buttons := {}  # "talents" / "restore" / "start" -> Button
 var restore_count: Label
@@ -95,11 +99,6 @@ func _ready() -> void:
 	_build_bottom()
 	_build_middle()
 	_build_tree()
-	# Demo 1 (M12): the run log goes to the clipboard so friends can paste it back.
-	var copy := _button(endless_button.get_parent(), Vector2(150, 40), func():
-		DisplayServer.clipboard_set("\n".join(game.run_lines()))
-		game._say("Run log copied"))
-	copy.text = "Copy run log"
 	_bar.visible = false
 	tip.add_theme_font_size_override("font_size", CAPTION)
 	tip.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
@@ -110,7 +109,11 @@ func _ready() -> void:
 	_hook_tips()
 	if game is LevelRun:
 		_build_level_panels()
+	_build_results()
+	_restyle_tree_panel()
 	_build_cursor()
+	for box in [tree_dim, tree_box]:
+		root.move_child(box, root.get_child_count() - 1)
 	game.build_mode = false  # Build mode opens with B or a number key (D-0062).
 	_refresh()
 
@@ -198,165 +201,189 @@ func _build_top() -> void:
 	row.add_child(pause_button)
 
 
-# --- Bottom panel ------------------------------------------------------------------------
+# --- Bottom bar (T-038, Jared's go 2026-11-03) ------------------------------------------------
 
+## One slim slate bar: the next push on the left, the build strip in the middle, the
+## game controls on the right, the XP line along its top edge. The old inspect panel
+## is gone: a clicked tower pins its card by the tower instead.
 func _build_bottom() -> void:
 	bottom = PanelContainer.new()
-	bottom.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.PANEL, UiTheme.EDGE, 2, 0, 8.0))
+	var bs := StyleBoxFlat.new()
+	bs.bg_color = Color(HudKit.SLATE, 0.97)
+	bs.border_color = HudKit.EDGE
+	bs.border_width_top = 1
+	bs.content_margin_left = 14
+	bs.content_margin_right = 14
+	bs.content_margin_top = 14
+	bs.content_margin_bottom = 10
+	bs.shadow_color = Color(0, 0, 0, 0.4)
+	bs.shadow_size = 10
+	bs.shadow_offset = Vector2(0, -2)
+	bottom.add_theme_stylebox_override("panel", bs)
 	root.add_child(bottom)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 16)
 	bottom.add_child(row)
-	# Left: the next wave as pictures (the minimap slot until multiplayer).
-	var left := PanelContainer.new()
-	left.add_theme_stylebox_override("panel", UiTheme.box(Color(0.05, 0.06, 0.08), Color(0.3, 0.26, 0.2), 1, 4, 6.0))
-	left.custom_minimum_size = Vector2(290, 0)
+	# Left: the next push as tokens.
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 3)
+	left.custom_minimum_size = Vector2(330, 0)
 	row.add_child(left)
-	var lv := VBoxContainer.new()
-	lv.add_theme_constant_override("separation", 2)
-	left.add_child(lv)
-	info_title = _label(BODY, UiTheme.GOLD, true)
-	lv.add_child(info_title)
+	info_title = HudKit.label("", 12, HudKit.TEXT, true, 1)
+	left.add_child(info_title)
 	info_icons = HBoxContainer.new()
-	info_icons.add_theme_constant_override("separation", 2)
-	lv.add_child(info_icons)
-	info_body = _label(CAPTION, Color(1, 1, 1, 0.8))
-	lv.add_child(info_body)
-	song_label = _label(CAPTION, Color(1, 1, 1, 0.5))
-	song_label.clip_text = true
-	song_label.custom_minimum_size = Vector2(270, 0)
-	lv.add_child(song_label)
-	# Middle: the selected tower on top, then the game controls and the XP bar
-	# (Jared: "these are the game controls, not build options").
-	var mid := VBoxContainer.new()
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.add_theme_constant_override("separation", 4)
-	row.add_child(mid)
-	var info := Control.new()
-	info.custom_minimum_size = Vector2(0, 58)
-	info.clip_contents = true
-	mid.add_child(info)
-	remove_child_safe(panel)
-	info.add_child(panel)
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_compact_panel()
-	placeholder = _label(CAPTION + 1, Color(1, 1, 1, 0.5))
-	placeholder.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	placeholder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	placeholder.text = "B builds: the mouse wheel picks the tower, B again stops. Or press 1 to 7. Hover a tower: X sells it, U upgrades its type."
-	info.add_child(placeholder)
-	var controls := HBoxContainer.new()
-	controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	controls.add_theme_constant_override("separation", 22)
-	mid.add_child(controls)
-	round_buttons["talents"] = _round(controls, "talents", 46.0, "Tab", func(): game.toggle_tree())
-	round_buttons["restore"] = _round(controls, "restore_big", 54.0, "F", func(): game._press_restore())
-	round_buttons["start"] = _round(controls, "start", 46.0, "N", func(): game.start_wave())
-	restore_count = _label(CAPTION, Color.WHITE, true)
-	restore_count.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	restore_count.add_theme_constant_override("outline_size", 3)
-	restore_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	restore_count.position = Vector2(0, 54.0 - 17.0)
-	restore_count.size = Vector2(54.0, 14)
-	restore_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	round_buttons["restore"].add_child(restore_count)
-	var xp_row := CenterContainer.new()
-	mid.add_child(xp_row)
-	xp = HudParts.XPBar.new(game)
-	xp.custom_minimum_size = Vector2(420, 16)
-	xp_row.add_child(xp)
-	# Right: the command card.
+	info_icons.add_theme_constant_override("separation", 10)
+	left.add_child(info_icons)
+	info_body = HudKit.label("", 11, HudKit.MUTED)
+	left.add_child(info_body)
+	song_label = HudKit.label("", 11, HudKit.MUTED)
+	song_label.visible = false  # The song lives in the top slab now.
+	left.add_child(song_label)
+	var fill_l := Control.new()
+	fill_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(fill_l)
+	# Middle: the build strip, one row of square slots.
 	grid = GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", 4)
-	grid.add_theme_constant_override("v_separation", 4)
+	grid.columns = BUILD_ORDER.size()
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(grid)
 	for type in BUILD_ORDER:
 		if build_buttons.has(type):
-			_card(build_buttons[type], true)
-			var tex := _icon(("tower_" + type) if type != "wall" else "wall")
-			if tex != null:
-				build_buttons[type].icon = tex
+			_slot(build_buttons[type], type)
+	var fill_r := Control.new()
+	fill_r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(fill_r)
+	# Right: the game controls, square like the slots, each with a real keycap.
+	var controls := HBoxContainer.new()
+	controls.add_theme_constant_override("separation", 8)
+	controls.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(controls)
+	round_buttons["talents"] = _square(controls, "talents", "Tab", func(): game.toggle_tree())
+	round_buttons["restore"] = _square(controls, "restore_big", "F", func(): game._press_restore())
+	round_buttons["start"] = _square(controls, "start", "N", func(): game.start_wave())
+	restore_count = HudKit.label("", 10, HudKit.TEXT, true)
+	restore_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	restore_count.position = Vector2(SLOT - 30.0, SLOT - 16.0)
+	restore_count.size = Vector2(26, 12)
+	round_buttons["restore"].add_child(restore_count)
+	# The old pieces live on, hidden: the HUD logic still reads them.
 	upgrade_cmd = Button.new()
-	upgrade_cmd.focus_mode = Control.FOCUS_NONE
+	upgrade_cmd.visible = false
 	upgrade_cmd.pressed.connect(_on_upgrade)
-	_card(upgrade_cmd, true)
-	# The old rectangular controls live on, hidden: the round ones call the same game functions.
+	row.add_child(upgrade_cmd)
+	remove_child_safe(panel)
+	root.add_child(panel)
+	panel.visible = false
+	placeholder = Label.new()
+	placeholder.visible = false
+	root.add_child(placeholder)
 	for b in [wave_button, restore_button, tree_button]:
 		remove_child_safe(b)
 		b.visible = false
+	# The XP line along the bar's top edge, with the level at its left end.
+	xp_line = HudKit.Track.new(6.0)
+	root.add_child(xp_line)
+	xp_level = HudKit.label("", 10, HudKit.TEXT, true, 1)
+	root.add_child(xp_level)
 
 
-## A round game-control button: a drawn icon, a key badge, a ring that lights up.
-func _round(parent: Control, icon: String, d: float, key: String, action: Callable) -> Button:
+## A build slot: the tower's picture clean in the centre, its key top-left, its price
+## bottom-right, an accent underline, the wall count top-right.
+func _slot(b: Button, type: String) -> void:
+	remove_child_safe(b)
+	grid.add_child(b)
+	b.custom_minimum_size = Vector2(SLOT, SLOT)
+	b.text = ""
+	b.focus_mode = Control.FOCUS_NONE
+	b.icon = _tower_icon(type)
+	b.expand_icon = true
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	b.add_theme_constant_override("icon_max_width", 34)
+	_slot_style(b, type, false)
+	var badges := {}
+	var line := ColorRect.new()
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.color = HudCard.ACCENTS.get(type, Color.WHITE)
+	line.position = Vector2(8, SLOT - 4)
+	line.size = Vector2(SLOT - 16, 2)
+	b.add_child(line)
+	badges["line"] = line
+	var key := HudKit.keycap(_key(type), 10)
+	key.position = Vector2(-5, -7)
+	b.add_child(key)
+	badges["key"] = key
+	var cost := HudKit.coin_pill("0")
+	b.add_child(cost)
+	badges["cost"] = cost
+	var count := HudKit.label("", 10, HudKit.TEXT, true)
+	count.position = Vector2(SLOT - 34, 2)
+	count.size = Vector2(30, 12)
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	b.add_child(count)
+	badges["count"] = count
+	var lock := HudKit.Glyph.new("lock", HudKit.MUTED, 18.0)
+	lock.position = Vector2(SLOT - 22, 4)
+	b.add_child(lock)
+	badges["lock"] = lock
+	slot_badges[type] = badges
+
+
+func _slot_style(b: Button, type: String, picked: bool) -> void:
+	var accent: Color = HudCard.ACCENTS.get(type, Color.WHITE)
+	var base := HudKit.flat(HudKit.RAISED, Color("2c3644"), 8, 1, 10.0)
+	base.border_width_bottom = 2
+	if picked:
+		base = HudKit.flat(Color(accent, 0.18), accent, 8, 2, 10.0)
+		base.shadow_color = Color(accent, 0.45)
+		base.shadow_size = 8
+	var hover := HudKit.flat(Color("263142"), accent.lerp(Color.WHITE, 0.3), 8, 1, 10.0)
+	hover.border_width_bottom = 2
+	var off := HudKit.flat(Color("12171e"), HudKit.EDGE, 8, 1, 10.0)
+	b.add_theme_stylebox_override("normal", base)
+	b.add_theme_stylebox_override("pressed", base)
+	b.add_theme_stylebox_override("hover_pressed", base)
+	b.add_theme_stylebox_override("hover", base if picked else hover)
+	b.add_theme_stylebox_override("disabled", off)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.set_meta("picked", picked)
+
+
+## A game control: the same square as a build slot, a drawn icon, a keycap.
+func _square(parent: Control, icon: String, key: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(d, d)
-	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var r := int(d * 0.5)
-	b.add_theme_stylebox_override("normal", UiTheme.box(Color(0.12, 0.13, 0.16), UiTheme.EDGE, 2, r, 0.0))
-	b.add_theme_stylebox_override("hover", UiTheme.box(Color(0.2, 0.21, 0.25), Color.WHITE, 2, r, 0.0))
-	b.add_theme_stylebox_override("pressed", UiTheme.box(Color(0.3, 0.26, 0.15), UiTheme.GOLD, 3, r, 0.0))
-	b.add_theme_stylebox_override("disabled", UiTheme.box(Color(0.08, 0.09, 0.11), Color(0.35, 0.3, 0.25), 2, r, 0.0))
+	b.custom_minimum_size = Vector2(SLOT, SLOT)
+	_square_style(b, false)
 	b.pressed.connect(action)
 	parent.add_child(b)
 	var ic := HudParts.Icon.new(icon)
-	ic.custom_minimum_size = Vector2(d * 0.55, d * 0.55)
+	ic.custom_minimum_size = Vector2(SLOT * 0.5, SLOT * 0.5)
 	ic.size = ic.custom_minimum_size
-	ic.position = (Vector2(d, d) - ic.size) * 0.5
+	ic.position = (Vector2(SLOT, SLOT) - ic.size) * 0.5
 	b.add_child(ic)
-	var k := _label(10, Color(1, 1, 1, 0.9), true)
-	k.text = key
-	k.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
-	k.add_theme_constant_override("outline_size", 3)
-	k.position = Vector2(d - 14.0, -4.0)
-	k.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var k := HudKit.keycap(key, 10)
+	k.position = Vector2(-5, -7)
 	b.add_child(k)
 	return b
 
 
-## The tower panel: title and step strip, two lines of text, buttons to the right.
-func _compact_panel() -> void:
-	panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	panel.custom_minimum_size = Vector2.ZERO
-	var vb: VBoxContainer = panel_title.get_parent()
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 10)
-	panel.remove_child(vb)
-	panel.add_child(hb)
-	var text_col := VBoxContainer.new()
-	text_col.add_theme_constant_override("separation", 3)
-	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb.add_child(text_col)
-	var buttons := VBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 4)
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_child(buttons)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 10)
-	text_col.add_child(head)
-	vb.remove_child(panel_title)
-	head.add_child(panel_title)
-	panel_title.add_theme_font_override("font", UiTheme.heading_font())
-	panel_title.add_theme_font_size_override("font_size", BODY + 1)
-	panel_title.add_theme_color_override("font_color", UiTheme.GOLD)
-	vb.remove_child(panel_body)
-	text_col.add_child(panel_body)
-	panel_body.custom_minimum_size = Vector2(200, 0)
-	panel_body.add_theme_font_size_override("font_size", CAPTION + 1)
-	for r in [fork_row, panel_row]:
-		vb.remove_child(r)
-		buttons.add_child(r)
-	for b in [upgrade_button, sell_button, fork_a_button, branch_button]:
-		b.add_theme_font_size_override("font_size", CAPTION)
-	upgrade_button.custom_minimum_size = Vector2(136, 26)
-	sell_button.custom_minimum_size = Vector2(90, 26)
-	fork_a_button.custom_minimum_size = Vector2(112, 26)
-	branch_button.custom_minimum_size = Vector2(112, 26)
-	fork_row.add_theme_constant_override("separation", 4)
-	vb.queue_free()
+func _square_style(b: Button, glow: bool) -> void:
+	var base := HudKit.flat(HudKit.RAISED, Color("2c3644"), 8, 1, 6.0)
+	base.border_width_bottom = 2
+	if glow:
+		base = HudKit.flat(Color(HudKit.GREEN, 0.12), Color(HudKit.GREEN, 0.7), 8, 1, 6.0)
+		base.border_width_bottom = 2
+		base.shadow_color = Color(HudKit.GREEN, 0.25)
+		base.shadow_size = 6
+	var hover := HudKit.flat(Color("263142"), Color("6b7a8f"), 8, 1, 6.0)
+	hover.border_width_bottom = 2
+	b.add_theme_stylebox_override("normal", base)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", HudKit.flat(Color("141a23"), HudKit.SKY, 8, 1, 6.0))
+	b.add_theme_stylebox_override("disabled", HudKit.flat(Color("12171e"), HudKit.EDGE, 8, 1, 6.0))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 
 
 func remove_child_safe(c: Node) -> void:
@@ -364,28 +391,42 @@ func remove_child_safe(c: Node) -> void:
 		c.get_parent().remove_child(c)
 
 
-## A command card button: picture left, two lines of text, a key badge in the corner.
-func _card(b: Button, badge: bool) -> void:
-	remove_child_safe(b)
-	b.custom_minimum_size = CARD
-	b.clip_text = false
-	b.expand_icon = false
-	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.add_theme_constant_override("icon_max_width", 26)
-	b.add_theme_constant_override("h_separation", 4)
-	b.add_theme_font_size_override("font_size", CAPTION)
-	b.add_theme_constant_override("line_spacing", -4)
-	grid.add_child(b)
-	if badge:
-		var k := _label(10, Color(1, 1, 1, 0.85), true)
-		k.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		k.add_theme_constant_override("outline_size", 3)
-		k.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		k.position = Vector2(CARD.x - 23, 2)
-		k.size = Vector2(19, 12)
-		k.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_child(k)
-		key_badges[b] = k
+## A creep in the next push: a round token, its count, its HP under it.
+func _token(kind: String, count: int, hp: float) -> Control:
+	var cell := VBoxContainer.new()
+	cell.add_theme_constant_override("separation", 1)
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var boss := kind.begins_with("boss")
+	var disc := PanelContainer.new()
+	disc.custom_minimum_size = Vector2(40, 40)
+	disc.add_theme_stylebox_override("panel", HudKit.flat(HudKit.RAISED, HudKit.RED if boss else Color("2c3644"), 20, 1, 3.0))
+	disc.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	cell.add_child(disc)
+	var tr := TextureRect.new()
+	tr.texture = _icon("creep_" + kind)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.custom_minimum_size = Vector2(32, 32)
+	tr.tooltip_text = kind.capitalize()
+	disc.add_child(tr)
+	var badge := PanelContainer.new()
+	badge.add_theme_stylebox_override("panel", HudKit.flat(HudKit.SLATE, HudKit.RED if boss else Color("6b7a8f"), 7, 1, 1.0))
+	badge.position = Vector2(20, -8)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bl := HudKit.label("BOSS" if boss else "x%d" % count, 9, HudKit.RED if boss else Color.WHITE, true)
+	bl.add_theme_constant_override("line_spacing", -2)
+	badge.add_child(bl)
+	tr.add_child(badge)
+	var hl := HudKit.label("%d hp" % roundi(hp) if hp > 0.0 else "", 10, HudKit.MUTED, true)
+	hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cell.add_child(hl)
+	return cell
+
+
+func _kind_hp(kind: String, tier: int) -> float:
+	if kind.begins_with("boss"):
+		return 0.0
+	return game.creep_hp_at(tier) * game.CREEP_KINDS.get(kind, {"hp": 1.0})["hp"]
 
 
 # --- Middle of the screen -----------------------------------------------------------------
@@ -604,12 +645,15 @@ func _build_tree() -> void:
 func _style_node(b: Button, areas: Array, capstone: bool) -> void:
 	var col: Color = TalentTree.AREA_COLORS[areas[0]]
 	var edge2: Color = TalentTree.AREA_COLORS[areas[-1]]
-	var normal := UiTheme.box(Color(0.13, 0.14, 0.17), col * Color(1, 1, 1, 0.8), 3 if capstone else 2, 6 if capstone else 5, 4.0)
+	# The same parts as the HUD (T-038): a raised slate cap, the area's colour as its edge.
+	var normal := HudKit.flat(Color(col, 0.08).blend(Color(HudKit.RAISED, 0.92)), Color(col, 0.7), 8 if capstone else 6, 2 if capstone else 1, 4.0)
+	normal.border_width_bottom = 3 if capstone else 2
 	if areas.size() > 1:
 		normal.border_color = col.lerp(edge2, 0.5)
-		normal.border_width_top = 3
-	var hover := UiTheme.box(Color(0.2, 0.21, 0.25), Color.WHITE, 2, 5, 4.0)
-	var disabled := UiTheme.box(Color(0.09, 0.1, 0.12), col * Color(1, 1, 1, 0.3), 2, 5, 4.0)
+		normal.border_width_top = 2
+	var hover := HudKit.flat(Color("263142"), col.lerp(Color.WHITE, 0.5), 6, 1, 4.0)
+	hover.border_width_bottom = 2
+	var disabled := HudKit.flat(Color("12171e"), Color(col, 0.25), 6, 1, 4.0)
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("disabled", disabled)
@@ -626,6 +670,13 @@ func _layout() -> void:
 	top_bar.size = Vector2(view.x, TOP_H)
 	bottom.position = Vector2(0, view.y - BOTTOM_H)
 	bottom.size = Vector2(view.x, BOTTOM_H)
+	if xp_line != null:
+		xp_line.position = Vector2(60, view.y - BOTTOM_H + 3)
+		xp_line.size = Vector2(view.x - 72, 6)
+		xp_level.position = Vector2(10, view.y - BOTTOM_H - 1)
+		xp_level.size = Vector2(view.x, 14)
+		xp_line.modulate = bottom.modulate
+		xp_level.modulate = bottom.modulate
 	var y := TOP_H + 4.0
 	boss_box.position = Vector2(view.x * 0.5 - boss_box.size.x * 0.5, y)
 	if boss_box.visible:
@@ -649,7 +700,9 @@ func mouse_over_ui() -> bool:
 	if root == null:
 		return false
 	var m := get_viewport().get_mouse_position()
-	if draft_box.visible or end_box.visible or tree_box.visible or pause_box.visible:
+	if draft_box.visible or end_box.visible or tree_box.visible or pause_box.visible or (results_box != null and results_box.visible):
+		return true
+	if hover_box != null and hover_box.visible and hover_box.pinned and hover_box.get_global_rect().has_point(m):
 		return true
 	return top_bar.get_global_rect().has_point(m) or bottom.get_global_rect().has_point(m)
 
@@ -676,13 +729,12 @@ func _process(delta: float) -> void:
 	var tb: Button = round_buttons["talents"]
 	var icon: Control = tb.get_child(0)
 	icon.position = (tb.size - icon.size) * 0.5 + Vector2(sin(_shake * 60.0) * 5.0 * (_shake / 0.7), 0)
-	if game.points > 0:
-		var g := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 260.0)
-		tb.self_modulate = Color(1, 1, 1).lerp(Color(0.7, 1.0, 0.75), g)
-		tb.add_theme_stylebox_override("normal", UiTheme.box(Color(0.12, 0.2, 0.14), Color(0.55, 1.0, 0.65), 3, 23, 0.0))
-	else:
-		tb.self_modulate = Color.WHITE
-		tb.add_theme_stylebox_override("normal", UiTheme.box(Color(0.12, 0.13, 0.16), UiTheme.EDGE, 2, 23, 0.0))
+	# A soft green when points wait, not a neon pulse (T-038).
+	var glow: bool = game.points > 0
+	if tb.get_meta("glow", false) != glow:
+		tb.set_meta("glow", glow)
+		_square_style(tb, glow)
+	_refresh_results(delta)
 
 
 func _refresh() -> void:
@@ -693,7 +745,7 @@ func _refresh() -> void:
 	_refresh_info()
 	_refresh_judgment()
 	_refresh_wave_card()
-	placeholder.visible = not panel.visible
+	panel.visible = false  # The pinned tower card replaces the inspect panel (T-038).
 	if game is LevelRun:
 		_refresh_level_panels()
 	tree_dim.visible = tree_box.visible
@@ -717,7 +769,7 @@ func _refresh_top() -> void:
 	res_labels["health"].text = str(game.health)
 	if game is LevelRun:
 		var sec: Dictionary = game.current_section()
-		wave_text = "%s   bar %d/%d" % [sec["name"].to_upper(), clampi(floori(game.song_bar()) + 1, 1, game.night["bars"]), game.night["bars"]] if not sec.is_empty() else ("count-off" if game.started else "ready")
+		wave_text = game.songs[game.song_index]["name"] + "     " + "%s   bar %d/%d" % [sec["name"].to_upper(), clampi(floori(game.song_bar()) + 1, 1, game.night["bars"]), game.night["bars"]] if not sec.is_empty() else ("count-off" if game.started else "ready")
 	res_labels["wave"].text = wave_text
 	res_labels["shield"].text = "%d/%d" % [game.shields, game.shield_cap]
 	res_labels["restore"].text = "%d/%d" % [game.restore_charges, game.restore_cap()]
@@ -779,9 +831,8 @@ func _refresh_info() -> void:
 	if game is LevelRun:
 		_refresh_level_info()
 		return
-	var next: int = game.wave + (0 if game.wave_active else 1)
-	var show: int = next if not game.wave_active else game.wave + 1
-	info_title.text = ("Next: wave %d" % show) + ("   (wave %d running)" % game.wave if game.wave_active else "")
+	var show: int = game.wave + 1
+	info_title.text = ("NEXT   WAVE %d" % show) + ("     wave %d running" % game.wave if game.wave_active else "")
 	var key := str(show)
 	if info_icons.get_meta("wave", "") != key:
 		info_icons.set_meta("wave", key)
@@ -797,41 +848,29 @@ func _refresh_info() -> void:
 		if game.boss_waves.has(show):
 			order.push_front("boss2" if game.is_boss2_wave(show) else "boss")
 			counts[order[0]] = 1
-		for k in order.slice(0, 8):
-			var cell := VBoxContainer.new()
-			cell.add_theme_constant_override("separation", -4)
-			var tr := TextureRect.new()
-			tr.texture = _icon("creep_" + k)
-			tr.custom_minimum_size = Vector2(34, 34)
-			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tr.tooltip_text = k.capitalize()
-			cell.add_child(tr)
-			var n := _label(CAPTION, Color(1, 0.4, 0.45) if k.begins_with("boss") else UiTheme.TEXT, true)
-			n.text = "BOSS" if k.begins_with("boss") else "x%d" % counts[k]
-			n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			cell.add_child(n)
-			info_icons.add_child(cell)
-	var hp_text := "%.0f HP each" % game.creep_hp_at(show)
-	if game.wave_active:
-		info_body.text = hp_text
-	else:
-		info_body.text = "%s.  N or the play button starts it." % hp_text
+		for k in order.slice(0, 7):
+			info_icons.add_child(_token(k, counts[k], _kind_hp(k, show)))
+	info_body.text = "" if game.wave_active else "N or the play button starts it."
 	if not game.pending.is_empty():
-		info_body.text += "\nLocked card: %s" % game.card_name(game.pending["id"])
-	song_label.text = "Song: %s   [ ] switch" % game.songs[game.song_index]["name"]
+		info_body.text += ("  " if info_body.text != "" else "") + "Locked card: %s" % game.card_name(game.pending["id"])
+	song_label.text = game.songs[game.song_index]["name"]
 
 
-## The song level: the next push as pictures, and where the night is.
+## The song level: the next push as tokens, and when it comes.
 func _refresh_level_info() -> void:
 	var push: Dictionary = game.next_push()
 	var now: Dictionary = game.current_section()
+	var name: String = String(push.get("name", "the morning")).to_upper()
 	if not game.started:
-		info_title.text = game.night["name"]
+		info_title.text = "NEXT   " + name
 	elif not now.is_empty() and now["kind"] == "lull":
-		info_title.text = "Lull: build now.   Next: %s" % push.get("name", "the morning")
+		var left := ""
+		if push.has("start"):
+			var bars := maxi(0, int(ceil(push["start"] - game.song_bar())))
+			left = "   in %d bar%s" % [bars, "" if bars == 1 else "s"]
+		info_title.text = "LULL: BUILD NOW     NEXT   %s%s" % [name, left]
 	else:
-		info_title.text = "Next: %s" % push.get("name", "the morning") + ("   (%s playing)" % now["name"] if not now.is_empty() else "")
+		info_title.text = "NEXT   %s" % name
 	var key := "level:" + str(push.get("name", ""))
 	if info_icons.get_meta("wave", "") != key:
 		info_icons.set_meta("wave", key)
@@ -847,28 +886,15 @@ func _refresh_level_info() -> void:
 				counts[g["kind"]] = 0
 				order.append(g["kind"])
 			counts[g["kind"]] += g["count"]
-		for k in order.slice(0, 8):
-			var cell := VBoxContainer.new()
-			cell.add_theme_constant_override("separation", -4)
-			var tr := TextureRect.new()
-			tr.texture = _icon("creep_" + k)
-			tr.custom_minimum_size = Vector2(34, 34)
-			tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tr.tooltip_text = k.capitalize()
-			cell.add_child(tr)
-			var n := _label(CAPTION, Color(1, 0.4, 0.45) if k.begins_with("boss") else UiTheme.TEXT, true)
-			n.text = "BOSS" if k.begins_with("boss") else "x%d" % counts[k]
-			n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			cell.add_child(n)
-			info_icons.add_child(cell)
+		for k in order.slice(0, 7):
+			info_icons.add_child(_token(k, counts[k], _kind_hp(k, push.get("tier", 1))))
 	if push.is_empty():
 		info_body.text = "The last push is out. Hold until the song ends."
+	elif not game.started:
+		info_body.text = "N or the play button starts the night."
 	else:
-		info_body.text = "%.0f HP each" % game.creep_hp_at(push["tier"])
-	if not game.started:
-		info_body.text += ".  N or the play button starts the night."
-	song_label.text = "Song: %s" % game.songs[game.song_index]["name"]
+		info_body.text = ""
+	song_label.text = game.songs[game.song_index]["name"]
 
 
 ## While placing, the cursor card is the one place for the tower's numbers (the
@@ -917,43 +943,50 @@ func _refresh_bar() -> void:
 	var playing: bool = game.state == "playing"
 	for type in build_buttons:
 		var b: Button = build_buttons[type]
+		if not slot_badges.has(type):
+			continue
+		var bd: Dictionary = slot_badges[type]
 		var spec: Dictionary = game.builds[type]
 		var locked: bool = not game.unlocked.has(type)
-		var short: int = spec["cost"] - game.gold
-		var name: String = "Wall %d/%d" % [game.wall_count(), game.wall_limit] if type == "wall" and game.wall_limit > 0 else game.tower_name(type)
-		if locked:
-			b.text = "%s\n%s" % [name, game.unlock_short(type)]
-		elif short > 0:
-			b.text = "%s\n%dg  (-%d)" % [name, spec["cost"], short]
-		else:
-			b.text = "%s\n%dg" % [name, spec["cost"]]
-		if key_badges.has(b):
-			key_badges[b].text = _letter(type) if build_armed else _key(type)
-		b.button_pressed = game.selected == type and game.build_mode
-		b.disabled = not playing or locked or short > 0
-		b.modulate = Color(1.0, 0.95, 0.7) if build_armed and not locked else (Color(0.6, 0.6, 0.65) if locked else Color.WHITE)
-		b.add_theme_color_override("font_disabled_color", Color(1, 0.55, 0.5) if short > 0 and not locked else Color(0.55, 0.55, 0.55))
-	round_buttons["start"].disabled = game.wave_active or not playing or game.get("drafting") == true
+		var cost: int = spec["cost"]
+		var short: bool = cost > game.gold
+		var picked: bool = game.selected == type and game.build_mode
+		if b.get_meta("picked", false) != picked:
+			_slot_style(b, type, picked)
+		b.button_pressed = picked
+		b.text = ""
+		b.disabled = not playing or locked
+		b.modulate = Color(1, 1, 1, 0.45) if locked else Color.WHITE
+		bd["lock"].visible = locked
+		bd["line"].visible = not locked
+		bd["key"].get_child(0).get_child(0).text = _key(type)
+		var pill: PanelContainer = bd["cost"]
+		pill.visible = not locked
+		var pl: Label = pill.get_child(0).get_child(1)
+		pl.text = str(cost)
+		var tint := HudKit.RED if short else HudKit.GREEN
+		pl.add_theme_color_override("font_color", tint)
+		var ps := HudKit.flat(Color(HudKit.SLATE, 0.95), Color(tint, 0.55), 9, 1, 1.0)
+		ps.content_margin_left = 3
+		ps.content_margin_right = 6
+		pill.add_theme_stylebox_override("panel", ps)
+		pill.reset_size()
+		pill.position = Vector2(SLOT - pill.size.x + 7, SLOT - pill.size.y + 7)
+		bd["count"].text = ("%d/%d" % [game.wall_count(), game.wall_limit]) if type == "wall" and game.wall_limit > 0 else ""
+	var start: Button = round_buttons["start"]
+	start.disabled = game.wave_active or not playing or game.get("drafting") == true
 	if game is LevelRun:
-		round_buttons["start"].disabled = game.started or not playing
-		round_buttons["talents"].disabled = not playing or game.night_phase != "summary"
+		start.disabled = game.started or not playing
 	round_buttons["restore"].disabled = not playing or game.restore_charges <= 0 or game.suppressed.is_empty()
 	restore_count.text = "%d/%d" % [game.restore_charges, game.restore_cap()]
 	round_buttons["talents"].disabled = not playing
 	pause_button.text = "Resume" if game.paused else "Pause"
 	pause_button.disabled = not playing
-	for pair in [[upgrade_cmd, "U"]]:
-		if key_badges.has(pair[0]):
-			key_badges[pair[0]].text = pair[1]
-	var type := _panel_type()
-	upgrade_cmd.text = "Upgrade\n-"
-	upgrade_cmd.disabled = true
-	upgrade_cmd.icon = null
-	if type != "" and game.is_tower(type) and game.unlocked.has(type) and game.type_rank.get(type, 0) < 5:
-		var cost: int = game.type_upgrade_cost(type)
-		upgrade_cmd.icon = _icon("tower_" + type)
-		upgrade_cmd.text = ("Fork\nU / I" if game.type_rank.get(type, 0) == 2 else "Upgrade\n%dg" % cost)
-		upgrade_cmd.disabled = not playing or game.gold < cost or game.type_rank.get(type, 0) == 2
+	# The XP line and its level.
+	if xp_line != null:
+		xp_line.value = clampf(game.xp / maxf(game.xp_to_next(), 1.0), 0.0, 1.0)
+		xp_level.text = "LV %d" % game.level + ("   %d talent point%s  (Tab)" % [game.points, "" if game.points == 1 else "s"] if game.points > 0 else "")
+		xp_level.add_theme_color_override("font_color", HudKit.GREEN if game.points > 0 else HudKit.TEXT)
 
 
 func _key(type: String) -> String:
@@ -1023,6 +1056,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif k == KEY_ESCAPE and game.build_mode:
 			_stop_building()
+			get_viewport().set_input_as_handled()
+		elif k == KEY_ESCAPE and game.structures.has(game.selected_cell):
+			game.selected_cell = Vector2i(-1, -1)  # Esc unpins the tower card first.
 			get_viewport().set_input_as_handled()
 		elif k == KEY_X:
 			var cell := _hover_cell()
@@ -1144,9 +1180,17 @@ func _tower_icon(type: String) -> Texture2D:
 func _refresh_cursor() -> void:
 	var busy: bool = game.state != "playing" or game.paused or game.tree_open or game.get("drafting") == true
 	var m := get_viewport().get_mouse_position()
+	var pin: Vector2i = game.selected_cell if game.structures.has(game.selected_cell) and not game.build_mode else Vector2i(-1, -1)
+	if not busy and hover_box.visible and hover_box.pinned and pin.x >= 0 and hover_box.get_global_rect().grow(6).has_point(m):
+		_fill_tower_card(pin, true)  # Keep the pinned card while the mouse is on it.
+		return
 	cursor_tag.visible = false
 	hover_box.visible = false
-	if busy or mouse_over_ui():
+	if busy:
+		return
+	if mouse_over_ui():
+		if pin.x >= 0:
+			_show_pinned(pin)
 		return
 	var cell: Vector2i = game.cell_at(m)
 	if game.build_mode and game.builds.has(game.selected):
@@ -1164,8 +1208,22 @@ func _refresh_cursor() -> void:
 		cursor_tag.set_keys([[["Shift", "L-Click"], "Chain"], [["Scroll"], "Swap"], [["B"], "Cancel"]])
 		_place_by_cursor(cursor_tag, m)
 		return
-	if not game.structures.has(cell):
+	if not game.structures.has(cell) or cell == pin:
+		if pin.x >= 0:
+			_show_pinned(pin)
 		return
+	_fill_tower_card(cell, false)
+	_place_by_cursor(hover_box, m)
+
+
+## A clicked tower's card stays by the tower, with buttons for mouse players (T-038).
+func _show_pinned(cell: Vector2i) -> void:
+	_fill_tower_card(cell, true)
+	var at: Vector2 = game.view.screen_at(View3D.world(Vector2(cell), 1.0)) if game.get("view") != null else get_viewport().get_mouse_position()
+	_place_by_cursor(hover_box, at)
+
+
+func _fill_tower_card(cell: Vector2i, pinned: bool) -> void:
 	var s: Dictionary = game.structures[cell]
 	var type: String = s["type"]
 	var refund := int(s.get("paid", game.builds[type]["cost"]) * game.SELL_REFUND)
@@ -1188,8 +1246,22 @@ func _refresh_cursor() -> void:
 	hover_box.set_cost(-1, true)
 	hover_box.set_stats(_stats_of(type) if game.is_tower(type) else [])
 	hover_box.set_body("")
-	hover_box.set_keys(keys)
-	_place_by_cursor(hover_box, m)
+	hover_box.set_keys([] if pinned else keys)
+	var acts: Array = []
+	if pinned:
+		var c := cell
+		acts.append(["Sell +%dg" % refund, func(): game.sell(c), true, "secondary"])
+		if game.is_tower(type) and game.unlocked.has(type):
+			var rank: int = game.type_rank.get(type, 0)
+			if rank == 2 and game.BRANCHES.has(type):
+				var br: Array = game.BRANCHES[type]
+				acts.append([br[0][0], func(): game.upgrade_type(type, 1), true, "secondary"])
+				acts.append([br[1][0], func(): game.upgrade_type(type, 2), true, "secondary"])
+			elif rank < 5:
+				var cost: int = game.type_upgrade_cost(type)
+				acts.append(["Upgrade %dg" % cost, func(): game.upgrade_type(type), game.gold >= cost, "primary"])
+	hover_box.set_actions(acts, str(cell) + ":" + str(acts.map(func(a): return [a[0], a[2]])))
+	hover_box.visible = true
 
 
 func _place_by_cursor(box: Control, m: Vector2) -> void:
@@ -1238,23 +1310,24 @@ func _refresh_tree() -> void:
 
 ## The song level ends on the card and the results: there is no "keep going".
 func _refresh_end() -> void:
-	super._refresh_end()
-	if game is LevelRun:
-		endless_button.visible = false
+	end_box.visible = false  # The results screen (T-038) shows instead.
 
 
 
-# --- The song level's panels (D-0051) ----------------------------------------------------------
+# --- The song level's panels (D-0051; restyled T-038) ----------------------------------------
 
 var start_box: Control
 var start_tab: Button
 var _start_min := false
 var night_box: Control
-var night_level: Label
-var night_bar: ColorRect
-var night_body: Label
+var night_ring: HudKit.Ring
+var night_track: HudKit.Track
+var night_gain: Label
+var night_xp: Label
+var night_points: Label
 var night_talents: Button
 var night_continue: Button
+var _primary := ""  # Which morning button is the bright one.
 var _fill := -1.0  # The end screen's XP fill: levels gained so far, as it animates.
 var _fill_shake := 0.0
 
@@ -1265,7 +1338,7 @@ func _center_panel(width: float) -> Array:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(holder)
 	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.PANEL, UiTheme.GOLD, 2, 8, 22.0))
+	box.add_theme_stylebox_override("panel", HudKit.glass(0.94, 12, 24.0))
 	box.custom_minimum_size = Vector2(width, 0)
 	holder.add_child(box)
 	var v := VBoxContainer.new()
@@ -1274,69 +1347,91 @@ func _center_panel(width: float) -> Array:
 	return [holder, v]
 
 
-## The start of a night: why you can't build yet, Start, or fold it away to study the map.
+## The start of a night, and the morning: XP counts up into the level ring, one
+## bright button for what to do next.
 func _build_level_panels() -> void:
 	var made := _center_panel(560.0)
 	start_box = made[0]
 	var v: VBoxContainer = made[1]
-	v.add_child(UiTheme.heading(game.night["name"], 34))
-	var song := _label(BODY, Color(1, 1, 1, 0.6))
-	song.text = "Song: %s" % game.songs[game.song_index]["name"]
-	v.add_child(song)
-	var say := _label(BODY + 2, UiTheme.GOLD)
+	v.add_child(HudKit.label("TONIGHT", 12, HudKit.MUTED, true, 2))
+	v.add_child(HudKit.label(game.night["name"], 30, Color.WHITE, true))
+	v.add_child(HudKit.label("Song: %s" % game.songs[game.song_index]["name"], 13, HudKit.MUTED))
+	var say := HudKit.label("WATCHMAN   \"Hey, I just work here. Hold the camp till morning.\"", 15, UiTheme.GOLD)
 	say.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	say.text = "WATCHMAN   \"Hey, I just work here. Hold the camp till morning.\""
 	v.add_child(say)
-	var body := _label(BODY, UiTheme.TEXT)
+	var body := HudKit.label("You can't build until the night starts. The sticks count you in: two bars to build, so put a wall and a tower by the camp. The camp grows outward: build near the keep or near what you have built, never by the mine.", 14, HudKit.TEXT)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.text = "You can't build until the night starts. The sticks count you in: two bars to build, so put a wall and a tower by the camp. The camp grows outward: build near the keep or near what you have built, never by the mine."
 	v.add_child(body)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 12)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(row)
-	var go := _button(row, Vector2(240, 48), func(): game.start_wave())
-	go.text = "Start the night  (N)"
-	go.add_theme_font_size_override("font_size", 18)
-	var study := _button(row, Vector2(180, 48), func(): _start_min = true)
-	study.text = "Study the map"
-	study.add_theme_font_size_override("font_size", 16)
-	start_tab = _button(root, Vector2(250, 40), func(): game.start_wave())
-	start_tab.text = "Start the night  (N)     Tab: details"
-	start_tab.add_theme_font_size_override("font_size", 14)
-	# Morning: the XP earned fills up, talents, then the card.
+	var go := HudKit.key_button("Start the night", "N", "primary", HudKit.GREEN, Vector2(240, 48))
+	go.pressed.connect(func(): game.start_wave())
+	row.add_child(go)
+	var study := HudKit.key_button("Study the map", "", "secondary", HudKit.SKY, Vector2(180, 48))
+	study.pressed.connect(func(): _start_min = true)
+	row.add_child(study)
+	start_tab = HudKit.key_button("Start the night", "N", "primary", HudKit.GREEN, Vector2(230, 40))
+	start_tab.pressed.connect(func(): game.start_wave())
+	root.add_child(start_tab)
+	# Morning.
 	made = _center_panel(560.0)
 	night_box = made[0]
 	v = made[1]
-	v.add_child(UiTheme.heading("Morning. You held the camp.", 30))
-	night_level = _label(26, UiTheme.GOLD, true)
-	night_level.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(night_level)
-	var track := ColorRect.new()
-	track.color = Color(0.1, 0.11, 0.14)
-	track.custom_minimum_size = Vector2(500, 18)
-	v.add_child(track)
-	night_bar = ColorRect.new()
-	night_bar.color = Color(0.55, 0.85, 1.0)
-	night_bar.size = Vector2(0, 18)
-	track.add_child(night_bar)
-	night_body = _label(BODY, UiTheme.TEXT)
-	night_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(night_body)
+	v.add_theme_constant_override("separation", 14)
+	var head := VBoxContainer.new()
+	head.add_theme_constant_override("separation", 0)
+	v.add_child(head)
+	head.add_child(HudKit.label("MORNING", 12, HudKit.MUTED, true, 2))
+	head.add_child(HudKit.label("You held the camp.", 28, Color.WHITE, true))
+	var mid := HBoxContainer.new()
+	mid.add_theme_constant_override("separation", 20)
+	v.add_child(mid)
+	night_ring = HudKit.Ring.new(116.0)
+	night_ring.color = HudKit.SKY
+	night_ring.sub = "LEVEL"
+	mid.add_child(night_ring)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	mid.add_child(col)
+	night_gain = HudKit.label("", 26, HudKit.GREEN, true)
+	col.add_child(night_gain)
+	night_track = HudKit.Track.new(16.0)
+	night_track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(night_track)
+	night_xp = HudKit.label("", 12, HudKit.MUTED)
+	col.add_child(night_xp)
+	night_points = HudKit.label("", 14, UiTheme.GOLD, true)
+	col.add_child(night_points)
 	row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 12)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(row)
-	night_talents = _button(row, Vector2(200, 44), func(): game.toggle_tree())
-	night_talents.text = "Spend talents  (Tab)"
-	night_continue = _button(row, Vector2(200, 44), func(): game.begin_card())
-	night_continue.text = "Pick your card"
-	for box in [tree_dim, tree_box, draft_box, end_box]:
-		root.move_child(box, root.get_child_count() - 1)
+	night_talents = HudKit.key_button("Spend talents", "Tab", "primary", HudKit.GREEN, Vector2(220, 46))
+	night_talents.pressed.connect(func(): game.toggle_tree())
+	row.add_child(night_talents)
+	night_continue = HudKit.key_button("Pick your card", "", "secondary", HudKit.GREEN, Vector2(220, 46))
+	night_continue.pressed.connect(func(): game.begin_card())
+	row.add_child(night_continue)
+	for box in [tree_dim, tree_box, draft_box, end_box, results_box]:
+		if box != null:
+			root.move_child(box, root.get_child_count() - 1)
 
 
 func show_start() -> void:
 	_start_min = false
+
+
+func _set_kind(b: Button, kind: String) -> void:
+	if b.get_meta("kind", "") == kind:
+		return
+	b.set_meta("kind", kind)
+	HudKit.style_button(b, kind, HudKit.GREEN)
+	var l: Label = b.get_child(0).get_node("Text")
+	l.add_theme_color_override("font_color", Color("0b1016") if kind == "primary" else HudKit.TEXT)
 
 
 func _refresh_level_panels() -> void:
@@ -1357,13 +1452,20 @@ func _refresh_level_panels() -> void:
 	if _fill < 0.0:
 		_fill = 0.0
 	var shown := mini(floori(_fill), gained)
-	night_level.text = "LEVEL %d" % (start["level"] + shown)
 	var frac: float = (_fill - shown) if shown < gained else clampf(game.xp / maxf(game.xp_to_next(), 1.0), 0.0, 1.0) * clampf(_fill - gained, 0.0, 1.0)
-	night_bar.size = Vector2(night_bar.get_parent().size.x * clampf(frac, 0.0, 1.0), 18)
-	night_level.position.x = sin(_fill_shake * 60.0) * 6.0 * _fill_shake
-	night_body.text = "XP %d this night, %d level%s.   %d talent point%s to spend.\n%s" % [roundi(game.m7_stats["xp"]), gained, "" if gained == 1 else "s", game.points, "" if game.points == 1 else "s", game.miss_line()]
+	var done := clampf(_fill / (gained + 1.0), 0.0, 1.0)
+	night_ring.text = str(start["level"] + shown)
+	night_ring.value = frac
+	night_ring.glow = _fill_shake * 2.0
+	night_ring.position.x = sin(_fill_shake * 60.0) * 6.0 * _fill_shake
+	night_track.value = frac
+	night_gain.text = "+%d XP" % roundi(game.m7_stats["xp"] * done)
+	night_xp.text = ("%d levels this night" % gained if gained != 1 else "1 level this night") + ("   XP %d / %d to level %d" % [roundi(game.xp), roundi(game.xp_to_next()), game.level + 1] if done >= 1.0 else "")
+	night_points.text = ("%d talent point%s to spend" % [game.points, "" if game.points == 1 else "s"]) if game.points > 0 else "No talent points waiting"
 	night_talents.visible = game.points > 0
 	night_continue.disabled = _fill < gained + 1.0
+	_set_kind(night_talents, "primary")
+	_set_kind(night_continue, "secondary" if game.points > 0 else "primary")
 
 
 ## The XP fill: about two-thirds of a second a level (three seconds at most), a shake and
@@ -1378,3 +1480,345 @@ func _tick_fill(delta: float) -> void:
 	if floori(_fill) > floori(before) and floori(_fill) <= gained:
 		_fill_shake = 0.5
 		game._sfx_level.play()
+
+
+# --- The card pick (T-038) ---------------------------------------------------------------------
+
+var draft_head: Label
+var draft_tiles: Array = []  # One dictionary of parts per card button.
+
+
+## Cards as tiles: rarity in the border, banner and gems (never the word), the
+## bucket as a badge with a drawn glyph, the key as a keycap, the title clean.
+func _build_draft() -> void:
+	var dp: PanelContainer = draft_box.get_child(0)
+	dp.add_theme_stylebox_override("panel", HudKit.glass(0.95, 12, 20.0))
+	var dv: VBoxContainer = dp.get_child(0)
+	dv.add_theme_constant_override("separation", 14)
+	draft_title.visible = false
+	var head := VBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", 6)
+	dv.add_child(head)
+	dv.move_child(head, 0)
+	draft_head = HudKit.label("", 26, Color.WHITE, true, 1)
+	draft_head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_child(draft_head)
+	var pill := PanelContainer.new()
+	pill.add_theme_stylebox_override("panel", HudKit.flat(Color(HudKit.SKY, 0.12), Color(HudKit.SKY, 0.5), 10, 1, 3.0))
+	pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var pl := HudKit.label("CHOOSE ONE", 11, HudKit.SKY, true, 2)
+	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pl.custom_minimum_size = Vector2(110, 0)
+	pill.add_child(pl)
+	head.add_child(pill)
+	for b in draft_buttons:
+		b.text = ""
+		b.custom_minimum_size = Vector2(212, 248)
+		var v := VBoxContainer.new()
+		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		v.offset_left = 14
+		v.offset_right = -14
+		v.offset_top = 12
+		v.offset_bottom = -12
+		v.add_theme_constant_override("separation", 7)
+		b.add_child(v)
+		var top := HBoxContainer.new()
+		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(top)
+		var key := HudKit.keycap(str(draft_buttons.find(b) + 1), 12)
+		top.add_child(key)
+		var sp := Control.new()
+		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(sp)
+		var gems := HudKit.label("", 12, Color.WHITE, true)
+		top.add_child(gems)
+		var title := HudKit.label("", 17, Color.WHITE, true, 1)
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(title)
+		var badge := PanelContainer.new()
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		var bl := HudKit.label("", 10, Color.WHITE, true, 1)
+		badge.add_child(bl)
+		v.add_child(badge)
+		var art := PanelContainer.new()
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.custom_minimum_size = Vector2(0, 64)
+		v.add_child(art)
+		var cc := CenterContainer.new()
+		cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.add_child(cc)
+		var glyph_holder := Control.new()
+		glyph_holder.custom_minimum_size = Vector2(48, 48)
+		glyph_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cc.add_child(glyph_holder)
+		var text := HudKit.label("", 12, HudKit.TEXT)
+		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		v.add_child(text)
+		var lock := HudKit.label("", 11, HudKit.AMBER)
+		lock.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(lock)
+		draft_tiles.append({"gems": gems, "title": title, "badge": badge, "badge_text": bl, "art": art, "glyph": glyph_holder, "text": text, "lock": lock, "id": ""})
+	HudKit.style_button(reroll_button, "ghost")
+	reroll_button.custom_minimum_size = Vector2(180, 34)
+	reroll_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+
+func _refresh_draft() -> void:
+	var drafting: bool = game.get("drafting") == true
+	draft_box.visible = drafting
+	if not drafting:
+		return
+	if draft_tiles.is_empty():
+		_build_draft()
+	if game is LevelRun:
+		draft_head.text = String(game.night["name"]).split(":")[0].to_upper() + " COMPLETE"
+	else:
+		draft_head.text = "WAVE %d COMPLETE" % game.wave
+	var cards: Array = game.draft_cards
+	for i in draft_buttons.size():
+		var b := draft_buttons[i]
+		b.visible = i < cards.size()
+		if i >= cards.size():
+			continue
+		var card: Dictionary = cards[i]
+		var t: Dictionary = draft_tiles[i]
+		var col: Color = HudKit.RARITY.get(card["rarity"], HudKit.MUTED)
+		var sig := "%s:%s" % [card["name"], card["rarity"]]
+		b.modulate = Color.WHITE
+		if t["id"] != sig:
+			t["id"] = sig
+			var rare: bool = card["rarity"] != "grey"
+			var normal := HudKit.flat(Color(col, 0.07).blend(Color(HudKit.RAISED, 0.9)), Color(col, 0.75 if rare else 0.4), 10, 2 if rare else 1, 0.0)
+			normal.border_width_top = 4
+			normal.border_color = Color(col, 0.75 if rare else 0.45)
+			if rare:
+				normal.shadow_color = Color(col, 0.3 + 0.08 * HudKit.RARITY_GEMS.get(card["rarity"], 1))
+				normal.shadow_size = 4 + 2 * HudKit.RARITY_GEMS.get(card["rarity"], 1)
+			var hover := normal.duplicate()
+			hover.bg_color = normal.bg_color.lightened(0.08)
+			hover.border_color = col.lerp(Color.WHITE, 0.3)
+			for st in ["normal", "disabled"]:
+				b.add_theme_stylebox_override(st, normal)
+			for st in ["hover", "pressed", "hover_pressed"]:
+				b.add_theme_stylebox_override(st, hover)
+			t["gems"].text = "◆".repeat(HudKit.RARITY_GEMS.get(card["rarity"], 1))
+			t["gems"].add_theme_color_override("font_color", col)
+			t["title"].text = String(card["name"]).to_upper()
+			t["badge_text"].text = String(CardPool.CATEGORY_NAMES.get(card["cat"], card["cat"])).to_upper()
+			t["badge_text"].add_theme_color_override("font_color", col.lerp(Color.WHITE, 0.2))
+			t["badge"].add_theme_stylebox_override("panel", HudKit.flat(Color(col, 0.14), Color(col, 0.4), 6, 1, 2.0))
+			t["art"].add_theme_stylebox_override("panel", HudKit.flat(Color(col, 0.08), Color(col, 0.18), 8, 1, 4.0))
+			for c in t["glyph"].get_children():
+				c.queue_free()
+			t["glyph"].add_child(HudKit.Glyph.new(card["cat"], col, 48.0))
+			t["text"].text = card["text"]
+			t["lock"].text = ("LOCKED   unlocks if you " + CardPool.CONDITIONS[card["cond"]]) if card.has("cond") else ""
+			t["lock"].visible = card.has("cond")
+	reroll_button.visible = true
+	reroll_button.text = "Reroll   %d left" % game.rerolls_left
+	reroll_button.disabled = game.rerolls_left <= 0
+
+
+# --- The results (T-038) -----------------------------------------------------------------------
+
+var results_box: Control
+var res_title: Label
+var res_sub: Label
+var res_grade: HudKit.Ring
+var res_cols: HBoxContainer
+var res_strip: HudKit.Strip
+var res_details: ScrollContainer
+var res_details_text: Label
+var res_details_btn: Button
+var res_copy: Button
+var res_keep: Button
+var _res_shown := false
+var _copied := 0.0
+
+
+## The night's results: a grade, three columns of numbers, the song as a strip, and
+## the full run log behind Details. Copy stays in plain view: players send it to
+## Jared as feedback (his call, 2026-11-03).
+func _build_results() -> void:
+	var made := _center_panel(760.0)
+	results_box = made[0]
+	var v: VBoxContainer = made[1]
+	v.add_theme_constant_override("separation", 14)
+	var head := VBoxContainer.new()
+	head.add_theme_constant_override("separation", 0)
+	v.add_child(head)
+	res_title = HudKit.label("", 30, Color.WHITE, true, 1)
+	head.add_child(res_title)
+	res_sub = HudKit.label("", 13, HudKit.MUTED)
+	head.add_child(res_sub)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 26)
+	v.add_child(top)
+	res_grade = HudKit.Ring.new(150.0)
+	res_grade.thickness = 10.0
+	top.add_child(res_grade)
+	res_cols = HBoxContainer.new()
+	res_cols.add_theme_constant_override("separation", 26)
+	res_cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(res_cols)
+	res_strip = HudKit.Strip.new()
+	res_strip.custom_minimum_size = Vector2(700, 46)
+	v.add_child(res_strip)
+	res_details = ScrollContainer.new()
+	res_details.custom_minimum_size = Vector2(700, 200)
+	res_details.visible = false
+	res_details.add_theme_stylebox_override("panel", HudKit.flat(Color(0, 0, 0, 0.25), HudKit.EDGE, 6, 1, 8.0))
+	v.add_child(res_details)
+	res_details_text = HudKit.label("", 12, HudKit.TEXT)
+	res_details_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	res_details_text.custom_minimum_size = Vector2(670, 0)
+	res_details.add_child(res_details_text)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	v.add_child(row)
+	var again := HudKit.key_button("Run again", "R", "primary", HudKit.GREEN, Vector2(180, 46))
+	again.pressed.connect(func(): game.reset())
+	row.add_child(again)
+	var menu := HudKit.key_button("Menu", "", "secondary", HudKit.SKY, Vector2(110, 46))
+	menu.pressed.connect(func(): game.get_tree().change_scene_to_file("res://menu.tscn"))
+	row.add_child(menu)
+	res_keep = HudKit.key_button("Keep going", "N", "secondary", HudKit.SKY, Vector2(160, 46))
+	res_keep.pressed.connect(func(): game.start_wave())
+	row.add_child(res_keep)
+	var fill := Control.new()
+	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(fill)
+	res_details_btn = Button.new()
+	res_details_btn.text = "Details"
+	res_details_btn.custom_minimum_size = Vector2(100, 46)
+	HudKit.style_button(res_details_btn, "ghost")
+	res_details_btn.pressed.connect(func(): res_details.visible = not res_details.visible)
+	row.add_child(res_details_btn)
+	res_copy = Button.new()
+	res_copy.custom_minimum_size = Vector2(190, 46)
+	HudKit.style_button(res_copy, "secondary")
+	res_copy.pressed.connect(func():
+		DisplayServer.clipboard_set("\n".join(game.run_lines()))
+		_copied = 2.0)
+	row.add_child(res_copy)
+	var ask := HudKit.label("Playing the demo? Copy your stats and send them to Jared: they help tune the game.", 12, HudKit.MUTED)
+	ask.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	v.add_child(ask)
+
+
+static func _stat_col(title: String, rows: Array) -> VBoxContainer:
+	var c := VBoxContainer.new()
+	c.add_theme_constant_override("separation", 5)
+	c.add_child(HudKit.label(title, 11, HudKit.MUTED, true, 2))
+	for r in rows:
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 8)
+		var k := HudKit.label(r[0], 13, HudKit.MUTED)
+		k.custom_minimum_size = Vector2(92, 0)
+		line.add_child(k)
+		line.add_child(HudKit.label(r[1], 16, r[2] if r.size() > 2 else Color.WHITE, true))
+		c.add_child(line)
+	return c
+
+
+## The grade (Claude's starting formula, Jared's call to tune): notes 45%, parries
+## 35%, health kept 20%. S needs 90% and full health; a fallen camp tops out at C.
+func grade() -> Array:
+	var t: Dictionary = game._totals()
+	var notes := float(t["hits"]) / maxf(t["notes"], 1.0) if t["notes"] > 0 else 1.0
+	var parries := float(t["parried"]) / maxf(t["throws"], 1.0) if t["throws"] > 0 else 1.0
+	var hp := float(game.health) / float(game.START_HEALTH)
+	var score := 0.45 * notes + 0.35 * parries + 0.2 * clampf(hp, 0.0, 1.0)
+	var letter := "D"
+	if score >= 0.9 and game.health >= game.START_HEALTH:
+		letter = "S"
+	elif score >= 0.78:
+		letter = "A"
+	elif score >= 0.64:
+		letter = "B"
+	elif score >= 0.5:
+		letter = "C"
+	if game.state != "won" and letter in ["S", "A", "B"]:
+		letter = "C"
+	return [letter, score, notes]
+
+
+func _refresh_results(delta: float) -> void:
+	if results_box == null:
+		return
+	var over: bool = game.state != "playing"
+	results_box.visible = over
+	end_box.visible = false
+	_copied = maxf(0.0, _copied - delta)
+	res_copy.text = "Copied!" if _copied > 0.0 else "Copy stats to send Jared"
+	if not over:
+		_res_shown = false
+		res_details.visible = false
+		return
+	if _res_shown:
+		return
+	_res_shown = true
+	var lines: Array = game.run_lines()
+	var won: bool = game.state == "won"
+	var title: String = lines[0].split("   ")[0]
+	res_title.text = title
+	res_title.add_theme_color_override("font_color", Color.WHITE if won else HudKit.RED)
+	var tail: String = lines[0].substr(title.length()).strip_edges()
+	res_sub.text = "%s     %d:%02d" % [tail, int(game.run_time) / 60, int(game.run_time) % 60]
+	var g := grade()
+	res_grade.text = g[0]
+	res_grade.sub = "%d%% NOTES" % roundi(g[2] * 100.0)
+	res_grade.value = g[2]
+	res_grade.color = {"S": UiTheme.GOLD, "A": HudKit.GREEN, "B": HudKit.SKY, "C": HudKit.AMBER, "D": HudKit.RED}[g[0]]
+	res_grade.glow = 1.0 if g[0] == "S" else 0.5
+	for c in res_cols.get_children():
+		c.queue_free()
+	var t: Dictionary = game._totals()
+	res_cols.add_child(_stat_col("DEFENCE", [
+		["Health", "%d/%d" % [game.health, game.START_HEALTH], HudKit.GREEN if game.health >= game.START_HEALTH else Color.WHITE],
+		["Gold earned", "%dg" % game.gold_earned],
+		["Towers locked", str(game.m4_stats["suppressed"])],
+		["Shields lost", str(game.m4_stats["shields_lost"])]]))
+	res_cols.add_child(_stat_col("RHYTHM", [
+		["Notes", "%d/%d" % [t["hits"], t["notes"]]],
+		["Perfects", str(game.stat_total("perfects")), UiTheme.GOLD],
+		["Parries", "%d/%d" % [t["parried"], t["throws"]]],
+		["Calls nailed", "%d/%d" % [game.phrase_stats["nailed"], game.phrase_stats["calls"]]]]))
+	res_cols.add_child(_stat_col("BOSS", [
+		["Bolts", str(game.m5_stats["bolts"])],
+		["Breaks", str(game.m5_stats["breaks"])],
+		["Counters", "%d/%d" % [t["counter_hits"], t["counters"]]],
+		["Level", "%d" % game.level]]))
+	res_strip.rows = game.section_rows if game is LevelRun else []
+	res_strip.visible = game is LevelRun and not game.section_rows.is_empty()
+	res_strip.queue_redraw()
+	res_details_text.text = "\n".join(lines)
+	res_keep.visible = won and not (game is LevelRun)
+
+
+## The tree's frame in the HUD's glass, its title in the system's type (T-038).
+func _restyle_tree_panel() -> void:
+	var tp: PanelContainer = tree_box.get_child(0)
+	tp.add_theme_stylebox_override("panel", HudKit.glass(0.95, 12, 18.0))
+	tree_title.add_theme_color_override("font_color", Color.WHITE)
+	var f := FontVariation.new()
+	f.base_font = UiTheme.heading_font()
+	f.spacing_glyph = 1
+	tree_title.add_theme_font_override("font", f)
+	var head: Node = tree_title.get_parent()
+	for c in head.get_children():
+		if c is Button:
+			HudKit.style_button(c, "secondary")
+			c.text = "Close   Tab"
+	tree_dim.color = Color(0.02, 0.03, 0.05, 0.55)
+	# The pause screen in the same glass.
+	var pp: PanelContainer = pause_box.get_child(0).get_child(0)
+	pp.add_theme_stylebox_override("panel", HudKit.glass(0.95, 12, 22.0))
+	for c in pp.get_child(0).get_children():
+		if c is Button:
+			HudKit.style_button(c, "primary", HudKit.GREEN)

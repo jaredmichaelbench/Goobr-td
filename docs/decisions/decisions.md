@@ -459,3 +459,13 @@ Decision:
 3. Range shows as a ground decal: soft fill in the tower's accent, an edge that breathes on the beat.
 4. Top bar is one slate slab; gold, health and the night ("INTRO bar 1/96") sit in chips; shields and Restores left the header (the camp shows them); Pause restyled to match.
 Deferred: the bottom panel redesign (action grid, round buttons, wave panel) as one pass from a markup doc; creep readability waits for the KayKit creeps (D-0060); health bars over packs decided with real creeps.
+
+## D-0065: HUD redesign and menus built
+2026-11-03 · accepted (Jared's markup of the T-038 doc 00:41Z: "Agree on everything, go with your suggestions... Build now"; menus "agree"; tree, cards and end screens in scope).
+Decision: one design system (`scripts/hud_kit.gd`): slate glass, tower accents, keycaps, chips, coin pills.
+1. Bottom bar 100 px: next push as round creep tokens with count and HP; build strip of 7 square slots (key top-left, cost pill bottom-right red when short, accent underline, wall count, lock); square Talents / Restore / Start with keycaps (soft green glow when points wait); XP line along the top edge. Song moved into the top slab's night chip.
+2. Inspect panel gone: a clicked tower pins its card by the tower with Sell / Upgrade / fork buttons; Esc unpins.
+3. Morning: level ring, gradient XP track with a "+N XP" count-up, one primary button (Spend talents when points wait, else Pick your card); misses moved to Details.
+4. Card pick: "NIGHT 1 COMPLETE" + "Choose one" pill; tiles with keycap, rarity in border, top edge, glow and gems (no rarity words), bucket badge and drawn glyph, title then explainer, locked condition line.
+5. Results: grade S-D in a ring (notes 45%, parries 35%, health 20%; S needs 90% and full health; a fallen camp caps at C; bands to tune), Defence / Rhythm / Boss columns, the song as a coloured section strip, full run log behind Details, "Copy stats to send Jared" kept visible with a one-line ask (Jared wants player stats as feedback).
+6. Talent tree and pause screens restyled in the same glass and caps (the tree's content is still the old build; the D-0058/D-0059 tree is built with the demo).

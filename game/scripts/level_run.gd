@@ -685,6 +685,7 @@ const LEVEL_BOLT_DAMAGE := 1  # A missed bolt costs 1 health in a level (v3.1), 
 
 var _throw_bar := -1
 var section_log: Array[String] = []  # One run-log row per section played.
+var section_rows: Array = []  # The same rows as data, for the results strip (T-038).
 var _section_base := {}  # Totals when the current section began.  # The bar the boss stands still and throws in.
 
 ## v3 (D-0052): the boss has one readable pattern at every distance. On a walk
@@ -891,6 +892,9 @@ func _log_section() -> void:
 		t["hits"] - _section_base["hits"], _resolved_notes() - _section_base["resolved"],
 		t["parried"] - _section_base["parried"], t["throws"] - _section_base["throws"],
 		maxi(0, _section_base["health"] - health), "   boss" if _section_base["boss"] else ""])
+	section_rows.append({"name": name, "notes": t["hits"] - _section_base["hits"], "offered": _resolved_notes() - _section_base["resolved"],
+		"parried": t["parried"] - _section_base["parried"], "throws": t["throws"] - _section_base["throws"],
+		"hp": maxi(0, _section_base["health"] - health), "boss": _section_base["boss"]})
 	print("SECTION LOG  " + section_log[-1])
 	_section_base = {}
 

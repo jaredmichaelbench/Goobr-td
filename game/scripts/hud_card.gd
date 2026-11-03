@@ -59,6 +59,9 @@ var _stats: HBoxContainer
 var _stats_sig := ""
 var _pill_short: Label
 var _keys_sig := ""
+var _actions: HBoxContainer
+var _actions_sig := ""
+var pinned := false  # A clicked tower's card stays put and takes clicks (T-038).
 var _accent := Color(0, 0, 0, 0)
 var _accent_top: ColorRect
 
@@ -174,6 +177,10 @@ func _init() -> void:
 	_keys = HBoxContainer.new()
 	_keys.add_theme_constant_override("separation", 5)
 	v.add_child(_keys)
+	_actions = HBoxContainer.new()
+	_actions.add_theme_constant_override("separation", 6)
+	_actions.visible = false
+	v.add_child(_actions)
 	custom_minimum_size = Vector2(WIDTH, 0)
 	set_accent(Color.WHITE)
 
@@ -346,3 +353,25 @@ func _keycap(glyph: String) -> PanelContainer:
 	l.add_theme_color_override("font_color", Color.WHITE)
 	inner.add_child(l)
 	return cap
+
+
+## Clickable buttons for a pinned card: each entry is [text, Callable, enabled, kind].
+func set_actions(entries: Array, sig: String) -> void:
+	pinned = not entries.is_empty()
+	mouse_filter = Control.MOUSE_FILTER_STOP if pinned else Control.MOUSE_FILTER_IGNORE
+	_actions.visible = pinned
+	if sig == _actions_sig:
+		return
+	_actions_sig = sig
+	for c in _actions.get_children():
+		c.queue_free()
+	for e in entries:
+		var b := Button.new()
+		b.text = e[0]
+		b.custom_minimum_size = Vector2(0, 28)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		HudKit.style_button(b, e[3] if e.size() > 3 else "secondary", ACCENTS.get("slow"))
+		b.add_theme_font_size_override("font_size", 12)
+		b.disabled = not e[2]
+		b.pressed.connect(e[1])
+		_actions.add_child(b)
