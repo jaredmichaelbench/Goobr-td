@@ -532,6 +532,10 @@ func crossfire_bonus() -> float:
 
 
 ## How late or early a note still counts as Good (a talent widens it in M7).
+func note_perfect_ms() -> float:
+	return Timing.PERFECT_MS
+
+
 func note_good_ms() -> float:
 	return Timing.GOOD_MS
 
@@ -615,7 +619,7 @@ func _play(key: Key) -> void:
 		_show_feedback("No note", Color(1, 1, 1, 0.4))
 		return
 	var offset_ms: float = (press_time() - best["time"]) * 1000.0
-	var g := Timing.grade_parry(offset_ms, note_good_ms())
+	var g := Timing.grade_parry(offset_ms, note_good_ms(), note_perfect_ms())
 	if g == "Miss":
 		_show_feedback("Too early", Color(1, 1, 1, 0.5))
 		return  # The note is still yours to hit.

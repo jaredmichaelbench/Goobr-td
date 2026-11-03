@@ -155,13 +155,29 @@ func _build_menu() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(1, 10)
 	v.add_child(gap)
-	for item in [["Night 1: Night Life (the level)", _play_level], ["Play: the full run (20 waves)", _play.bind(false)], ["Quick run (10 waves)", _play.bind(true)], ["How to play", _show_help], ["Settings", _show_settings], ["Credits", _show_credits], ["Quit", func(): get_tree().quit()]]:
+	for item in [["Play: the five nights", _play_campaign.bind(0)], ["Play: the full run (20 waves)", _play.bind(false)], ["Quick run (10 waves)", _play.bind(true)], ["How to play", _show_help], ["Settings", _show_settings], ["Credits", _show_credits], ["Quit", func(): get_tree().quit()]]:
 		var b := Button.new()
 		b.text = item[0]
 		b.custom_minimum_size = Vector2(320, 46)
 		b.add_theme_font_size_override("font_size", 19)
 		b.pressed.connect(item[1])
 		v.add_child(b)
+	# Testing (B1+B2): jump into any night with the points and level you'd have by then.
+	var pick := HBoxContainer.new()
+	pick.add_theme_constant_override("separation", 6)
+	var pl := Label.new()
+	pl.text = "Test a night"
+	pl.custom_minimum_size = Vector2(110, 0)
+	pl.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+	pick.add_child(pl)
+	for i in Campaign.NIGHTS.size():
+		var nb := Button.new()
+		nb.text = str(i + 1)
+		nb.custom_minimum_size = Vector2(36, 36)
+		nb.tooltip_text = "Start at Night %d with the talent points and level you'd have by then (nothing spent)." % (i + 1)
+		nb.pressed.connect(_play_campaign.bind(i))
+		pick.add_child(nb)
+	v.add_child(pick)
 	var foot := Label.new()
 	foot.text = "D  developer menu (the Demo 0 milestones)"
 	foot.add_theme_font_size_override("font_size", 11)
@@ -197,7 +213,15 @@ func _build_menu() -> void:
 
 func _play(quick: bool) -> void:
 	M7Run.quick = quick
+	Campaign.stop()
 	LevelRun.active = false
+	get_tree().change_scene_to_file("res://run3d.tscn")
+
+
+## The five-night campaign (B1, D-0067), from Night 1 or any night for testing.
+func _play_campaign(from_night: int) -> void:
+	M7Run.quick = false
+	Campaign.begin(from_night)
 	get_tree().change_scene_to_file("res://run3d.tscn")
 
 

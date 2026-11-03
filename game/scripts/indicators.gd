@@ -70,6 +70,8 @@ func _draw() -> void:
 	_draw_camp_readout()
 	_draw_judgment()
 	_draw_coins()
+	if sim.has_method("b2_marks"):
+		_draw_b2_marks()
 
 
 func _draw_creep_marks(_bt: float) -> void:
@@ -387,3 +389,25 @@ func _draw_coins() -> void:
 		draw_colored_polygon(inner, Color(1.0, 0.82, 0.25, fade))
 		var tw := font.get_string_size(c["text"], HORIZONTAL_ALIGNMENT_LEFT, -1, int(22 * scale)).x
 		_text(p + Vector2(tw * 0.5 + 2.0, 0), c["text"], int(22 * scale), Color(1.0, 0.85, 0.3, fade), 6)
+
+
+## B2 (D-0061): what the new enemies are about to do, on the ground where it happens.
+## Last Orders' bell (parry it or the next bar's notes are muted), the Undertaker's
+## grave (parry it or three skeletons rise), a Digger's wall coming down.
+func _draw_b2_marks() -> void:
+	for mk in sim.b2_marks():
+		var ground := View3D.world(mk["pos"], 0.05)
+		if view.is_behind(ground):
+			continue
+		var p := _at(ground)
+		var ppm := _ppm(ground)
+		var col: Color = mk["color"]
+		var r := ppm * 0.48
+		draw_arc(p, r, 0, TAU, 36, Color(0, 0, 0, 0.5), 5.0)
+		draw_arc(p, r, 0, TAU, 36, Color(col, 0.35), 3.0)
+		draw_arc(p, r, -PI * 0.5, -PI * 0.5 + TAU * float(mk["frac"]), 36, col, 3.5)
+		var lift := View3D.world(mk["pos"], 1.0)
+		var lp := _at(lift)
+		_text(lp, mk["label"], maxi(12, int(ppm * 0.3)), col)
+		if int(mk["gone"]) >= 0:
+			_pips(lp + Vector2(0, maxf(12.0, ppm * 0.3)), int(mk["gone"]), col, ppm)

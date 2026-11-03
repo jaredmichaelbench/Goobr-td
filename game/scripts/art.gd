@@ -38,6 +38,16 @@ const CREEPS := {
 	"warden": {"model": CHARS + "Skeleton_Warrior.glb", "height": 1.6, "walk": "Walking_A", "tint": Color(0.3, 0.5, 1.0, 0.3)},
 	"boss": {"model": CHARS + "Skeleton_Mage.glb", "height": 2.6, "walk": "Walking_D_Skeletons"},
 	"boss2": {"model": CHARS + "Skeleton_Warrior.glb", "height": 2.8, "walk": "Walking_C"},
+	# B2 (D-0061): the five-night demo's new enemies on the same skeletons, told apart
+	# by size and tint until the B4 look pass gives them their own props.
+	"door": {"model": CHARS + "Skeleton_Warrior.glb", "height": 1.5, "walk": "Walking_C", "tint": Color(0.75, 0.5, 0.25, 0.35)},
+	"last_orders": {"model": CHARS + "Skeleton_Mage.glb", "height": 1.35, "walk": "Walking_B", "tint": Color(1.0, 0.75, 0.2, 0.3)},
+	"busker": {"model": CHARS + "Skeleton_Minion.glb", "height": 1.4, "walk": "Walking_B", "tint": Color(0.3, 1.0, 0.5, 0.3)},
+	"digger": {"model": CHARS + "Skeleton_Warrior.glb", "height": 1.25, "walk": "Walking_A", "tint": Color(0.55, 0.4, 0.25, 0.4)},
+	"undertaker": {"model": CHARS + "Skeleton_Mage.glb", "height": 1.65, "walk": "Walking_D_Skeletons", "tint": Color(0.35, 0.2, 0.55, 0.4)},
+	"moth": {"model": CHARS + "Skeleton_Minion.glb", "height": 0.6, "walk": "Running_B", "tint": Color(1.0, 0.95, 0.6, 0.4)},
+	"foreman": {"model": CHARS + "Skeleton_Warrior.glb", "height": 2.7, "walk": "Walking_C", "tint": Color(1.0, 0.55, 0.2, 0.3)},
+	"landlord": {"model": CHARS + "Skeleton_Mage.glb", "height": 3.2, "walk": "Walking_D_Skeletons", "tint": Color(0.7, 0.3, 1.0, 0.3)},
 }
 const CONDUCTOR := CHARS + "Mage.glb"
 const LOOPED := ["Walking_A", "Walking_B", "Walking_C", "Walking_D_Skeletons", "Running_A", "Running_B", "Idle", "Idle_Combat", "Spellcasting", "Cheer", "2H_Melee_Idle"]

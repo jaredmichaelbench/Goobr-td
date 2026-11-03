@@ -114,6 +114,8 @@ func _ready() -> void:
 	_build_cursor()
 	for box in [tree_dim, tree_box]:
 		root.move_child(box, root.get_child_count() - 1)
+	if game is NightRun:
+		_build_night_tree()
 	game.build_mode = false  # Build mode opens with B or a number key (D-0062).
 	_refresh()
 
@@ -404,10 +406,16 @@ func _token(kind: String, count: int, hp: float) -> Control:
 	cell.add_child(disc)
 	var tr := TextureRect.new()
 	tr.texture = _icon("creep_" + kind)
+	if tr.texture == null and game is NightRun and NightRun.NEW_BASE.has(kind):
+		# The B2 enemies borrow their base's icon in their own tint until B4 draws theirs.
+		tr.texture = _icon("creep_" + NightRun.NEW_BASE[kind]["base"])
+		var tint = Art.CREEPS.get(kind, {}).get("tint", null)
+		if tint != null:
+			tr.modulate = Color(tint, 1.0).lerp(Color.WHITE, 0.35)
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	tr.custom_minimum_size = Vector2(32, 32)
-	tr.tooltip_text = kind.capitalize()
+	tr.tooltip_text = game.enemy_name(kind) if game is NightRun else kind.capitalize()
 	disc.add_child(tr)
 	var badge := PanelContainer.new()
 	badge.add_theme_stylebox_override("panel", HudKit.flat(HudKit.SLATE, HudKit.RED if boss else Color("6b7a8f"), 7, 1, 1.0))
@@ -426,6 +434,9 @@ func _token(kind: String, count: int, hp: float) -> Control:
 func _kind_hp(kind: String, tier: int) -> float:
 	if kind.begins_with("boss"):
 		return 0.0
+	if game is NightRun and NightRun.NEW_BASE.has(kind):
+		var nb: Dictionary = NightRun.NEW_BASE[kind]
+		return game.creep_hp_at(tier) * game.CREEP_KINDS.get(nb["base"], {"hp": 1.0})["hp"] * nb["hp"]
 	return game.creep_hp_at(tier) * game.CREEP_KINDS.get(kind, {"hp": 1.0})["hp"]
 
 
@@ -748,7 +759,7 @@ func _refresh() -> void:
 	panel.visible = false  # The pinned tower card replaces the inspect panel (T-038).
 	if game is LevelRun:
 		_refresh_level_panels()
-	tree_dim.visible = tree_box.visible
+	tree_dim.visible = tree_box.visible or (night_tree_box != null and night_tree_box.visible)
 	message.text = game._message if game._message_time > 0.0 else ""
 	pause_box.visible = game.paused and not game.tree_open and game.state == "playing"
 	if pause_box.visible:
@@ -776,7 +787,7 @@ func _refresh_top() -> void:
 	boss_box.visible = game.boss_alive()
 	if boss_box.visible:
 		var boss: Dictionary = game.boss
-		boss_label.text = ("THE CROWNED BOSS" if boss.get("second", false) else "THE BOSS") + "     posture %d%%     breaks %d" % [roundi(game.posture), game.m5_stats["breaks"]]
+		boss_label.text = (game.boss_name().to_upper() if game.has_method("boss_name") else "THE CROWNED BOSS" if boss.get("second", false) else "THE BOSS") + "     posture %d%%     breaks %d" % [roundi(game.posture), game.m5_stats["breaks"]]
 		boss_hp.size = Vector2(boss_hp.get_parent().size.x * clampf(boss["hp"] / boss["max_hp"], 0.0, 1.0), 10)
 		boss_posture.size = Vector2(boss_posture.get_parent().size.x * clampf(game.posture / game.POSTURE_MAX, 0.0, 1.0), 5)
 
@@ -1232,10 +1243,10 @@ func _fill_tower_card(cell: Vector2i, pinned: bool) -> void:
 	var keys: Array = [[["X"], "Sell +%dg" % refund, HudCard.GREEN]]
 	if game.is_tower(type) and game.unlocked.has(type):
 		var rank: int = game.type_rank.get(type, 0)
-		role += "   rung %d/5" % rank
-		if rank >= 5:
+		role += ("   " + game.rank_label(type)) if game.has_method("rank_label") else "   rung %d/5" % rank
+		if rank >= game.top_rank():
 			keys.append([[], "Top rung"])
-		elif rank == 2 and game.BRANCHES.has(type):
+		elif rank == game.fork_rank() and game.BRANCHES.has(type):
 			var br: Array = game.BRANCHES[type]
 			keys.append([["U"], br[0][0]])
 			keys.append([["I"], br[1][0]])
@@ -1253,11 +1264,12 @@ func _fill_tower_card(cell: Vector2i, pinned: bool) -> void:
 		acts.append(["Sell +%dg" % refund, func(): game.sell(c), true, "secondary"])
 		if game.is_tower(type) and game.unlocked.has(type):
 			var rank: int = game.type_rank.get(type, 0)
-			if rank == 2 and game.BRANCHES.has(type):
+			if rank == game.fork_rank() and game.BRANCHES.has(type):
 				var br: Array = game.BRANCHES[type]
-				acts.append([br[0][0], func(): game.upgrade_type(type, 1), true, "secondary"])
-				acts.append([br[1][0], func(): game.upgrade_type(type, 2), true, "secondary"])
-			elif rank < 5:
+				var fc: int = game.type_upgrade_cost(type)
+				acts.append(["%s %dg" % [br[0][0], fc], func(): game.upgrade_type(type, 1), game.gold >= fc, "secondary"])
+				acts.append(["%s %dg" % [br[1][0], fc], func(): game.upgrade_type(type, 2), game.gold >= fc, "secondary"])
+			elif rank < game.top_rank():
 				var cost: int = game.type_upgrade_cost(type)
 				acts.append(["Upgrade %dg" % cost, func(): game.upgrade_type(type), game.gold >= cost, "primary"])
 	hover_box.set_actions(acts, str(cell) + ":" + str(acts.map(func(a): return [a[0], a[2]])))
@@ -1299,6 +1311,10 @@ func _tip() -> String:
 
 ## Locked talents stay readable: the dark disabled style says "not yet", not a fade.
 func _refresh_tree() -> void:
+	if night_tree_box != null:
+		tree_box.visible = false
+		_refresh_night_tree()
+		return
 	super._refresh_tree()
 	if not game.tree_open:
 		return
@@ -1318,6 +1334,8 @@ func _refresh_end() -> void:
 
 var start_box: Control
 var start_tab: Button
+var start_carry: Label
+var start_talents: Button
 var _start_min := false
 var night_box: Control
 var night_ring: HudKit.Ring
@@ -1353,19 +1371,27 @@ func _build_level_panels() -> void:
 	var made := _center_panel(560.0)
 	start_box = made[0]
 	var v: VBoxContainer = made[1]
-	v.add_child(HudKit.label("TONIGHT", 12, HudKit.MUTED, true, 2))
+	v.add_child(HudKit.label(("NIGHT %d OF %d" % [Campaign.night_number(), Campaign.NIGHTS.size()]) if game is NightRun and Campaign.active else "TONIGHT", 12, HudKit.MUTED, true, 2))
 	v.add_child(HudKit.label(game.night["name"], 30, Color.WHITE, true))
 	v.add_child(HudKit.label("Song: %s" % game.songs[game.song_index]["name"], 13, HudKit.MUTED))
 	var say := HudKit.label("WATCHMAN   \"Hey, I just work here. Hold the camp till morning.\"", 15, UiTheme.GOLD)
 	say.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(say)
 	var body := HudKit.label("You can't build until the night starts. The sticks count you in: two bars to build, so put a wall and a tower by the camp. The camp grows outward: build near the keep or near what you have built, never by the mine.", 14, HudKit.TEXT)
+	if game is NightRun and game.night_blurb() != "":
+		body.text = game.night_blurb()
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(body)
+	start_carry = HudKit.label("", 14, UiTheme.GOLD, true)
+	start_carry.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(start_carry)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(row)
+	start_talents = HudKit.key_button("Spend talents", "Tab", "secondary", HudKit.GREEN, Vector2(180, 48))
+	start_talents.pressed.connect(func(): game.toggle_tree())
+	row.add_child(start_talents)
 	var go := HudKit.key_button("Start the night", "N", "primary", HudKit.GREEN, Vector2(240, 48))
 	go.pressed.connect(func(): game.start_wave())
 	row.add_child(go)
@@ -1436,7 +1462,16 @@ func _set_kind(b: Button, kind: String) -> void:
 
 func _refresh_level_panels() -> void:
 	var before: bool = not game.started and game.state == "playing"
-	start_box.visible = before and not _start_min
+	start_box.visible = before and not _start_min and not game.tree_open
+	start_talents.visible = before and game is NightRun and game.points > 0
+	start_carry.visible = game is NightRun and Campaign.active and (Campaign.index > 0 or game.points > 0)
+	if start_carry.visible and before:
+		var bits: Array[String] = ["Health %d/%d" % [game.health, game.START_HEALTH], "level %d" % game.level]
+		if not game.night_owned.is_empty():
+			bits.append("%d talent%s" % [game.night_owned.size(), "" if game.night_owned.size() == 1 else "s"])
+		if not game.card_picks.is_empty():
+			bits.append("%d card%s" % [game.card_picks.size(), "" if game.card_picks.size() == 1 else "s"])
+		start_carry.text = "Carried in: " + ", ".join(bits) + ((".   %d talent point%s to spend first." % [game.points, "" if game.points == 1 else "s"]) if game.points > 0 else ".")
 	start_tab.visible = before and _start_min
 	start_tab.position = Vector2((root.size.x - start_tab.size.x) * 0.5, 64.0)
 	# No mid-night card: lulls are the music and the watchman.
@@ -1606,10 +1641,10 @@ func _refresh_draft() -> void:
 				b.add_theme_stylebox_override(st, normal)
 			for st in ["hover", "pressed", "hover_pressed"]:
 				b.add_theme_stylebox_override(st, hover)
-			t["gems"].text = "◆".repeat(HudKit.RARITY_GEMS.get(card["rarity"], 1))
+			t["gems"].text = "◆".repeat(card.get("gems", HudKit.RARITY_GEMS.get(card["rarity"], 1)))
 			t["gems"].add_theme_color_override("font_color", col)
 			t["title"].text = String(card["name"]).to_upper()
-			t["badge_text"].text = String(CardPool.CATEGORY_NAMES.get(card["cat"], card["cat"])).to_upper()
+			t["badge_text"].text = String(card.get("cat_name", CardPool.CATEGORY_NAMES.get(card["cat"], card["cat"]))).to_upper()
 			t["badge_text"].add_theme_color_override("font_color", col.lerp(Color.WHITE, 0.2))
 			t["badge"].add_theme_stylebox_override("panel", HudKit.flat(Color(col, 0.14), Color(col, 0.4), 6, 1, 2.0))
 			t["art"].add_theme_stylebox_override("panel", HudKit.flat(Color(col, 0.08), Color(col, 0.18), 8, 1, 4.0))
@@ -1619,7 +1654,7 @@ func _refresh_draft() -> void:
 			t["text"].text = card["text"]
 			t["lock"].text = ("LOCKED   unlocks if you " + CardPool.CONDITIONS[card["cond"]]) if card.has("cond") else ""
 			t["lock"].visible = card.has("cond")
-	reroll_button.visible = true
+	reroll_button.visible = not (game is NightRun)  # No rerolls in the campaign (D-0059).
 	reroll_button.text = "Reroll   %d left" % game.rerolls_left
 	reroll_button.disabled = game.rerolls_left <= 0
 
@@ -1637,6 +1672,10 @@ var res_details_text: Label
 var res_details_btn: Button
 var res_copy: Button
 var res_keep: Button
+var res_again: Button
+var res_next: Button
+var res_retry: Button
+var res_new: Button
 var _res_shown := false
 var _copied := 0.0
 
@@ -1684,6 +1723,17 @@ func _build_results() -> void:
 	var again := HudKit.key_button("Run again", "R", "primary", HudKit.GREEN, Vector2(180, 46))
 	again.pressed.connect(func(): game.reset())
 	row.add_child(again)
+	res_again = again
+	# The campaign (B1): next night, retry this night with what you had, or a new run.
+	res_next = HudKit.key_button("Next night", "N", "primary", HudKit.GREEN, Vector2(180, 46))
+	res_next.pressed.connect(func(): game.next_night())
+	row.add_child(res_next)
+	res_retry = HudKit.key_button("Retry night", "R", "primary", HudKit.GREEN, Vector2(180, 46))
+	res_retry.pressed.connect(func(): game.retry_night())
+	row.add_child(res_retry)
+	res_new = HudKit.key_button("New run", "", "secondary", HudKit.SKY, Vector2(140, 46))
+	res_new.pressed.connect(func(): game.new_run())
+	row.add_child(res_new)
 	var menu := HudKit.key_button("Menu", "", "secondary", HudKit.SKY, Vector2(110, 46))
 	menu.pressed.connect(func(): game.get_tree().change_scene_to_file("res://menu.tscn"))
 	row.add_child(menu)
@@ -1799,6 +1849,19 @@ func _refresh_results(delta: float) -> void:
 	res_strip.queue_redraw()
 	res_details_text.text = "\n".join(lines)
 	res_keep.visible = won and not (game is LevelRun)
+	var camp: bool = game is NightRun and Campaign.active
+	var done: bool = camp and game.campaign_done()
+	res_again.visible = not camp
+	res_next.visible = camp and won and not done
+	res_retry.visible = camp and not done
+	res_new.visible = camp
+	if camp:
+		_set_kind(res_retry, "secondary" if won else "primary")
+		_set_kind(res_new, "primary" if done else "secondary")
+		if done:
+			res_title.text = "THE FIVE NIGHTS ARE DONE"
+			res_title.add_theme_color_override("font_color", UiTheme.GOLD)
+			res_sub.text = "You held the camp to the last morning.     " + res_sub.text
 
 
 ## The tree's frame in the HUD's glass, its title in the system's type (T-038).
@@ -1822,3 +1885,138 @@ func _restyle_tree_panel() -> void:
 	for c in pp.get_child(0).get_children():
 		if c is Button:
 			HudKit.style_button(c, "primary", HudKit.GREEN)
+
+
+
+# --- The campaign talent tree (D-0057 to D-0059, built in B1) -------------------------------------
+
+const NT_SCALE := Vector2(0.5, 0.4)  # Sheet units to screen pixels (squashed to fit 720 high).
+const NT_NODE := Vector2(118, 38)
+var night_tree_box: Control
+var night_tree_title: Label
+var night_tree_tip: Label
+var night_tree_buttons := {}
+
+
+class NightTreeLines extends Control:
+	var sim: Node
+	var centres := {}
+
+	func _init(target: Node) -> void:
+		sim = target
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _process(_d: float) -> void:
+		if is_visible_in_tree():
+			queue_redraw()
+
+	func _draw() -> void:
+		for l in NightTree.links():
+			var a: Vector2 = centres[l[0]]
+			var b: Vector2 = centres[l[1]]
+			var lit: bool = sim.night_owned.has(l[0])
+			var both: bool = lit and sim.night_owned.has(l[1])
+			var col: Color = NightTree.SIDE_COLORS[NightTree.NODES[l[1]]["side"]]
+			draw_line(a, b, Color(col, 0.95 if both else (0.6 if lit else 0.2)), 4.0 if both else 2.0, true)
+
+
+## Jared's builder layout: Counter Attack at the bottom middle, Towers left, Rhythm
+## right, Perfect Solo in the middle. Owned nodes fill with their side's colour,
+## takeable ones glow, the rest stay dark but readable. Hover shows what a node does.
+func _build_night_tree() -> void:
+	var made := _center_panel(1060.0)
+	night_tree_box = made[0]
+	var tv: VBoxContainer = made[1]
+	tv.add_theme_constant_override("separation", 8)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 16)
+	tv.add_child(head)
+	night_tree_title = HudKit.label("", 24, Color.WHITE, true, 1)
+	night_tree_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(night_tree_title)
+	for side in [["TOWERS", "towers"], ["RHYTHM", "rhythm"]]:
+		var tag := HudKit.label(side[0], 11, NightTree.SIDE_COLORS[side[1]], true, 2)
+		head.add_child(tag)
+	var close := HudKit.key_button("Done", "Tab", "secondary", HudKit.GREEN, Vector2(130, 36))
+	close.pressed.connect(func(): game.toggle_tree())
+	head.add_child(close)
+	var canvas := Control.new()
+	canvas.custom_minimum_size = Vector2(NightTree.SHEET.x, NightTree.SHEET.y - 40.0) * NT_SCALE
+	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tv.add_child(canvas)
+	var lines := NightTreeLines.new(game)
+	lines.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	canvas.add_child(lines)
+	for id in NightTree.NODES:
+		var n: Dictionary = NightTree.NODES[id]
+		var c := Vector2(n["x"], n["y"] - 40.0) * NT_SCALE + Vector2(0, NT_NODE.y * 0.5)
+		lines.centres[id] = c
+		var b := Button.new()
+		b.text = n["name"]
+		b.focus_mode = Control.FOCUS_NONE
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_theme_font_size_override("font_size", 12)
+		b.position = c - NT_NODE * 0.5
+		b.size = NT_NODE
+		var which: String = id
+		b.pressed.connect(func(): game.take_night_talent(which))
+		b.mouse_entered.connect(func(): _night_tip(which))
+		b.mouse_exited.connect(func(): _night_tip(""))
+		canvas.add_child(b)
+		night_tree_buttons[id] = b
+	night_tree_tip = HudKit.label("", 13, HudKit.TEXT)
+	night_tree_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	night_tree_tip.custom_minimum_size = Vector2(1000, 40)
+	tv.add_child(night_tree_tip)
+	night_tree_box.visible = false
+	root.move_child(night_tree_box, root.get_child_count() - 1)
+	_night_tip("")
+
+
+func _night_tip(id: String) -> void:
+	if id == "":
+		night_tree_tip.text = "Every talent costs 1 point. Start at Counter Attack, then climb: a talent opens once one linked below it is yours. Left is Towers, right is Rhythm; Perfect Solo in the middle crosses over. Hover a talent for what it does."
+		night_tree_tip.add_theme_color_override("font_color", HudKit.MUTED)
+		return
+	var n: Dictionary = NightTree.NODES[id]
+	var state := "yours" if game.night_owned.has(id) else ("click to take" if NightTree.available(id, game.night_owned, game.points) else ("no points left" if NightTree.reachable(id, game.night_owned) else "take one linked below it first"))
+	night_tree_tip.text = "%s%s   (%s)\n%s" % [n["name"].to_upper(), "   CAPSTONE" if n.get("capstone", false) else "", state, n["text"]]
+	night_tree_tip.add_theme_color_override("font_color", HudKit.TEXT)
+
+
+func _refresh_night_tree() -> void:
+	night_tree_box.visible = game.tree_open
+	if not game.tree_open:
+		return
+	night_tree_title.text = "TALENTS     %d point%s to spend" % [game.points, "" if game.points == 1 else "s"]
+	for id in night_tree_buttons:
+		var b: Button = night_tree_buttons[id]
+		var n: Dictionary = NightTree.NODES[id]
+		var col: Color = NightTree.SIDE_COLORS[n["side"]]
+		var owned: bool = game.night_owned.has(id)
+		var open: bool = NightTree.available(id, game.night_owned, game.points)
+		var reach: bool = NightTree.reachable(id, game.night_owned)
+		var cap: bool = n.get("capstone", false)
+		var sig := "%s%s%s" % [owned, open, reach]
+		if b.get_meta("sig", "") == sig:
+			continue
+		b.set_meta("sig", sig)
+		var fill: Color = Color(col, 0.42).blend(Color(HudKit.RAISED, 0.5)) if owned else (Color(col, 0.12).blend(Color(HudKit.RAISED, 0.9)) if open else HudKit.SLATE)
+		var edge: Color = col if owned else (Color(col, 0.9) if open else Color(col, 0.35 if reach else 0.2))
+		var normal := HudKit.flat(fill, edge, 8, 3 if cap else 2, 4.0)
+		if open:
+			normal.shadow_color = Color(col, 0.45)
+			normal.shadow_size = 6
+		var hover := normal.duplicate()
+		hover.border_color = col.lerp(Color.WHITE, 0.4)
+		hover.bg_color = fill.lightened(0.08)
+		for st in ["normal", "disabled"]:
+			b.add_theme_stylebox_override(st, normal)
+		for st in ["hover", "pressed", "hover_pressed"]:
+			b.add_theme_stylebox_override(st, hover if open else normal)
+		var font_col: Color = Color.WHITE if (owned or open) else Color(HudKit.TEXT, 0.75 if reach else 0.5)
+		for k in ["font_color", "font_disabled_color", "font_hover_color", "font_pressed_color"]:
+			b.add_theme_color_override(k, font_col)
+		b.disabled = false  # Hover works on every node (for the tip); taking is checked on click.
+		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if open else Control.CURSOR_ARROW
+		b.text = n["name"] + ("  ✓" if owned else "")

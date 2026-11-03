@@ -473,3 +473,17 @@ Decision: one design system (`scripts/hud_kit.gd`): slate glass, tower accents, 
 ## D-0066: Night 5 runs into an overtime boss song
 2026-11-03 · accepted (Jared 01:07Z: "Psychedelia Flashback for sure", answering the T-039 build plan's open call).
 Decision: Night 5 plays Flanger Party (2:28), then The Landlord's overtime fight on its own song, Psychedelia Flashback (1:36), about 4 minutes in all. Night Life stays on Night 1 (frozen). This settles D-0049's "longer Night 5" ask.
+
+## D-0067: Scope locked; B1 and B2 built together
+2026-11-03 · accepted (Jared 01:16Z: "I have locked in the doc and agree with all... B1 and B2 are built together if possible so I can do a test session of the enemies and level continuity in one session").
+Decision: the five-night demo scope in `prototypes/five-night-demo-plan.md` (T-039) is locked; new ideas go to the backlog. Milestones B1 (campaign shell and progression) and B2 (enemies) are built as one pass with one playtest, results in `prototypes/B1-B2-results.md`. Fork masteries reviewed in that playtest; synth note sounds go in at B4 (Jared needs them before then).
+
+## D-0068: B1 + B2 built, with four calls for Jared to check
+2026-11-03 · proposed (made in the build, confirmed or changed in Jared's B1+B2 playtest).
+Decision: B1 and B2 are built on `claude/project-thread-ifc428` as specced in T-039 and D-0056 to D-0061 (results in `prototypes/B1-B2-results.md`). Four calls were made while building:
+1. The Landlord's health holds at 25% until the last section starts, so the overtime song is always his fight (D-0066). A strong bot killed him half way through Flanger Party without it.
+2. Night 1's specials (Spanner, Pot-shot, Hush, Crossing Guard) are swapped for Big Lads, so specials arrive over the later nights. The rest of Night 1 is unchanged (D-0055).
+3. There are no card rerolls in the campaign: one hand of three per pick.
+4. Talent points can be spent before Start only when the title's "Test a night" picker hands them out. In a normal run they come on the morning.
+Also: a test arena (J picks any enemy, K drops it) for the B2 playtest. Bots: a 90% bot holds all five nights on 7/20 health; an 80% bot falls on Night 2, which is a B5 balance question.
+

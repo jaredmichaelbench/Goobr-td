@@ -14,6 +14,15 @@ extends RunSim
 static var active := false  # Set by the title screen: run3d builds a LevelRun.
 static var level_path := "res://levels/night_life.cfg"
 
+## B2 (D-0061, D-0067): the enemies new in the five-night demo, by code id, and
+## the names a level file may use for every enemy (Jared's naming table).
+const NEW_KINDS := ["door", "last_orders", "busker", "digger", "undertaker", "moth"]
+const ALIASES := {"bonehead": "grunt", "boneheads": "grunt", "legger": "runner", "leggers": "runner",
+	"knucklebones": "swarm", "big_lad": "brute", "biglad": "brute", "hush": "shade", "spanner": "jammer",
+	"pot-shot": "archer", "potshot": "archer", "pot_shot": "archer", "crossing_guard": "warden",
+	"door-to-door": "door", "door_to_door": "door", "moths": "moth", "diggers": "digger", "buskers": "busker"}
+const BOSS_KINDS := ["night_manager", "foreman", "landlord"]
+
 const LULL_CUTOFF := 650.0  # Hz: the low-pass a lull settles on.
 const OPEN_CUTOFF := 20000.0
 const LULL_DIP_DB := 3.0  # The song drops this much in a lull.
@@ -46,6 +55,7 @@ var _xp_start := {"level": 1, "xp": 0.0}  # Where XP stood when the night starte
 var night_phase := ""  # "" during the night; "summary" (XP fill and talents), "card".
 var misses: Array[Dictionary] = []  # One per missed note: why (none, early, late), ms, building, parry.
 var _placed_at := -INF  # Beat time of the last tower or wall built.
+var boss_kind := "night_manager"  # Which boss the next "boss" brings (B2): night_manager, foreman, landlord.
 
 
 # --- The level file ------------------------------------------------------------
@@ -56,7 +66,7 @@ var _placed_at := -INF  # Beat time of the last tower or wall built.
 ## @beats" ("grunt 8 @2": eight grunts, one every two beats); "boss" (or "boss at
 ## 4", four bars in) brings a field boss; "quiet" means no calls in that push.
 static func parse(text: String) -> Dictionary:
-	var out := {"name": "Night", "song": "", "count": 2, "gold": 150, "price_step": 0.0, "reach": 0.0, "mine": 0.0, "asks": ["q", "e", "parry", "stagger", "counter"], "sections": [], "bars": 0, "problems": []}
+	var out := {"name": "Night", "song": "", "overtime": "", "count": 2, "gold": 150, "price_step": 0.0, "reach": 0.0, "mine": 0.0, "asks": ["q", "e", "parry", "stagger", "counter"], "sections": [], "bars": 0, "problems": []}
 	var bar := 0
 	for raw in text.split("\n"):
 		var line := raw.split(";")[0].strip_edges()
@@ -83,7 +93,7 @@ static func parse(text: String) -> Dictionary:
 		if not kind in ["push", "lull", "finale"]:
 			out["problems"].append("%s: kind must be push, lull or finale" % words[0])
 			continue
-		var s := {"name": words[0], "kind": kind, "bars": int(words[2]), "tier": 1, "start": bar, "groups": [], "boss": false, "boss_at": 0, "quiet": false}
+		var s := {"name": words[0], "kind": kind, "bars": int(words[2]), "tier": 1, "start": bar, "groups": [], "boss": false, "boss_at": 0, "boss_kind": "night_manager", "quiet": false}
 		var rest_at := 3
 		if words.size() > 3 and words[3].is_valid_int():
 			s["tier"] = int(words[3])
@@ -96,20 +106,25 @@ static func parse(text: String) -> Dictionary:
 			if parts.is_empty():
 				continue
 			if parts[0] == "boss":
+				# "boss", "boss at 4", "boss foreman", "boss landlord at 2" (B2).
 				s["boss"] = true
-				if parts.size() >= 3 and parts[1] == "at":
-					s["boss_at"] = int(parts[2])
+				var rest := parts.slice(1)
+				if not rest.is_empty() and BOSS_KINDS.has(rest[0].to_lower()):
+					s["boss_kind"] = rest[0].to_lower()
+					rest = rest.slice(1)
+				if rest.size() >= 2 and rest[0] == "at":
+					s["boss_at"] = int(rest[1])
 				continue
 			if parts[0] == "quiet":
 				s["quiet"] = true
 				continue
-			var group := {"kind": parts[0], "count": 1, "gap": 2.0}
+			var group := {"kind": ALIASES.get(parts[0].to_lower(), parts[0].to_lower()), "count": 1, "gap": 2.0}
 			for p in parts.slice(1):
 				if p.begins_with("@"):
 					group["gap"] = float(p.substr(1))
 				elif p.is_valid_int():
 					group["count"] = int(p)
-			if not CREEP_KINDS.has(group["kind"]) and not ELITE_KINDS.has(group["kind"]):
+			if not CREEP_KINDS.has(group["kind"]) and not ELITE_KINDS.has(group["kind"]) and not NEW_KINDS.has(group["kind"]):
 				out["problems"].append("%s: no enemy called %s" % [s["name"], group["kind"]])
 				continue
 			s["groups"].append(group)
@@ -259,6 +274,12 @@ func _build_level_stream() -> AudioStreamWAV:
 	if song != null:
 		song_seconds = song.get_length()
 		data.append_array(song.data)
+		# Overtime (D-0066): a second song straight after the first, same format,
+		# so the boss fight carries on into it on the same clock.
+		var extra := _overtime_song(song)
+		if extra != null:
+			song_seconds += extra.get_length()
+			data.append_array(extra.data)
 	else:
 		song_seconds = night["bars"] * bar
 		var silence := PackedByteArray()
@@ -278,6 +299,22 @@ func _build_level_stream() -> AudioStreamWAV:
 	if absf(song_seconds / bar - night["bars"]) > 1.0:
 		night["problems"].append("The sections add up to %d bars; the song is %.1f bars long" % [night["bars"], song_seconds / bar])
 	return out
+
+
+## The level file's "overtime" song, if it is in game/audio and matches the first song's format.
+func _overtime_song(first: AudioStreamWAV) -> AudioStreamWAV:
+	var want: String = night.get("overtime", "")
+	if want == "":
+		return null
+	for s in songs:
+		if String(s["path"]).get_file() == want:
+			var w := AudioFiles.load_wav(s["path"])
+			if w != null and w.format == first.format and w.mix_rate == first.mix_rate and w.stereo == first.stereo:
+				return w
+			night["problems"].append("The overtime song %s is not in the same format as the first song" % want)
+			return null
+	night["problems"].append("Can't find the overtime song %s in game/audio" % want)
+	return null
 
 
 static func _wav(data: PackedByteArray, rate: int, channels: int) -> AudioStreamWAV:
@@ -394,6 +431,7 @@ func _enter_section(s: Dictionary) -> void:
 	for g in s["groups"]:
 		for i in g["count"]:
 			_push_plan.append({"kind": g["kind"], "gap": g["gap"] * beat})
+	_push_plan = _adjust_plan(_push_plan, s)
 	if wave_active:
 		# The last push is still on the board: this one joins it.
 		wave = s["tier"]
@@ -405,6 +443,7 @@ func _enter_section(s: Dictionary) -> void:
 		start_wave()
 		_pushing = false
 	if s["boss"]:
+		boss_kind = s.get("boss_kind", "night_manager")
 		if s["boss_at"] > 0:
 			_boss_due = s["start"] + s["boss_at"]
 		else:
@@ -427,6 +466,11 @@ func _boss_enters() -> void:
 ## ring starts two beats out. The rest of its call is not shown ahead.
 func _assign_note(n: Dictionary) -> void:
 	_assign_one(n)
+
+
+## Hook (B1): cards that change how many come adjust a push here.
+func _adjust_plan(plan: Array[Dictionary], _s: Dictionary) -> Array[Dictionary]:
+	return plan
 
 
 ## A push sends exactly what the file says (no run multipliers).
@@ -684,6 +728,7 @@ const BOSS_REST_BARS := 2  # Walk bars between strings.
 const LEVEL_BOLT_DAMAGE := 1  # A missed bolt costs 1 health in a level (v3.1), not 2.
 
 var _throw_bar := -1
+var _hold_until := -INF  # The boss stands still until this beat time (long strings, stomps; B2).
 var section_log: Array[String] = []  # One run-log row per section played.
 var section_rows: Array = []  # The same rows as data, for the results strip (T-038).
 var _section_base := {}  # Totals when the current section began.  # The bar the boss stands still and throws in.
@@ -699,7 +744,7 @@ func _move_creeps(delta: float) -> void:
 	if boss_alive() and not boss.get("at_goal", false):
 		var beat := clock.beat_length()
 		var bar := floori(beat_time() / clock.bar_length())
-		var moving := bar != _throw_bar and posmod(floori(beat_time() / beat), 4) < 2
+		var moving := bar != _throw_bar and beat_time() >= _hold_until and posmod(floori(beat_time() / beat), 4) < 2
 		var left := maxf(song_start + song_seconds - beat_time(), 0.0) * 0.35
 		var want := boss_path_left() / maxf(left, 0.5)
 		boss["speed"] = clampf(want, BOSS_SPEED, BOSS_STRIDE_MAX) if moving else 0.0

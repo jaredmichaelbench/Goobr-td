@@ -560,6 +560,10 @@ func _set_tint(entry: Dictionary, tint) -> void:
 
 func creep_kind(c: Dictionary) -> String:
 	if c.get("boss", false):
+		if c.get("foreman", false):
+			return "foreman"
+		if c.get("landlord", false):
+			return "landlord"
 		return "boss2" if c.get("second", false) else "boss"
 	return c.get("kind", "grunt")
 
@@ -600,6 +604,8 @@ func _sync_creeps(delta: float) -> void:
 		entry["data"] = c
 		var node: Node3D = entry["node"]
 		var pos := world(c["pos"])
+		if c.get("moth", false):
+			pos.y = 0.9 + 0.12 * sin(sim.sim_time * 9.0 + float(hash(vid) % 17))  # Moths fly over the maze.
 		var moved: Vector3 = pos - node.position
 		node.position = pos
 		if moved.length() > 0.0005:
@@ -683,7 +689,7 @@ func _animate_creep(entry: Dictionary, c: Dictionary, speed: float) -> void:
 			_play(entry, "Hit_B", 0.35)
 			return
 		if sim.beat_time() < _boss_cast_until:
-			_play(entry, "Spellcast_Shoot" if entry["kind"] == "boss" else "2H_Melee_Attack_Chop", 1.2)
+			_play(entry, "Spellcast_Shoot" if entry["kind"] in ["boss", "landlord"] else "2H_Melee_Attack_Chop", 1.2)
 			return
 	if c.get("pulse_at", -1.0) >= 0.0:
 		_play(entry, "Spellcasting", 1.0)  # A Jammer winding up its throw.

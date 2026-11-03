@@ -9,7 +9,7 @@ var marks: Indicators
 
 
 func _ready() -> void:
-	sim = LevelRun.new() if LevelRun.active else RunSim.new()
+	sim = NightRun.new() if LevelRun.active else RunSim.new()
 	sim.name = "Sim"
 	add_child(sim)
 	view = View3D.new()

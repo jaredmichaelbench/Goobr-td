@@ -22,9 +22,9 @@ static func grade(offset_ms: float) -> String:
 	return "Miss"
 
 
-static func grade_parry(offset_ms: float, good_ms := PARRY_GOOD_MS) -> String:
+static func grade_parry(offset_ms: float, good_ms := PARRY_GOOD_MS, perfect_ms := PERFECT_MS) -> String:
 	var a := absf(offset_ms)
-	if a <= PERFECT_MS:
+	if a <= perfect_ms:
 		return "Perfect"
 	if a <= good_ms:
 		return "Good"

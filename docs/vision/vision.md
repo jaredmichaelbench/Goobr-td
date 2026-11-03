@@ -69,6 +69,8 @@ Build Demo 0. See `prototypes/demo-0-plan.md`.
 - 2026-11-01: v0.22 demo enemies locked: new names, six new types, Night 4 = maze under attack, The Landlord on Night 5, notes target bosses and elites in view (D-0061).
 - 2026-11-01: v0.23 UI slice A built: B build mode with the mouse wheel, Shift-click chains, cursor tag, hover sell and upgrade with a coin payout, judgments at the camp and towers, corners dim in pushes (D-0062); cursor card restyled to Jared's spec (D-0063); HUD quick list: stats row, range decals, top slab (D-0064); HUD redesign and menus built in one design system (D-0065).
 - 2026-11-03: v0.24 Night 5 = Flanger Party then an overtime Landlord fight on Psychedelia Flashback (D-0066).
+- 2026-11-03: v0.25 five-night demo scope locked; build milestones B1 to B6, B1 and B2 built together (D-0067).
+- 2026-11-03: v0.26 B1+B2 built: five nights in a row with carryover and Retry, the locked tree, fork-then-mastery, new cards, six new enemies, Foreman and Landlord (D-0068).
 - 2026-10-31: v0.17 demo campaign: health lasts all five nights, towers unlock only through the talent tree, no flat stat cards (D-0056).
 - 2026-10-31: v0.16 scope: single player becomes a journey of song-length levels (night watch over a travelling caravan camp), building in the count-off and the song's lulls, a card per level, tiered bosses curated per campaign; multiplayer stays wave-based (D-0048, D-0049).
 - 2026-10-27: v0.15 calls are always on the beat, Kick then Snare, growing longer not faster; a missed Q or E press locks that key briefly (D-0047).

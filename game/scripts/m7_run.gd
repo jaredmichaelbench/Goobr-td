@@ -344,12 +344,21 @@ func upgrade_type(type: String, branch := 0) -> bool:
 	return true
 
 
+## The rung where a type picks its fork, and its top rung (the campaign changes both, B1).
+func fork_rank() -> int:
+	return 2
+
+
+func top_rank() -> int:
+	return RUNG_MULT.size()
+
+
 ## U and the panel button route here: upgrade the tower's type, not the tower.
 func upgrade(cell: Vector2i) -> bool:
 	if not structures.has(cell):
 		return false
 	var type: String = structures[cell]["type"]
-	if type_rank.get(type, 0) == 2:
+	if type_rank.get(type, 0) == fork_rank():
 		return false  # The fork needs a choice; the panel shows two buttons.
 	return upgrade_type(type)
 
@@ -1128,6 +1137,10 @@ func note_good_ms() -> float:
 	return Timing.GOOD_MS + gstats.get("note_window_ms", 0.0)
 
 
+func note_perfect_ms() -> float:
+	return Timing.PERFECT_MS + gstats.get("perfect_window_ms", 0.0)
+
+
 func counter_tap_ms() -> float:
 	return COUNTER_TAP_MS + gstats.get("counter_window_ms", 0.0)
 
@@ -1422,7 +1435,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				type = structures[selected_cell]["type"]
 			if not is_tower(type):
 				_say("Select a tower (or a tower button) to upgrade its type")
-			elif type_rank.get(type, 0) == 2:
+			elif type_rank.get(type, 0) == fork_rank():
 				upgrade_type(type, 2 if event.keycode == KEY_I else 1)  # The fork: U takes the first branch, I the second.
 			elif event.keycode == KEY_U:
 				upgrade_type(type)
